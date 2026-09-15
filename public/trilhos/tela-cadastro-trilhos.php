@@ -1,59 +1,30 @@
 <?php
 
-include '../infra/conexao.php';
+include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {
     die("Erro: conexão com o banco de dados não estabelecida.");
 }
 
 
-//    VALIDAR ID RECEBIDO
+//    EXCLUIR TRILHO
 
-if (!isset($_GET['id']) && !isset($_POST['id_trilho'])) {
-    header("Location: tela-cadastro-trilhos.php");
-    exit;
-}
+if (isset($_POST['excluir'])) {
 
-$id_trilho = isset($_POST['id_trilho'])
-    ? (int) $_POST['id_trilho']
-    : (int) $_GET['id'];
+    $id_trilho = (int) $_POST['id_trilho'];
 
-
-//    ATUALIZAR TRILHO
-
-if (isset($_POST['editar'])) {
-
-    $nome = $_POST['nome'];
-    $descricao = $_POST['descricao'];
-    $km = $_POST['km'];
-    $status = $_POST['status'];
-
-    $sql = "UPDATE trilhos
-            SET
-                nome_trilho = ?,
-                descricao_trilho = ?,
-                km_trilho = ?,
-                status_trilho = ?
-            WHERE id_trilho = ?";
+    $sql = "DELETE FROM trilhos WHERE id_trilho = ?";
 
     $stmt = mysqli_prepare($conexao, $sql);
 
     if (!$stmt) {
-        die("Erro ao preparar atualização: " . mysqli_error($conexao));
+        die("Erro ao preparar exclusão: " . mysqli_error($conexao));
     }
 
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ssssi",
-        $nome,
-        $descricao,
-        $km,
-        $status,
-        $id_trilho
-    );
+    mysqli_stmt_bind_param($stmt, "i", $id_trilho);
 
     if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao atualizar trilho: " . mysqli_stmt_error($stmt));
+        die("Erro ao excluir trilho: " . mysqli_stmt_error($stmt));
     }
 
     mysqli_stmt_close($stmt);
@@ -63,32 +34,59 @@ if (isset($_POST['editar'])) {
 }
 
 
-//    BUSCAR TRILHO PARA PREENCHER O FORMULÁRIO
+//    CADASTRAR TRILHO
 
-$sql = "SELECT * FROM trilhos WHERE id_trilho = ?";
+if (isset($_POST['cadastrar'])) {
 
-$stmt = mysqli_prepare($conexao, $sql);
+    $nome = $_POST['nome'];
+    $descricao = $_POST['descricao'];
+    $km = $_POST['km'];
+    $status = $_POST['status'];
 
-if (!$stmt) {
-    die("Erro ao preparar busca: " . mysqli_error($conexao));
-}
+    $sql = "INSERT INTO trilhos
+            (
+                nome_trilho,
+                descricao_trilho,
+                km_trilho,
+                status_trilho
+            )
+            VALUES (?, ?, ?, ?)";
 
-mysqli_stmt_bind_param($stmt, "i", $id_trilho);
+    $stmt = mysqli_prepare($conexao, $sql);
 
-if (!mysqli_stmt_execute($stmt)) {
-    die("Erro ao buscar trilho: " . mysqli_stmt_error($stmt));
-}
+    if (!$stmt) {
+        die("Erro ao preparar cadastro: " . mysqli_error($conexao));
+    }
 
-$resultado = mysqli_stmt_get_result($stmt);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "ssss",
+        $nome,
+        $descricao,
+        $km,
+        $status
+    );
 
-if (!$resultado || mysqli_num_rows($resultado) === 0) {
+    if (!mysqli_stmt_execute($stmt)) {
+        die("Erro ao cadastrar trilho: " . mysqli_stmt_error($stmt));
+    }
+
+    mysqli_stmt_close($stmt);
+
     header("Location: tela-cadastro-trilhos.php");
     exit;
 }
 
-$trilho = mysqli_fetch_assoc($resultado);
 
-mysqli_stmt_close($stmt);
+//    BUSCAR TRILHOS
+
+$sql = "SELECT * FROM trilhos ORDER BY id_trilho DESC";
+
+$resultado = mysqli_query($conexao, $sql);
+
+if (!$resultado) {
+    die("Erro ao buscar trilhos: " . mysqli_error($conexao));
+}
 
 ?>
 
@@ -102,10 +100,10 @@ mysqli_stmt_close($stmt);
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-    <title>Editar Trilho</title>
+    <title>Trilhos</title>
 
     <link rel="stylesheet"
-        href="../assets/img/style/style.css">
+        href="../../assets/img/style/style.css">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -129,7 +127,7 @@ mysqli_stmt_close($stmt);
             <div class="d-flex"
                 id="logo">
 
-                <img src="../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
+                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
                     alt="Logo">
 
                 <div class="nome-sistema">
@@ -161,56 +159,56 @@ mysqli_stmt_close($stmt);
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-geral-home.php">
+                                    href="../tela-geral-home.php">
                                     Home
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-dashboard.php">
+                                    href="../tela-dashboard.php">
                                     Dashboard
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-sensores.php">
+                                    href="../sensores/tela-cadastro-sensores.php">
                                     Sensores
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-trens.php">
+                                    href="../tela-trens.php">
                                     Trens
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-trilhos.php">
+                                    href="tela-cadastro-trilhos.php">
                                     Trilhos
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-monitoramento.php">
+                                    href="../tela-monitoramento.php">
                                     Monitoramento
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-relatorios.php">
+                                    href="../tela-relatorios.php">
                                     Relatórios
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-user.php">
+                                    href="../tela-cadastro-user.php">
                                     Usuários
                                 </a>
                             </li>
@@ -250,54 +248,59 @@ mysqli_stmt_close($stmt);
 
             <div>
 
-                <h3 class="titulo-sensores">
-                    Editar Trilho
+                <h3 class="titulo-trilhos">
+                    Trilhos
                 </h3>
 
-                <p class="subtitulo-sensores">
-                    Atualize as informações do trilho selecionado
+                <p class="subtitulo-trilhos">
+                    Gerencie os trilhos cadastrados na malha ferroviária
                 </p>
 
             </div>
 
 
-            <!-- BOTÃO VOLTAR -->
+            <!-- BOTÃO NOVO TRILHO -->
 
-            <a href="tela-trilhos.php"
-                class="btn btn-secondary text-white px-3 py-2">
+            <button type="button"
+                class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseCadastroTrilho"
+                aria-expanded="false"
+                aria-controls="collapseCadastroTrilho">
 
-                VOLTAR
+                <span class="botaonovotrilho">
+                    +
+                </span>
 
-            </a>
+                NOVO TRILHO
+
+            </button>
 
         </div>
 
 
-        <!-- FORMULÁRIO -->
+             <!-- FORMULÁRIO -->
 
-        <div class="d-flex flex-column align-items-center gap-5 w-100"
-            style="padding-top: 20px; min-height: 60vh; background-color: #f8f9fa;">
+        <div class="collapse mb-4"
+            id="collapseCadastroTrilho">
 
-            <div class="card border-0"
-                style="width: 1000px;">
+            <div class="card border-0">
+
 
                 <!-- CABEÇALHO DO FORM -->
 
                 <div class="cardcadastro p-3">
 
-                    <span class="spancadastrosensor">
-                        EDITAR TRILHO #<?php echo $trilho['id_trilho']; ?>
+                    <span class="spancadastrotrilho">
+                        CADASTRAR NOVO TRILHO
                     </span>
 
                 </div>
 
+
                 <form method="POST"
                     class="p-4 bg-white"
                     style="border: 1px solid #BCCCDC; border-top: none;">
-
-                    <input type="hidden"
-                        name="id_trilho"
-                        value="<?php echo $trilho['id_trilho']; ?>">
 
 
                     <div class="row g-4">
@@ -318,7 +321,6 @@ mysqli_stmt_close($stmt);
                                 name="nome"
                                 id="nomeTrilho"
                                 class="form-control"
-                                value="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>"
                                 placeholder="Ex: Trilho Norte 01"
                                 required>
 
@@ -340,7 +342,6 @@ mysqli_stmt_close($stmt);
                                 name="km"
                                 id="kmTrilho"
                                 class="form-control"
-                                value="<?php echo htmlspecialchars($trilho['km_trilho']); ?>"
                                 placeholder="Ex: KM 10 - KM 25"
                                 required>
 
@@ -362,7 +363,6 @@ mysqli_stmt_close($stmt);
                                 name="descricao"
                                 id="descricaoTrilho"
                                 class="form-control"
-                                value="<?php echo htmlspecialchars($trilho['descricao_trilho']); ?>"
                                 placeholder="Ex: Trecho entre os pátios A e B"
                                 required>
 
@@ -385,18 +385,15 @@ mysqli_stmt_close($stmt);
                                 class="form-select"
                                 required>
 
-                                <option value="ATIVO"
-                                    <?php echo $trilho['status_trilho'] === 'ATIVO' ? 'selected' : ''; ?>>
+                                <option value="ATIVO">
                                     Ativo
                                 </option>
 
-                                <option value="MANUTENÇÃO"
-                                    <?php echo $trilho['status_trilho'] === 'MANUTENÇÃO' ? 'selected' : ''; ?>>
+                                <option value="MANUTENÇÃO">
                                     Manutenção
                                 </option>
 
-                                <option value="INATIVO"
-                                    <?php echo $trilho['status_trilho'] === 'INATIVO' ? 'selected' : ''; ?>>
+                                <option value="INATIVO">
                                     Inativo
                                 </option>
 
@@ -412,24 +409,254 @@ mysqli_stmt_close($stmt);
                     <div class="mt-4 d-flex gap-2">
 
                         <button type="submit"
-                            name="editar"
+                            name="cadastrar"
                             class="btn btn-primary">
 
-                            SALVAR ALTERAÇÕES
+                            CADASTRAR
 
                         </button>
 
 
-                        <a href="tela-trilhos.php"
-                            class="btn btn-secondary">
+                        <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseCadastroTrilho">
 
                             CANCELAR
 
-                        </a>
+                        </button>
 
                     </div>
 
                 </form>
+
+            </div>
+
+        </div>
+
+
+             <!-- TABELA -->
+
+        <div class="d-flex flex-column align-items-center gap-5 w-100"
+            style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
+
+
+            <div class="card shadow-sm border-1 p-0"
+                style="width: 1000px; border-radius: 4px;">
+
+
+                <!-- TÍTULO DA TABELA -->
+
+                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
+                    style="font-size: 0.7rem;">
+
+                    TRILHOS CADASTRADOS
+
+                </div>
+
+
+                <!-- TABELA -->
+
+                <table class="table table-bordered table-hover mb-0 align-middle">
+
+                    <thead class="table-light">
+
+                        <tr class="text-secondary"
+                            style="font-size: 0.75rem;">
+
+                            <th class="fw-semibold">
+                                ID
+                            </th>
+
+                            <th class="fw-semibold">
+                                NOME
+                            </th>
+
+                            <th class="fw-semibold">
+                                DESCRIÇÃO
+                            </th>
+
+                            <th class="fw-semibold">
+                                KM
+                            </th>
+
+                            <th class="fw-semibold">
+                                STATUS
+                            </th>
+
+                            <th class="fw-semibold text-center">
+                                AÇÕES
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody style="font-size: 0.85rem;">
+
+
+                        <?php if (mysqli_num_rows($resultado) > 0) { ?>
+
+
+                            <?php while ($trilho = mysqli_fetch_assoc($resultado)) { ?>
+
+                                <tr>
+
+
+                                    <!-- ID -->
+
+                                    <td class="text-primary-emphasis fw-bold">
+
+                                        <?php
+                                        echo $trilho['id_trilho'];
+                                        ?>
+
+                                    </td>
+
+
+                                    <!-- NOME -->
+
+                                    <td class="text-secondary">
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $trilho['nome_trilho']
+                                        );
+                                        ?>
+
+                                    </td>
+
+
+                                    <!-- DESCRIÇÃO -->
+
+                                    <td class="text-body-tertiary">
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $trilho['descricao_trilho']
+                                        );
+                                        ?>
+
+                                    </td>
+
+
+                                    <!-- KM -->
+
+                                    <td class="text-body-tertiary">
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $trilho['km_trilho']
+                                        );
+                                        ?>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        <?php
+
+                                        $status = $trilho['status_trilho'];
+
+                                        if ($status == 'ATIVO') {
+
+                                            $classeStatus =
+                                                'bg-success-subtle text-success-emphasis border-success-subtle';
+
+                                        } elseif ($status == 'MANUTENÇÃO') {
+
+                                            $classeStatus =
+                                                'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+
+                                        } else {
+
+                                            $classeStatus =
+                                                'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle';
+
+                                        }
+
+                                        ?>
+
+                                        <span class="badge border rounded-1
+                                            <?php echo $classeStatus; ?>">
+
+                                            <?php
+                                            echo htmlspecialchars($status);
+                                            ?>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- AÇÕES -->
+
+                                    <td class="text-center">
+
+
+                                        <!-- EDITAR -->
+
+                                        <a href="tela-editar-trilhos.php?id=<?php echo $trilho['id_trilho']; ?>"
+                                            class="btn btn-sm btn-outline-primary me-1">
+
+                                            EDITAR
+
+                                        </a>
+
+
+                                        <!-- EXCLUIR -->
+
+                                        <form method="POST"
+                                            style="display: inline;"
+                                            onsubmit="return confirm('Tem certeza que deseja excluir este trilho?');">
+
+                                            <input type="hidden"
+                                                name="id_trilho"
+                                                value="<?php echo $trilho['id_trilho']; ?>">
+
+                                            <button type="submit"
+                                                name="excluir"
+                                                class="btn btn-sm btn-outline-danger">
+
+                                                X
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+
+                            <?php } ?>
+
+
+                        <?php } else { ?>
+
+
+                            <!-- NENHUM TRILHO -->
+
+                            <tr>
+
+                                <td colspan="6"
+                                    class="text-center text-muted py-4">
+
+                                    Nenhum trilho cadastrado.
+
+                                </td>
+
+                            </tr>
+
+
+                        <?php } ?>
+
+                    </tbody>
+
+                </table>
 
             </div>
 
