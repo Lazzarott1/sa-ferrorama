@@ -30,4 +30,4 @@ CREATE TABLE trens (
     nome_trem       VARCHAR(100)    NOT NULL,
     carga_trem     VARCHAR(100)    NOT NULL,
     status_trem     VARCHAR(20)     NOT NULL   
-) 
+);
