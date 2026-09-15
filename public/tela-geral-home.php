@@ -32,38 +32,32 @@
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" aria-current="page"
-                                            href="tela-dashboard.html">Dashboard</a>
+                                        <a class="nav-link text-white" href="tela-cadastro-sensores.php">Sensores</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-sensores.html">Sensores</a>
+                                        <a class="nav-link text-white" href="tela-trens.php">Trens</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-trens.html">Trens</a>
+                                        <a class="nav-link text-white" href="tela-cadastro-trilhos.php">Trilhos</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-trilhos.html">Trilhos</a>
+                                        <a class="nav-link text-white" href="tela-monitoramento.php">Monitoramento</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-monitoramento.html">Monitoramento</a>
+                                        <a class="nav-link text-white" href="tela-relatorios.php">Relatórios</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-relatorios.html">Relatórios</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-user.html">Usuários</a>
+                                        <a class="nav-link text-white" href="tela-cadastro-user.php">Usuários</a>
                                     </li>
                                 </div>
 
@@ -86,38 +80,6 @@
             <h1 class="text-start">Bem-vindo(a), NMUSER!</h1>
             <p class="text-start">Dia 11 de junho de 2020</p>
         </div>
-        
-        <div class="bottom-bar">
-            <a class="tab-item" href="tela-dashboard.html">
-                <i class="ti ti-layout-dashboard tab-icon"></i>
-                <span class="tab-label">Dashboard</span>
-            </a>
-            <a class="tab-item" href="tela-cadastro-sensores.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Sensores</span>
-            </a>
-            <a class="tab-item" href="tela-trens.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Trens</span>
-            </a>
-            <a class="tab-item" href="tela-trilhos.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Trilhos</span>
-            </a>
-            <a class="tab-item" href="tela-monitoramento.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Monitoramento</span>
-            </a>
-            <a class="tab-item" href="tela-relatorios.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Relatórios</span>
-            </a>
-            <a class="tab-item" href="tela-cadastro-user.html">
-                <i class="ti ti-radar tab-icon"></i>
-                <span class="tab-label">Usuários</span>
-            </a>
-        </div>
-
 
     </main>
 

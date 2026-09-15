@@ -1,32 +1,40 @@
 console.log("Console carregou");
-
-localStorage.setItem("matheus", "1234");
-
+ 
 document.getElementById("form-login").onsubmit = (e) => {
     e.preventDefault();
-
-    let usuario = document.getElementById("usuario").value.trim();
+ 
+    let nome_usuario = document.getElementById("nome_usuario").value.trim();
     let senha = document.getElementById("senha").value.trim();
     let mensagem = document.getElementById("mensagem");
     mensagem.innerHTML = "";
-
-
-
-   let salva = localStorage.getItem(usuario);
-
-
-    console.log("usuário digitado:", usuario);
-    console.log("senha digitada:", senha);
-    console.log("senha salva:", salva);
-
-    
-    if (salva === senha) {
-        mensagem.innerHTML = "<div class='alert alert-success'>Login realizado com sucesso!</div>";
-        window.location.href = "tela-geral-home.html";
-    } else {
-        mensagem.innerHTML = "<div class='alert alert-danger'>Usuário ou senha incorretos!</div>";
+ 
+    if (nome_usuario === "" || senha === "") {
+        mensagem.innerHTML = "<div class='alert alert-danger'>Preencha usuário e senha.</div>";
+        return;
     }
-
-    document.getElementById("form-login").reset();
+ 
+    fetch("tela-login.php", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "nome_usuario=" + encodeURIComponent(nome_usuario) + "&senha=" + encodeURIComponent(senha) + "&ajax=1"
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("resposta do servidor:", data);
+ 
+        if (data.sucesso) {
+            mensagem.innerHTML = "<div class='alert alert-success'>" + data.mensagem + "</div>";
+            window.location.href = "../index.php";
+        } else {
+            mensagem.innerHTML = "<div class='alert alert-danger'>" + data.mensagem + "</div>";
+        }
+ 
+        document.getElementById("form-login").reset();
+    })
+    .catch(error => {
+        mensagem.innerHTML = "<div class='alert alert-danger'>Erro ao conectar com o servidor.</div>";
+        console.error("Erro na requisição:", error);
+    });
 };
-

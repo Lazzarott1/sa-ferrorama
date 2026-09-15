@@ -1,3 +1,41 @@
+<?php
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+include '../infra/conexao.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome_usuario = $_POST['nome_usuario'] ?? '';
+    $email_usuario = $_POST['email_usuario'] ?? '';
+    $senha = $_POST['senha'] ?? '';
+    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+
+    $sql = "INSERT INTO usuarios (nome_usuario, email_usuario, senha) VALUES (?, ?, ?)";
+    $stmt = mysqli_prepare($conexao, $sql);
+
+    if ($stmt === false) {
+        die('Erro ao preparar a consulta: ' . mysqli_error($conexao));
+    }
+
+    mysqli_stmt_bind_param($stmt, 'sss', $nome_usuario, $email_usuario, $senha_hash);
+
+    if (mysqli_stmt_execute($stmt)) {
+        echo "Usuário cadastrado com sucesso!";
+        echo "<br><a href='../index.php'>Voltar</a>";
+        mysqli_stmt_close($stmt);
+        exit();
+    } else {
+        echo "Erro ao cadastrar usuário: " . mysqli_error($conexao);
+    }
+
+    mysqli_stmt_close($stmt);
+}
+?>
+
+
+
+
 <html lang="en">
 
 <head>
@@ -25,7 +63,7 @@
                             <ul class="navbar-nav">
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" aria-current="page" href="tela-geral-home.html">Home</a>
+                                        <a class="nav-link text-white" aria-current="page" href="tela-geral-home.php">Home</a>
                                     </li>
                                 </div>
                                 <div>
@@ -35,32 +73,32 @@
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-sensores.html">Sensores</a>
+                                        <a class="nav-link text-white" href="tela-cadastro-sensores.php">Sensores</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="#">Trens</a>
+                                        <a class="nav-link text-white" href="tela-trens.php">Trens</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="#">Trilhos</a>
+                                        <a class="nav-link text-white" href="tela-trilhos.php">Trilhos</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="#">Monitoramento</a>
+                                        <a class="nav-link text-white" href="tela-monitoramento.php">Monitoramento</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="#">Relatórios</a>
+                                        <a class="nav-link text-white" href="tela-relatorios.php">Relatórios</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-user.html">Usuários</a>
+                                        <a class="nav-link text-white" href="tela-cadastro-user.php">Usuários</a>
                                     </li>
                                 </div>
 
@@ -97,7 +135,7 @@
                         EMAIL
                     </label>
 
-                    <input type="email" id="email" class="form-control"
+                    <input type="email" id="email_usuario" name="email_usuario" class="form-control"
                         placeholder="exemplo@123.com" required>
                 </div>
 
@@ -107,7 +145,7 @@
                         NOME DE USUÁRIO
                     </label>
 
-                    <input type="text" id="user" class="form-control"
+                    <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
                         placeholder="Usuário" required>
                 </div>
 
@@ -117,7 +155,7 @@
                         SENHA
                     </label>
 
-                    <input type="password" id="senha" class="form-control"
+                    <input type="password" id="senha" name="senha" class="form-control"
                         placeholder="Senha" required>
                 </div>
 
@@ -188,7 +226,7 @@
 
 </main>
 
-    <script src="script.js"></script>
+    <script src="../script/validacao_cadastro_user.js"></script>
 
 </body>
 
