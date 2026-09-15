@@ -1,25 +1,25 @@
-# SA
+# SA Ferrorama
 
-### Proposta do Sistema:
+### Proposta do Sistema
 
-O FerroMonitor é um sistema feito para cuidar de ferrovias de um jeito inteligente e moderno. Ele usa sensores instalados nos trens e nos trilhos para coletar informações o tempo todo. Esses dados são enviados para um computador central, onde são organizados para que os gestores possam acompanhar tudo o que acontece no sistema ferroviário na hora.
+O FerroMonitor é um sistema desenvolvido para gerenciar ferrovias de forma inteligente e moderna. Ele utiliza sensores instalados nos trens e nos trilhos para coletar informações continuamente. Esses dados são enviados a um computador central, onde são organizados para que os gestores possam acompanhar em tempo real tudo o que acontece na malha ferroviária.
 
-### Objetivos do Projeto:
+### Objetivos do Projeto
 
-O principal objetivo deste projeto é criar uma ferramenta que ajude a tomar decisões baseadas em fatos reais. O sistema foca em três pontos: melhorar a velocidade e o uso de energia, prever quando os equipamentos precisam de conserto e aumentar a segurança. Para isso, ele registra a velocidade, a localização e possíveis defeitos, transformando esses dados em gráficos e relatórios fáceis de entender.
+O principal objetivo deste projeto é oferecer uma ferramenta que apoie a tomada de decisões com base em dados reais. O sistema concentra-se em três frentes: melhorar a velocidade e o uso de energia, antecipar a necessidade de manutenção dos equipamentos e aumentar a segurança das operações. Para isso, registra velocidade, localização e possíveis defeitos, transformando essas informações em gráficos e relatórios de fácil compreensão.
 
-### Equipe:
+### Equipe
 
-O projeto é desenvolvido por Caio Marques, Lucas Lazzarotti, Luis Pedro Mathias e Matheus Guesser.
+O projeto é desenvolvido por uma equipe formada por quatro integrantes: Caio Marques, Lucas Lazzarotti, Luis Pedro Mathias e Matheus Guesser.
 
-### Funcionalidades Previstas:
+### Funcionalidades Previstas
 
-O sistema funciona começando pelo recebimento e processamento das informações enviadas pelos sensores instalados nos trens e trilhos. Na parte de uso administrativo, o software oferece uma tela de login segura que identifica o usuário e dá acesso às páginas de gestão. As ferramentas de gerenciamento permitem que o operador cadastre, liste ou apague sensores e locomotivas, além de acompanhar em um mapa a localização e a velocidade de cada trem em tempo real. Além disso, o software é preparado para não perder dados: se a internet cair, os sensores guardam as informações e as enviam para o banco de dados assim que a conexão voltar.
+O funcionamento do sistema começa pelo recebimento e processamento das informações enviadas pelos sensores instalados nos trens e trilhos. Para uso administrativo, o software conta com uma tela de login segura, responsável por identificar o usuário e liberar o acesso às páginas de gestão. As ferramentas de gerenciamento permitem cadastrar, listar e excluir sensores e locomotivas, além de acompanhar em um mapa a localização e a velocidade de cada trem em tempo real. O sistema também foi projetado para evitar perda de dados: caso a conexão com a internet seja interrompida, os sensores armazenam as informações localmente e as sincronizam automaticamente com o banco de dados assim que a conexão for restabelecida.
 
-### Especificações Técnicas:
+### Especificações Técnicas
 
-A qualidade e a confiabilidade do FerroMonitor são sustentadas por requisitos não funcionais rigorosos, como a latência máxima de 500ms para o processamento de dados e uma disponibilidade de sistema de 99,9%. A interface foi projetada para ser responsiva e compatível com os principais navegadores do mercado, priorizando a acessibilidade através de diretrizes WCAG e alto contraste em alertas críticos. Além disso, a arquitetura modular do software permite a escalabilidade para milhares de sensores e garante a integridade dos dados e a segurança das sessões dos usuários.
+A qualidade e a confiabilidade do FerroMonitor são garantidas por requisitos não funcionais rigorosos, como latência máxima de 500ms no processamento de dados e disponibilidade de 99,9%. A interface foi projetada para ser responsiva e compatível com os principais navegadores do mercado, priorizando a acessibilidade por meio das diretrizes WCAG e do uso de alto contraste em alertas críticos. Além disso, a arquitetura modular do sistema permite escalabilidade para milhares de sensores, garantindo a integridade dos dados e a segurança das sessões dos usuários.
 
-### Técnologias Utilizadas:
+### Tecnologias Utilizadas
 
-Além do HTML, tiveram várias linguagens e tecnologias as quais utilizamos para fazer tudo funcionar do melhor jeito possível, como, XAMPP, JavaScript, PHP, CRUD, MySQL através do PHPmyAdmin, Scrum, Kanban, CSS, Bootstrap e etc.
+Além do HTML, o projeto emprega diversas linguagens e tecnologias para garantir seu pleno funcionamento, entre elas JavaScript, PHP, CSS e Bootstrap para o desenvolvimento da interface; MySQL, gerenciado via phpMyAdmin, para o armazenamento dos dados; e XAMPP como ambiente de desenvolvimento local. A operação CRUD (Create, Read, Update, Delete) estrutura as ações de cadastro e manipulação de dados, enquanto Scrum e Kanban orientam a organização e o acompanhamento do trabalho da equipe.
