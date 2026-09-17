@@ -26,7 +26,7 @@ document.getElementById("form-login").onsubmit = (e) => {
  
         if (data.sucesso) {
             mensagem.innerHTML = "<div class='alert alert-success'>" + data.mensagem + "</div>";
-            window.location.href = "../index.php";
+            window.location.href = "../public/tela-geral-home.php";
         } else {
             mensagem.innerHTML = "<div class='alert alert-danger'>" + data.mensagem + "</div>";
         }
