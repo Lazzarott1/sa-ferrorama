@@ -27,37 +27,37 @@
                                 <div>
                                     <li class="nav-item">
                                         <a class="nav-link text-white" aria-current="page"
-                                            href="public/tela-geral-home.php">Home</a>
+                                            href="tela-geral-home.php">Home</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/sensores/tela-cadastro-sensores.php">Sensores</a>
+                                        <a class="nav-link text-white" href="sensores/tela-cadastro-sensores.php">Sensores</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/trens/tela-trens.php">Trens</a>
+                                        <a class="nav-link text-white" href="trens/tela-trens.php">Trens</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/trilhos/tela-cadastro-trilhos.php">Trilhos</a>
+                                        <a class="nav-link text-white" href="trilhos/tela-cadastro-trilhos.php">Trilhos</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/tela-monitoramento.php">Monitoramento</a>
+                                        <a class="nav-link text-white" href="monitoramento/tela-monitoramento.php">Monitoramento</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/tela-relatorios.php">Relatórios</a>
+                                        <a class="nav-link text-white" href="relatorios/tela-relatorios.php">Relatórios</a>
                                     </li>
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="public/tela-cadastro-user.php">Usuários</a>
+                                        <a class="nav-link text-white" href="usuarios/tela-cadastro-user.php">Usuários</a>
                                     </li>
                                 </div>
 
