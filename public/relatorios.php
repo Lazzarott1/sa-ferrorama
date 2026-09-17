@@ -5,6 +5,9 @@ require_once '../infra/conexao.php';
 
 
 $msgErro = '';
+$formAberto = false;
+$old = ['titulo' => '', 'data_inicio' => '', 'data_fim' => '', 'trem_id' => '', 'trilho_id' => '', 'tipo_dado' => ''];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['gerar_relatorio'])) {
     $titulo      = trim($_POST['titulo'] ?? '');
     $dataInicio  = $_POST['data_inicio'] ?? '';
@@ -14,14 +17,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['gerar_relatorio'])) {
     $tipoDado    = trim($_POST['tipo_dado'] ?? '');
     $tipo        = $tipoDado !== '' ? $tipoDado : 'Geral';
 
+    $old = [
+        'titulo' => $titulo,
+        'data_inicio' => $dataInicio,
+        'data_fim' => $dataFim,
+        'trem_id' => $tremId,
+        'trilho_id' => $trilhoId,
+        'tipo_dado' => $tipoDado,
+    ];
+
     if ($titulo === '' || $dataInicio === '' || $dataFim === '') {
         $msgErro = 'Preencha ao menos Título, Data Início e Data Fim.';
+        $formAberto = true;
+    } elseif (strtotime($dataFim) < strtotime($dataInicio)) {
+        $msgErro = 'A Data Fim não pode ser anterior à Data Início.';
+        $formAberto = true;
     } else {
         $stmt = $conexao->prepare(
             "INSERT INTO relatorios (titulo, tipo, data_inicio, data_fim, trem_id, trilho_id, tipo_dado, status, gerado_em)
              VALUES (?, ?, ?, ?, ?, ?, ?, 'PROCESSANDO', NOW())"
         );
-        $stmt->bind_param('sssssss', $titulo, $tipo, $dataInicio, $dataFim, $tremId, $trilhoId, $tipoDado);
+        $stmt->bind_param('ssssiis', $titulo, $tipo, $dataInicio, $dataFim, $tremId, $trilhoId, $tipoDado);
         $stmt->execute();
         $stmt->close();
 
@@ -218,7 +234,7 @@ function badgeStatus(string $status): string {
         <div class="alert alert-danger py-2"><?= htmlspecialchars($msgErro) ?></div>
     <?php endif; ?>
 
-    <div class="fm-card mb-4" id="formGerarRelatorio">
+    <div class="fm-card mb-4<?= $formAberto ? ' show' : '' ?>" id="formGerarRelatorio">
         <div class="fm-card-header px-3 py-2">
             <i class="bi bi-file-earmark-plus me-1"></i>GERAR NOVO RELATÓRIO
         </div>
@@ -227,15 +243,15 @@ function badgeStatus(string $status): string {
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label-fm">TÍTULO <span class="text-req">*</span></label>
-                        <input type="text" name="titulo" class="form-control" placeholder="Ex: Relatório Semanal" required>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ex: Relatório Semanal" value="<?= htmlspecialchars($old['titulo']) ?>" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label-fm">DATA INÍCIO <span class="text-req">*</span></label>
-                        <input type="date" name="data_inicio" class="form-control" required>
+                        <input type="date" name="data_inicio" class="form-control" value="<?= htmlspecialchars($old['data_inicio']) ?>" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label-fm">DATA FIM <span class="text-req">*</span></label>
-                        <input type="date" name="data_fim" class="form-control" required>
+                        <input type="date" name="data_fim" class="form-control" value="<?= htmlspecialchars($old['data_fim']) ?>" required>
                     </div>
 
                     <div class="col-md-4">
@@ -243,7 +259,7 @@ function badgeStatus(string $status): string {
                         <select name="trem_id" class="form-select">
                             <option value="">Todos os trens</option>
                             <?php if ($trens): while ($tr = $trens->fetch_assoc()): ?>
-                                <option value="<?= (int) $tr['id'] ?>"><?= htmlspecialchars($tr['nome']) ?></option>
+                                <option value="<?= (int) $tr['id'] ?>" <?= (string) $old['trem_id'] === (string) $tr['id'] ? 'selected' : '' ?>><?= htmlspecialchars($tr['nome']) ?></option>
                             <?php endwhile; endif; ?>
                         </select>
                     </div>
@@ -252,7 +268,7 @@ function badgeStatus(string $status): string {
                         <select name="trilho_id" class="form-select">
                             <option value="">Todos os trilhos</option>
                             <?php if ($trilhos): while ($tl = $trilhos->fetch_assoc()): ?>
-                                <option value="<?= (int) $tl['id'] ?>"><?= htmlspecialchars($tl['nome']) ?></option>
+                                <option value="<?= (int) $tl['id'] ?>" <?= (string) $old['trilho_id'] === (string) $tl['id'] ? 'selected' : '' ?>><?= htmlspecialchars($tl['nome']) ?></option>
                             <?php endwhile; endif; ?>
                         </select>
                     </div>
@@ -260,11 +276,9 @@ function badgeStatus(string $status): string {
                         <label class="form-label-fm">TIPO DE DADO</label>
                         <select name="tipo_dado" class="form-select">
                             <option value="">Todos os dados</option>
-                            <option value="Velocidade">Velocidade</option>
-                            <option value="Temperatura">Temperatura</option>
-                            <option value="Localização">Localização</option>
-                            <option value="Consumo de Energia">Consumo de Energia</option>
-                            <option value="Falhas">Falhas</option>
+                            <?php foreach (['Velocidade', 'Temperatura', 'Localização', 'Consumo de Energia', 'Falhas'] as $opt): ?>
+                                <option value="<?= htmlspecialchars($opt) ?>" <?= $old['tipo_dado'] === $opt ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
