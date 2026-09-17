@@ -29,5 +29,20 @@ CREATE TABLE trens (
     id_trem         INT AUTO_INCREMENT PRIMARY KEY,
     nome_trem       VARCHAR(100)    NOT NULL,
     carga_trem     VARCHAR(100)    NOT NULL,
-    status_trem     VARCHAR(20)     NOT NULL   
+    status_trem     VARCHAR(20)     NOT NULL
+);
+
+CREATE TABLE relatorios (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    titulo       VARCHAR(150)    NOT NULL,
+    tipo         VARCHAR(50)     NOT NULL,
+    data_inicio  DATE            NOT NULL,
+    data_fim     DATE            NOT NULL,
+    trem_id      INT             NULL,
+    trilho_id    INT             NULL,
+    tipo_dado    VARCHAR(50)     NULL,
+    status       VARCHAR(20)     NOT NULL DEFAULT 'PROCESSANDO',
+    gerado_em    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_relatorios_trem   FOREIGN KEY (trem_id)   REFERENCES trens (id_trem)     ON DELETE SET NULL,
+    CONSTRAINT fk_relatorios_trilho FOREIGN KEY (trilho_id) REFERENCES trilhos (id_trilho) ON DELETE SET NULL
 );

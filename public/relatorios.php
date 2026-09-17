@@ -19,9 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['gerar_relatorio'])) {
     } else {
         $stmt = $conexao->prepare(
             "INSERT INTO relatorios (titulo, tipo, data_inicio, data_fim, trem_id, trilho_id, tipo_dado, status, gerado_em)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'PROCESSANDO', NOW())"
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'PRONTO', NOW())"
         );
-        $stmt->bind_param('sssssss', $titulo, $tipo, $dataInicio, $dataFim, $tremId, $trilhoId, $tipoDado);
+        $stmt->bind_param('ssssiis', $titulo, $tipo, $dataInicio, $dataFim, $tremId, $trilhoId, $tipoDado);
         $stmt->execute();
         $stmt->close();
 
@@ -53,8 +53,8 @@ if ($resTipos) {
 }
 
 
-$trens = $conexao->query("SELECT id, nome FROM trens ORDER BY nome");
-$trilhos = $conexao->query("SELECT id, nome FROM trilhos ORDER BY nome");
+$trens = $conexao->query("SELECT id_trem, nome_trem FROM trens ORDER BY nome_trem");
+$trilhos = $conexao->query("SELECT id_trilho, nome_trilho FROM trilhos ORDER BY nome_trilho");
 
 /* Helper: classe da badge conforme status */
 function badgeStatus(string $status): string {
@@ -75,7 +75,7 @@ function badgeStatus(string $status): string {
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/img/style/style.css">
 
 <style>
     :root{
@@ -160,7 +160,7 @@ function badgeStatus(string $status): string {
 
 <nav class="navbar navbar-expand-lg fm-navbar py-2">
     <div class="container-fluid px-4">
-        <a class="navbar-brand d-flex align-items-center fm-brand" href="dashboard.php">
+        <a class="navbar-brand d-flex align-items-center fm-brand" href="tela-geral-home.php">
             <span class="bg-warning bg-opacity-100 rounded d-inline-flex align-items-center justify-content-center me-2"
                   style="width:34px;height:34px;background:var(--fm-gold)!important;">
                 <i class="bi bi-train-front-fill text-dark"></i>
@@ -177,18 +177,18 @@ function badgeStatus(string $status): string {
 
         <div class="collapse navbar-collapse" id="fmNav">
             <ul class="navbar-nav mx-auto">
-                <li class="nav-item"><a class="nav-link" href="dashboard.php"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="sensores.php"><i class="bi bi-broadcast"></i>Sensores</a></li>
-                <li class="nav-item"><a class="nav-link" href="trens.php"><i class="bi bi-train-front"></i>Trens</a></li>
-                <li class="nav-item"><a class="nav-link" href="trilhos.php"><i class="bi bi-signpost-split"></i>Trilhos</a></li>
-                <li class="nav-item"><a class="nav-link" href="monitoramento.php"><i class="bi bi-display"></i>Monitoramento</a></li>
+                <li class="nav-item"><a class="nav-link" href="tela-geral-home.php"><i class="bi bi-grid-1x2-fill"></i>Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="sensores/tela-cadastro-sensores.php"><i class="bi bi-broadcast"></i>Sensores</a></li>
+                <li class="nav-item"><a class="nav-link" href="trens/tela-trens.php"><i class="bi bi-train-front"></i>Trens</a></li>
+                <li class="nav-item"><a class="nav-link" href="trilhos/tela-cadastro-trilhos.php"><i class="bi bi-signpost-split"></i>Trilhos</a></li>
+                <li class="nav-item"><a class="nav-link" href="monitoramento/tela-monitoramento.php"><i class="bi bi-display"></i>Monitoramento</a></li>
                 <li class="nav-item"><a class="nav-link active" href="relatorios.php"><i class="bi bi-file-earmark-text-fill"></i>Relatórios</a></li>
-                <li class="nav-item"><a class="nav-link" href="usuarios.php"><i class="bi bi-people-fill"></i>Usuários</a></li>
+                <li class="nav-item"><a class="nav-link" href="usuarios/tela-cadastro-user.php"><i class="bi bi-people-fill"></i>Usuários</a></li>
             </ul>
 
             <div class="d-flex align-items-center gap-2">
                 <span class="fm-user-badge"><i class="bi bi-person-circle me-1"></i>Administrador</span>
-                <a href="../infra/logout.php" class="btn btn-sm btn-sair"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
+                <a href="tela-login.php" class="btn btn-sm btn-sair"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
             </div>
         </div>
     </div>
@@ -243,7 +243,7 @@ function badgeStatus(string $status): string {
                         <select name="trem_id" class="form-select">
                             <option value="">Todos os trens</option>
                             <?php if ($trens): while ($tr = $trens->fetch_assoc()): ?>
-                                <option value="<?= (int) $tr['id'] ?>"><?= htmlspecialchars($tr['nome']) ?></option>
+                                <option value="<?= (int) $tr['id_trem'] ?>"><?= htmlspecialchars($tr['nome_trem']) ?></option>
                             <?php endwhile; endif; ?>
                         </select>
                     </div>
@@ -252,7 +252,7 @@ function badgeStatus(string $status): string {
                         <select name="trilho_id" class="form-select">
                             <option value="">Todos os trilhos</option>
                             <?php if ($trilhos): while ($tl = $trilhos->fetch_assoc()): ?>
-                                <option value="<?= (int) $tl['id'] ?>"><?= htmlspecialchars($tl['nome']) ?></option>
+                                <option value="<?= (int) $tl['id_trilho'] ?>"><?= htmlspecialchars($tl['nome_trilho']) ?></option>
                             <?php endwhile; endif; ?>
                         </select>
                     </div>
