@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
  
-        header("Location: ../index.php");
+        header("Location: tela-geral-home.php");
         exit();
     } else {
         $erro = "Usuário ou senha incorretos.";
