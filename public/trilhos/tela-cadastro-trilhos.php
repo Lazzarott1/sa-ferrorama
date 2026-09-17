@@ -148,7 +148,7 @@ if (!$resultado) {
             <!-- NAVBAR -->
 
             <nav class="navbar navbar-expand-lg navbar-dark"
-                style="background-color: #1b3f53;">
+            style="background-color: #1b3f53;">
 
                 <div class="container-fluid">
 
@@ -180,7 +180,7 @@ if (!$resultado) {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="../tela-trens.php">
+                                    href="../trens/tela-trens.php">
                                     Trens
                                 </a>
                             </li>
@@ -403,7 +403,6 @@ if (!$resultado) {
 
                     </div>
 
-
                     <!-- BOTÕES -->
 
                     <div class="mt-4 d-flex gap-2">
@@ -514,8 +513,7 @@ if (!$resultado) {
 
                                     </td>
 
-
-                                    <!-- NOME -->
+                                     <!-- NOME -->
 
                                     <td class="text-secondary">
 
