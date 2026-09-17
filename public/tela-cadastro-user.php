@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (mysqli_stmt_execute($stmt)) {
         echo "Usuário cadastrado com sucesso!";
-        echo "<br><a href='../index.php'>Voltar</a>";
+        echo "<br><a href='tela-login.php'>Voltar</a>";
         mysqli_stmt_close($stmt);
         exit();
     } else {
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div>
                                     <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-trilhos.php">Trilhos</a>
+                                        <a class="nav-link text-white" href="trilhos/tela-cadastro-trilhos.php">Trilhos</a>
                                     </li>
                                 </div>
                                 <div>

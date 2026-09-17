@@ -180,7 +180,7 @@ if (!$resultado) {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="../tela-trens.php">
+                                    href="../trens/tela-trens.php">
                                     Trens
                                 </a>
                             </li>

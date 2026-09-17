@@ -28,6 +28,8 @@ email_usuario VARCHAR(200) NOT NULL
 CREATE TABLE trens (
     id_trem         INT AUTO_INCREMENT PRIMARY KEY,
     nome_trem       VARCHAR(100)    NOT NULL,
-    carga_trem     VARCHAR(100)    NOT NULL,
-    status_trem     VARCHAR(20)     NOT NULL   
+    modelo_trem     VARCHAR(100)    NOT NULL,
+    capacidade_trem INT             NOT NULL,
+    trilho_trem     VARCHAR(75)     NOT NULL,
+    status_trem     VARCHAR(20)     NOT NULL
 );

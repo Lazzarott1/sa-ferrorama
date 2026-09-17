@@ -1,6 +1,6 @@
 <?php
 
-include '../infra/conexao.php';
+include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {
     die("Erro: conexão com o banco de dados não estabelecida.");
@@ -106,7 +106,7 @@ if (!$resultado) {
     <title>Sensores</title>
 
     <link rel="stylesheet"
-        href="../assets/img/style/style.css">
+        href="../../assets/img/style/style.css">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -130,7 +130,7 @@ if (!$resultado) {
             <div class="d-flex"
                 id="logo">
 
-                <img src="../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
+                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
                     alt="Logo">
 
                 <div class="nome-sistema">
@@ -162,7 +162,7 @@ if (!$resultado) {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-geral-home.php">
+                                    href="../tela-geral-home.php">
                                     Home
                                 </a>
                             </li>
@@ -183,14 +183,14 @@ if (!$resultado) {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-trens.php">
+                                    href="../trens/tela-trens.php">
                                     Trens
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-trilhos.php">
+                                    href="../trilhos/tela-cadastro-trilhos.php">
                                     Trilhos
                                 </a>
                             </li>
@@ -211,7 +211,7 @@ if (!$resultado) {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-user.php">
+                                    href="../tela-cadastro-user.php">
                                     Usuários
                                 </a>
                             </li>
