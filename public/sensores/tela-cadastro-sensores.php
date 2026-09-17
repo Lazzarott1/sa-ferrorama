@@ -1,6 +1,6 @@
 <?php
 
-include '../infra/conexao.php';
+include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {
     die("Erro: conexão com o banco de dados não estabelecida.");
