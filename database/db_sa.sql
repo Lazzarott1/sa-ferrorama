@@ -31,3 +31,17 @@ CREATE TABLE trens (
     carga_trem     VARCHAR(100)    NOT NULL,
     status_trem     VARCHAR(20)     NOT NULL   
 );
+
+CREATE TABLE relatorios (
+    id_relatorio     INT AUTO_INCREMENT PRIMARY KEY,
+    titulo_relatorio VARCHAR(150)    NOT NULL,
+    tipo_relatorio   VARCHAR(50)     NOT NULL,
+    data_inicio      DATE            NOT NULL,
+    data_fim         DATE            NOT NULL,
+    id_trem          INT             NULL,
+    id_trilho        INT             NULL,
+    status_relatorio VARCHAR(20)     NOT NULL DEFAULT 'PRONTO',
+    gerado_em        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_trem) REFERENCES trens(id_trem) ON DELETE SET NULL,
+    FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
+);

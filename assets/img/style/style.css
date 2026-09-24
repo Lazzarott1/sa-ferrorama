@@ -157,3 +157,18 @@
     letter-spacing: 0.5px;
 
 }
+.titulo-relatorios {
+    color: #7195d4;
+    margin-top: 50px;
+}
+
+.subtitulo-relatorios {
+    color: #799cd8;
+}
+
+.spancadastrorelatorio {
+    color: #486581;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
