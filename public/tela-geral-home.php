@@ -1,3 +1,23 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['usuario'])) {
+    header("Location: tela-login.php");
+    exit();
+}
+
+$nome_usuario = $_SESSION['usuario'];
+
+date_default_timezone_set('America/Sao_Paulo');
+
+$meses = [
+    1 => 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+];
+
+$data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . date('Y');
+?>
+
 <html lang="en">
 
 <head>
@@ -77,8 +97,8 @@
     <main>
 
         <div class="container-fluid mt-4 p-0 px-4">
-            <h1 class="text-start">Bem-vindo(a), NMUSER!</h1>
-            <p class="text-start">Dia 11 de junho de 2020</p>
+            <h1 class="text-start">Bem-vindo(a), <?php echo htmlspecialchars($nome_usuario); ?>!</h1>
+            <p class="text-start"><?php echo $data_hoje; ?></p>
         </div>
 
     </main>
