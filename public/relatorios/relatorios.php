@@ -1,7 +1,7 @@
 <?php
 
 
-require_once '../infra/conexao.php';
+require_once __DIR__ . '/../../infra/conexao.php';
 
 
 $msgErro = '';
