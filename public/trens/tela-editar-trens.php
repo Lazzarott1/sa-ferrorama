@@ -1,5 +1,6 @@
 <?php
 
+include __DIR__ . '/../../infra/verifica-login.php';
 include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {

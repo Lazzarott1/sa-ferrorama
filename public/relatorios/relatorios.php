@@ -1,6 +1,6 @@
 <?php
 
-
+include __DIR__ . '/../../infra/verifica-login.php';
 require_once '../infra/conexao.php';
 
 

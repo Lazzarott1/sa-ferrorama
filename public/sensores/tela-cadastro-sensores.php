@@ -1,5 +1,6 @@
 <?php
 include '../../infra/conexao.php';
+include __DIR__ . '/../../infra/verifica-login.php';
 
 // EXCLUIR SENSOR
 if (isset($_POST['excluir'])) {

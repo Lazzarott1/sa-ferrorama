@@ -1,6 +1,6 @@
 <?php
 include '../../infra/conexao.php';
-
+include __DIR__ . '/../../infra/verifica-login.php';
 
 if (!isset($_GET['id']) && !isset($_POST['id_sensor'])) {
     header("Location: tela-cadastro-sensores.php");
