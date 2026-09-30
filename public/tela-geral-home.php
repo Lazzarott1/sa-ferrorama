@@ -1,10 +1,6 @@
 <?php
-session_start();
-
-if (!isset($_SESSION['usuario'])) {
-    header("Location: tela-login.php");
-    exit();
-}
+// Só entra quem fez login
+include __DIR__ . '/../infra/verifica-login.php';
 
 $nome_usuario = $_SESSION['usuario'];
 
@@ -89,7 +85,7 @@ $data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . da
             </nav>
 
             <div>
-                <button class="btn-sair">Sair</button>
+                <button class="btn-sair" onclick="window.location.href='../infra/logout.php'">Sair</button>
             </div>
         </div>
     </header>
