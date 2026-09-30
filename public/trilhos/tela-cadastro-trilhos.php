@@ -226,11 +226,7 @@ if (!$resultado) {
             <!-- SAIR -->
 
             <div>
-
-                <button class="btn-sair">
-                    Sair
-                </button>
-
+                <button class="btn-sair" onclick="window.location.href='../infra/logout.php'">Sair</button>
             </div>
 
         </div>

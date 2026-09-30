@@ -72,7 +72,9 @@ $resultado = mysqli_query($conexao, "SELECT * FROM sensores ORDER BY id_sensor D
                 </ul>
             </nav>
 
-            <button class="btn-sair">Sair</button>
+            <div>
+                <button class="btn-sair" onclick="window.location.href='../infra/logout.php'">Sair</button>
+            </div>
         </div>
     </header>
 
