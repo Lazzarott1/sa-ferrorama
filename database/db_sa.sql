@@ -34,3 +34,10 @@ CREATE TABLE trens (
     status_trem     VARCHAR(20)     NOT NULL,
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
 );
+
+USE sa_teste;
+
+INSERT INTO usuarios (nome_usuario, senha, email_usuario) VALUES
+('admin',    '$2y$12$rMdLkQLkxCcq6Cbmazqc.O9mvluYpbGTNkiWy.M5fmqVeVA.S1zYi', 'admin@ferromonitor.com'),
+('operador', '$2y$12$PfDzvJ35IUzg7JEslLJhB.f4nMQxHhXVLUUpSsuIyMKQgu12tQsQq', 'operador@ferromonitor.com'),
+('tecnico',  '$2y$12$J9Rrgjjn.M3xFI9nXqKSV.zMsTf9wLBR/1Rv5HvP92nSrkdHqgE2O', 'tecnico@ferromonitor.com');
