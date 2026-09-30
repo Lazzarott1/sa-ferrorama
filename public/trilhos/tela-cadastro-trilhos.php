@@ -21,8 +21,7 @@ if (isset($_POST['excluir'])) {
                 (SELECT COUNT(*) FROM trens
                     WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
                 (SELECT COUNT(*) FROM sensores
-                    WHERE sensores.trilho_sensor = trilhos.nome_trilho
-                       OR sensores.trilho_sensor = CAST(trilhos.id_trilho AS CHAR)) AS total_sensores
+                    WHERE sensores.id_trilho = trilhos.id_trilho) AS total_sensores
             FROM trilhos
             WHERE id_trilho = ?";
 
@@ -119,8 +118,7 @@ $sql = "SELECT trilhos.*,
             (SELECT COUNT(*) FROM trens
                 WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
             (SELECT COUNT(*) FROM sensores
-                WHERE sensores.trilho_sensor = trilhos.nome_trilho
-                   OR sensores.trilho_sensor = CAST(trilhos.id_trilho AS CHAR)) AS total_sensores
+                WHERE sensores.id_trilho = trilhos.id_trilho) AS total_sensores
         FROM trilhos
         ORDER BY id_trilho DESC";
 
