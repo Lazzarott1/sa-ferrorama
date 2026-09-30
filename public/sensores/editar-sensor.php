@@ -78,8 +78,7 @@ if (!$sensor) {
                 </ul>
             </nav>
 
-            <button class="btn-sair">Sair</button>
-        </div>
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
     </header>
 
     <main class="container px-4 mt-4">

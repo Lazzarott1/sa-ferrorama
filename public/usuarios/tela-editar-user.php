@@ -171,7 +171,7 @@ mysqli_stmt_close($stmt);
             </nav>
 
             <div>
-                <button class="btn-sair" onclick="window.location.href='../infra/logout.php'">Sair</button>
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
             </div>
         </div>
     </header>
