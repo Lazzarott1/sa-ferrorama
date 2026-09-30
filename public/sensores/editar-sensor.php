@@ -1,6 +1,6 @@
 <?php
 include '../../infra/conexao.php';
-
+include __DIR__ . '/../../infra/verifica-login.php';
 
 if (!isset($_GET['id']) && !isset($_POST['id_sensor'])) {
     header("Location: tela-cadastro-sensores.php");
@@ -78,8 +78,7 @@ if (!$sensor) {
                 </ul>
             </nav>
 
-            <button class="btn-sair">Sair</button>
-        </div>
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
     </header>
 
     <main class="container px-4 mt-4">

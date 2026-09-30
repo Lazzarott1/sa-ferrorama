@@ -1,5 +1,6 @@
 <?php
 
+include __DIR__ . '/../../infra/verifica-login.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -170,7 +171,7 @@ mysqli_stmt_close($stmt);
             </nav>
 
             <div>
-                <button class="btn-sair">Sair</button>
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
             </div>
         </div>
     </header>
