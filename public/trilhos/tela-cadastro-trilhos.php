@@ -14,6 +14,40 @@ if (isset($_POST['excluir'])) {
 
     $id_trilho = (int) $_POST['id_trilho'];
 
+
+    // VERIFICA ASSOCIAÇÕES (trens e sensores ligados ao trilho)
+
+    $sql = "SELECT
+                (SELECT COUNT(*) FROM trens
+                    WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
+                (SELECT COUNT(*) FROM sensores
+                    WHERE sensores.trilho_sensor = trilhos.nome_trilho
+                       OR sensores.trilho_sensor = CAST(trilhos.id_trilho AS CHAR)) AS total_sensores
+            FROM trilhos
+            WHERE id_trilho = ?";
+
+    $stmt = mysqli_prepare($conexao, $sql);
+
+    if (!$stmt) {
+        die("Erro ao verificar associações: " . mysqli_error($conexao));
+    }
+
+    mysqli_stmt_bind_param($stmt, "i", $id_trilho);
+    mysqli_stmt_execute($stmt);
+
+    $associacoes = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    mysqli_stmt_close($stmt);
+
+    if ($associacoes && ($associacoes['total_trens'] > 0 || $associacoes['total_sensores'] > 0)) {
+
+        // Não exclui: volta para a tela exibindo o alerta
+
+        header("Location: tela-cadastro-trilhos.php?bloqueado=" . $id_trilho);
+        exit;
+    }
+
+
     $sql = "DELETE FROM trilhos WHERE id_trilho = ?";
 
     $stmt = mysqli_prepare($conexao, $sql);
@@ -81,12 +115,39 @@ if (isset($_POST['cadastrar'])) {
 
 //    BUSCAR TRILHOS
 
-$sql = "SELECT * FROM trilhos ORDER BY id_trilho DESC";
+$sql = "SELECT trilhos.*,
+            (SELECT COUNT(*) FROM trens
+                WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
+            (SELECT COUNT(*) FROM sensores
+                WHERE sensores.trilho_sensor = trilhos.nome_trilho
+                   OR sensores.trilho_sensor = CAST(trilhos.id_trilho AS CHAR)) AS total_sensores
+        FROM trilhos
+        ORDER BY id_trilho DESC";
 
 $resultado = mysqli_query($conexao, $sql);
 
 if (!$resultado) {
     die("Erro ao buscar trilhos: " . mysqli_error($conexao));
+}
+
+
+//    TRILHO BLOQUEADO (exclusão recusada no servidor)
+
+$trilhoBloqueado = null;
+
+if (isset($_GET['bloqueado'])) {
+
+    $idBloqueado = (int) $_GET['bloqueado'];
+
+    while ($linha = mysqli_fetch_assoc($resultado)) {
+
+        if ((int) $linha['id_trilho'] === $idBloqueado) {
+            $trilhoBloqueado = $linha;
+            break;
+        }
+    }
+
+    mysqli_data_seek($resultado, 0);
 }
 
 ?>
@@ -605,6 +666,24 @@ if (!$resultado) {
 
                                         <!-- EXCLUIR -->
 
+                                        <?php if ($trilho['total_trens'] > 0 || $trilho['total_sensores'] > 0) { ?>
+
+                                            <!-- Trilho com associações: abre o alerta em vez de excluir -->
+
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalTrilhoAssociado"
+                                                data-nome="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>"
+                                                data-trens="<?php echo (int) $trilho['total_trens']; ?>"
+                                                data-sensores="<?php echo (int) $trilho['total_sensores']; ?>">
+
+                                                X
+
+                                            </button>
+
+                                        <?php } else { ?>
+
                                         <form method="POST"
                                             style="display: inline;"
                                             onsubmit="return confirm('Tem certeza que deseja excluir este trilho?');">
@@ -622,6 +701,8 @@ if (!$resultado) {
                                             </button>
 
                                         </form>
+
+                                        <?php } ?>
 
                                     </td>
 
@@ -660,9 +741,177 @@ if (!$resultado) {
     </main>
 
 
+         <!-- ALERTA: TRILHO COM ASSOCIAÇÕES -->
+
+    <div class="modal fade"
+        id="modalTrilhoAssociado"
+        tabindex="-1"
+        aria-labelledby="tituloModalTrilhoAssociado"
+        aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content rounded-1 border-0">
+
+
+                <!-- CABEÇALHO -->
+
+                <div class="modal-header rounded-top-1 text-white py-2"
+                    style="background-color: #1b3f53; border-bottom: 3px solid #daa301;">
+
+                    <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2"
+                        id="tituloModalTrilhoAssociado">
+
+
+                        ATENÇÃO: EXCLUSÃO NÃO PERMITIDA
+
+                    </h6>
+
+                    <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"></button>
+
+                </div>
+
+
+                <!-- CORPO -->
+
+                <div class="modal-body">
+
+                    <div class="alert alert-warning rounded-1 d-flex gap-2 mb-3 py-2"
+                        role="alert"
+                        style="border-left: 4px solid #daa301;">
+
+                        <div>
+
+                            <strong>
+                                O trilho
+                                <span id="modalNomeTrilho"><?php echo $trilhoBloqueado ? htmlspecialchars($trilhoBloqueado['nome_trilho']) : ''; ?></span>
+                                possui associações.
+                            </strong>
+
+                            <br>
+
+                            <span style="font-size: 0.9rem;">
+                                Remova ou altere os trens e sensores vinculados a ele antes de excluí-lo.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <table class="table table-bordered table-sm mb-0"
+                        style="font-size: 0.85rem;">
+
+                        <thead class="table-light">
+
+                            <tr class="text-secondary">
+
+                                <th class="fw-semibold">
+                                    ASSOCIAÇÃO
+                                </th>
+
+                                <th class="fw-semibold text-center"
+                                    style="width: 110px;">
+                                    QUANTIDADE
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <tr>
+
+                                <td>
+                                    Trens
+                                </td>
+
+                                <td class="text-center fw-bold"
+                                    id="modalTotalTrens"><?php echo $trilhoBloqueado ? (int) $trilhoBloqueado['total_trens'] : 0; ?></td>
+
+                            </tr>
+
+                            <tr>
+
+                                <td>
+                                    Sensores
+                                </td>
+
+                                <td class="text-center fw-bold"
+                                    id="modalTotalSensores"><?php echo $trilhoBloqueado ? (int) $trilhoBloqueado['total_sensores'] : 0; ?></td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- RODAPÉ -->
+
+                <div class="modal-footer py-2">
+
+                    <button type="button"
+                        class="btn btn-sm px-3 fw-bold"
+                        style="background-color: #daa301; color: #1b3f53;"
+                        data-bs-dismiss="modal">
+
+                        ENTENDI
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
     <!-- BOOTSTRAP -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+    <!-- ALERTA DE ASSOCIAÇÕES -->
+
+    <script>
+
+        const modalTrilhoAssociado = document.getElementById('modalTrilhoAssociado');
+
+        // Preenche o alerta com os dados do trilho clicado
+
+        modalTrilhoAssociado.addEventListener('show.bs.modal', function (evento) {
+
+            const botao = evento.relatedTarget;
+
+            if (!botao) {
+                return;
+            }
+
+            document.getElementById('modalNomeTrilho').textContent = botao.dataset.nome;
+            document.getElementById('modalTotalTrens').textContent = botao.dataset.trens;
+            document.getElementById('modalTotalSensores').textContent = botao.dataset.sensores;
+
+        });
+
+        <?php if ($trilhoBloqueado) { ?>
+
+        // Exclusão recusada pelo servidor: abre o alerta ao carregar a página
+
+        new bootstrap.Modal(modalTrilhoAssociado).show();
+
+        history.replaceState(null, '', 'tela-cadastro-trilhos.php');
+
+        <?php } ?>
+
+    </script>
 
 </body>
 
