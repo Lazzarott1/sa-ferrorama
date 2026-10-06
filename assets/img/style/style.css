@@ -82,13 +82,13 @@
 }
 
 .titulo-sensores {
-    color: #7195d4;
+    color: #1b3f53;
     margin-top: 50px;
     margin-left: 50px;
 }
 
 .subtitulo-sensores {
-    color: #799cd8;
+    color: #1b3f53;
     margin-left: 50px;
 }
 
@@ -156,4 +156,27 @@
     font-weight: 700;
     letter-spacing: 0.5px;
 
+}
+
+.btn.btn-navbar {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: #1b3f53;
+    --bs-btn-border-color: #1b3f53;
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: #143040;
+    --bs-btn-hover-border-color: #143040;
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: #0e2330;
+    --bs-btn-active-border-color: #0e2330;
+}
+
+.btn.btn-outline-navbar {
+    --bs-btn-color: #1b3f53;
+    --bs-btn-border-color: #1b3f53;
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: #1b3f53;
+    --bs-btn-hover-border-color: #1b3f53;
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: #1b3f53;
+    --bs-btn-active-border-color: #1b3f53;
 }

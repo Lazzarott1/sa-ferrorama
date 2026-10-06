@@ -84,7 +84,7 @@ $resultado = mysqli_query($conexao, "SELECT * FROM sensores ORDER BY id_sensor D
                 <p class="subtitulo-sensores">Gerencie os sensores cadastrados na ferrovia</p>
             </div>
 
-            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formSensor">
+            <button type="button" class="btn btn-navbar" data-bs-toggle="collapse" data-bs-target="#formSensor">
                 + NOVO SENSOR
             </button>
         </div>
@@ -137,7 +137,7 @@ $resultado = mysqli_query($conexao, "SELECT * FROM sensores ORDER BY id_sensor D
                 </div>
 
                 <div class="mt-4">
-                    <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
+                    <button type="submit" name="cadastrar" class="btn btn-navbar">CADASTRAR</button>
                     <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formSensor">CANCELAR</button>
                 </div>
             </form>
@@ -145,7 +145,7 @@ $resultado = mysqli_query($conexao, "SELECT * FROM sensores ORDER BY id_sensor D
 
         <!-- TABELA DE SENSORES -->
         <div class="card shadow-sm mb-4">
-            <div class="bg-primary-subtle text-primary-emphasis p-2 fw-bold" style="font-size: 0.7rem;">
+            <div class="p-2 fw-bold" style="background-color: #1b3f53; color: #ffffff; font-size: 0.7rem;">
                 SENSORES CADASTRADOS
             </div>
 
@@ -188,7 +188,7 @@ $resultado = mysqli_query($conexao, "SELECT * FROM sensores ORDER BY id_sensor D
                             <td><?php echo htmlspecialchars($sensor['trilho_sensor']); ?></td>
                             <td><span class="badge <?php echo $cor; ?>"><?php echo htmlspecialchars($sensor['status_sensor']); ?></span></td>
                             <td class="text-center">
-                                <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-primary">EDITAR</a>
+                                <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-navbar">EDITAR</a>
 
                                 <form method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir este sensor?');">
                                     <input type="hidden" name="id_sensor" value="<?php echo $sensor['id_sensor']; ?>">
