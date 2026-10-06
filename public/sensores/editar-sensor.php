@@ -1,6 +1,23 @@
 <?php
 include '../../infra/conexao.php';
+include __DIR__ . '/../../infra/verifica-login.php';
 
+// VERIFICA SE O TRILHO OU TREM ESCOLHIDO ESTÁ CADASTRADO
+function referenciaExiste($conexao, $categoria, $id) {
+    if ($categoria == 'TREM') {
+        $sql = "SELECT 1 FROM trens WHERE id_trem = ?";
+    } elseif ($categoria == 'TRILHO') {
+        $sql = "SELECT 1 FROM trilhos WHERE id_trilho = ?";
+    } else {
+        return false;
+    }
+
+    $stmt = mysqli_prepare($conexao, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+
+    return mysqli_fetch_row(mysqli_stmt_get_result($stmt)) !== null;
+}
 
 if (!isset($_GET['id']) && !isset($_POST['id_sensor'])) {
     header("Location: tela-cadastro-sensores.php");
@@ -13,14 +30,22 @@ if (isset($_POST['editar'])) {
     $nome = $_POST['nome'];
     $categoria = $_POST['categoria'];
     $tipo = $_POST['tipo'];
-    $trilho = $_POST['trilho'];
+    $vinculo = (int) ($_POST['trilho'] ?? 0);
     $status = $_POST['status'];
 
+    if (!referenciaExiste($conexao, $categoria, $vinculo)) {
+        header("Location: editar-sensor.php?id=" . $id_sensor . "&erro=1");
+        exit;
+    }
+
+    $id_trem = $categoria == 'TREM' ? $vinculo : null;
+    $id_trilho = $categoria == 'TRILHO' ? $vinculo : null;
+
     $sql = "UPDATE sensores
-            SET nome_sensor = ?, categoria_sensor = ?, tipo_sensor = ?, trilho_sensor = ?, status_sensor = ?
+            SET nome_sensor = ?, categoria_sensor = ?, tipo_sensor = ?, id_trem = ?, id_trilho = ?, status_sensor = ?
             WHERE id_sensor = ?";
     $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, "sssssi", $nome, $categoria, $tipo, $trilho, $status, $id_sensor);
+    mysqli_stmt_bind_param($stmt, "sssiisi", $nome, $categoria, $tipo, $id_trem, $id_trilho, $status, $id_sensor);
     mysqli_stmt_execute($stmt);
 
     header("Location: tela-cadastro-sensores.php");
@@ -35,11 +60,15 @@ mysqli_stmt_bind_param($stmt, "i", $id_sensor);
 mysqli_stmt_execute($stmt);
 $sensor = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-// se o sensor não existe, volta para a lista
 if (!$sensor) {
     header("Location: tela-cadastro-sensores.php");
     exit;
 }
+
+$trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos ORDER BY nome_trilho");
+$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY nome_trem");
+
+$ehTrem = $sensor['categoria_sensor'] == 'TREM';
 ?>
 
 <!DOCTYPE html>
@@ -55,7 +84,6 @@ if (!$sensor) {
 
 <body>
 
-    <!-- HEADER -->
     <header class="container-fluid p-2" style="background-color: #1b3f53; color: #ffffff;">
         <div id="header" class="hstack gap-3 px-2">
 
@@ -78,13 +106,11 @@ if (!$sensor) {
                 </ul>
             </nav>
 
-            <button class="btn-sair">Sair</button>
-        </div>
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
     </header>
 
     <main class="container px-4 mt-4">
 
-        <!-- TÍTULO -->
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
                 <h3 class="titulo-sensores">Editar Sensor</h3>
@@ -94,10 +120,13 @@ if (!$sensor) {
             <a href="tela-cadastro-sensores.php" class="btn btn-secondary">VOLTAR</a>
         </div>
 
-        <!-- FORMULÁRIO DE EDIÇÃO -->
         <div class="cardcadastro p-3">
             <span class="spancadastrosensor">EDITAR SENSOR #<?php echo $sensor['id_sensor']; ?></span>
         </div>
+
+        <?php if (isset($_GET['erro'])) { ?>
+            <div class="alert alert-danger mt-3">Selecione um trilho ou trem cadastrado no sistema.</div>
+        <?php } ?>
 
         <form method="POST" class="p-4 bg-white border mb-4">
             <input type="hidden" name="id_sensor" value="<?php echo $sensor['id_sensor']; ?>">
@@ -110,7 +139,7 @@ if (!$sensor) {
 
                 <div class="col-md-6">
                     <label class="form-label">CATEGORIA</label>
-                    <select name="categoria" class="form-select" required>
+                    <select name="categoria" id="categoria" class="form-select" required>
                         <option value="TREM" <?php if ($sensor['categoria_sensor'] == 'TREM') echo 'selected'; ?>>Trem</option>
                         <option value="TRILHO" <?php if ($sensor['categoria_sensor'] == 'TRILHO') echo 'selected'; ?>>Trilho</option>
                     </select>
@@ -126,8 +155,21 @@ if (!$sensor) {
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">TRILHO</label>
-                    <input type="text" name="trilho" class="form-control" value="<?php echo htmlspecialchars($sensor['trilho_sensor']); ?>" required>
+                    <label class="form-label" id="label-trilho"><?php echo $ehTrem ? 'TREM' : 'TRILHO'; ?></label>
+
+                    <select name="trilho" id="select-trilho" class="form-select" <?php if ($ehTrem) echo 'style="display: none;" disabled'; ?> required>
+                        <option value="">Selecione um trilho</option>
+                        <?php while ($trilho = mysqli_fetch_assoc($trilhos)) { ?>
+                            <option value="<?php echo $trilho['id_trilho']; ?>" <?php if ($trilho['id_trilho'] == $sensor['id_trilho']) echo 'selected'; ?>><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
+                        <?php } ?>
+                    </select>
+
+                    <select name="trilho" id="select-trem" class="form-select" <?php if (!$ehTrem) echo 'style="display: none;" disabled'; ?> required>
+                        <option value="">Selecione um trem</option>
+                        <?php while ($trem = mysqli_fetch_assoc($trens)) { ?>
+                            <option value="<?php echo $trem['id_trem']; ?>" <?php if ($trem['id_trem'] == $sensor['id_trem']) echo 'selected'; ?>><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
+                        <?php } ?>
+                    </select>
                 </div>
 
                 <div class="col-md-6">
@@ -147,6 +189,26 @@ if (!$sensor) {
         </form>
 
     </main>
+
+    <script>
+        // Troca o campo Trilho ou Trem conforme a categoria escolhida.
+        const categoria = document.getElementById('categoria');
+        const label = document.getElementById('label-trilho');
+        const selectTrilho = document.getElementById('select-trilho');
+        const selectTrem = document.getElementById('select-trem');
+
+        categoria.addEventListener('change', function () {
+            const ehTrem = categoria.value === 'TREM';
+
+            label.textContent = ehTrem ? 'TREM' : 'TRILHO';
+
+            selectTrilho.style.display = ehTrem ? 'none' : '';
+            selectTrilho.disabled = ehTrem;
+
+            selectTrem.style.display = ehTrem ? '' : 'none';
+            selectTrem.disabled = !ehTrem;
+        });
+    </script>
 
 </body>
 

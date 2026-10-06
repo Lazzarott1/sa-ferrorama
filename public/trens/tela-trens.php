@@ -1,5 +1,6 @@
 <?php
 
+include __DIR__ . '/../../infra/verifica-login.php';
 include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {
@@ -38,18 +39,31 @@ if (isset($_POST['excluir'])) {
 
 if (isset($_POST['cadastrar'])) {
 
-    $nome = $_POST['nome'];
-    $modelo = $_POST['modelo'];
-    $capacidade = $_POST['capacidade'];
-    $trilho = $_POST['trilho'];
-    $status = $_POST['status'];
+    $nome = trim($_POST['nome'] ?? '');
+    $modelo = $_POST['modelo'] ?? '';
+    $capacidade = (int) ($_POST['capacidade'] ?? 0);
+    $id_trilho = (int) ($_POST['id_trilho'] ?? 0);
+    $status = $_POST['status'] ?? '';
+
+    $modelosValidos = ['De passageiros', 'De carga'];
+    $statusValidos = ['ATIVO', 'MANUTENCAO', 'INATIVO'];
+
+    if (
+        $nome === '' ||
+        !in_array($modelo, $modelosValidos, true) ||
+        $capacidade <= 0 ||
+        $id_trilho <= 0 ||
+        !in_array($status, $statusValidos, true)
+    ) {
+        die("Erro: preencha todos os campos corretamente.");
+    }
 
     $sql = "INSERT INTO trens
             (
                 nome_trem,
                 modelo_trem,
                 capacidade_trem,
-                trilho_trem,
+                id_trilho,
                 status_trem
             )
             VALUES (?, ?, ?, ?, ?)";
@@ -62,11 +76,11 @@ if (isset($_POST['cadastrar'])) {
 
     mysqli_stmt_bind_param(
         $stmt,
-        "ssiss",
+        "ssiis",
         $nome,
         $modelo,
         $capacidade,
-        $trilho,
+        $id_trilho,
         $status
     );
 
@@ -81,14 +95,30 @@ if (isset($_POST['cadastrar'])) {
 }
 
 
-//    BUSCAR TRENS
+//    BUSCAR TRENS (COM O NOME DO TRILHO)
 
-$sql = "SELECT * FROM trens ORDER BY id_trem DESC";
+$sql = "SELECT trens.*, trilhos.nome_trilho
+        FROM trens
+        LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
+        ORDER BY trens.id_trem DESC";
 
 $resultado = mysqli_query($conexao, $sql);
 
 if (!$resultado) {
     die("Erro ao buscar trens: " . mysqli_error($conexao));
+}
+
+
+//    BUSCAR TRILHOS PARA A LISTA DO FORMULÁRIO
+
+$sql = "SELECT id_trilho, nome_trilho, status_trilho
+        FROM trilhos
+        ORDER BY nome_trilho";
+
+$resultadoTrilhos = mysqli_query($conexao, $sql);
+
+if (!$resultadoTrilhos) {
+    die("Erro ao buscar trilhos: " . mysqli_error($conexao));
 }
 
 ?>
@@ -106,7 +136,7 @@ if (!$resultado) {
     <title>Trens</title>
 
     <link rel="stylesheet"
-        href="../assets/img/style/style.css">
+        href="../../assets/img/style/style.css">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -157,7 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="d-flex"
                 id="logo">
 
-                <img src="../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
+                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
                     alt="Logo">
 
                 <div class="nome-sistema">
@@ -189,21 +219,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-geral-home.php">
+                                    href="../tela-geral-home.php">
                                     Home
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-dashboard.php">
+                                    href="#">
                                     Dashboard
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-sensores.php">
+                                    href="../sensores/tela-cadastro-sensores.php">
                                     Sensores
                                 </a>
                             </li>
@@ -217,28 +247,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-trilhos.php">
+                                    href="../trilhos/tela-cadastro-trilhos.php">
                                     Trilhos
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-monitoramento.php">
+                                    href="../monitoramento/tela-monitoramento.php">
                                     Monitoramento
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-relatorios.php">
+                                    href="../relatorios/relatorios.php">
                                     Relatórios
                                 </a>
                             </li>
 
                             <li class="nav-item">
                                 <a class="nav-link text-white"
-                                    href="tela-cadastro-user.php">
+                                    href="../usuarios/tela-cadastro-user.php">
                                     Usuários
                                 </a>
                             </li>
@@ -255,11 +285,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <!-- SAIR -->
 
             <div>
-
-                <button class="btn-sair">
-                    Sair
-                </button>
-
+                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
             </div>
 
         </div>
@@ -424,12 +450,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             </label>
 
-                            <input type="text"
-                                name="trilho"
+                            <select name="id_trilho"
                                 id="trilhoTrem"
-                                class="form-control"
-                                placeholder="Ex: TR-01"
+                                class="form-select"
                                 required>
+
+                                <option value="">
+                                    Selecione o trilho
+                                </option>
+
+                                <?php while ($trilho = mysqli_fetch_assoc($resultadoTrilhos)) { ?>
+
+                                    <option value="<?php echo $trilho['id_trilho']; ?>">
+                                        <?php
+                                        echo htmlspecialchars($trilho['nome_trilho']);
+
+                                        if ($trilho['status_trilho'] !== 'ATIVO') {
+                                            echo ' (' . htmlspecialchars($trilho['status_trilho']) . ')';
+                                        }
+                                        ?>
+                                    </option>
+
+                                <?php } ?>
+
+                            </select>
+
+                            <?php if (mysqli_num_rows($resultadoTrilhos) === 0) { ?>
+
+                                <div class="form-text text-danger">
+                                    Nenhum trilho cadastrado. Cadastre um na
+                                    <a href="../trilhos/tela-cadastro-trilhos.php">tela de trilhos</a>.
+                                </div>
+
+                            <?php } ?>
 
                         </div>
 
@@ -629,7 +682,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         <?php
                                         echo htmlspecialchars(
-                                            $trem['trilho_trem']
+                                            $trem['nome_trilho'] ?? 'Sem trilho'
                                         );
                                         ?>
 
@@ -675,9 +728,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </td>
 
 
-                                    <!-- EXCLUIR -->
+                                    <!-- AÇÕES -->
 
                                     <td class="text-center">
+
+
+                                        <!-- EDITAR -->
+
+                                        <a href="tela-editar-trens.php?id=<?php echo $trem['id_trem']; ?>"
+                                            class="btn btn-sm btn-outline-primary me-1">
+
+                                            EDITAR
+
+                                        </a>
+
+
+                                        <!-- EXCLUIR -->
 
                                         <form method="POST"
                                             style="display: inline;"

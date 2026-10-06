@@ -6,21 +6,62 @@ ini_set('display_errors', 1);
 
 include __DIR__ . '/../../infra/conexao.php';
 
-if (isset($_POST['excluir'])) {
 
-    $id_usuario = (int) $_POST['id_usuario'];
+//    VALIDAR ID RECEBIDO
 
-    $sql = "DELETE FROM usuarios WHERE id_usuario = ?";
-    $stmt = mysqli_prepare($conexao, $sql);
+if (!isset($_GET['id']) && !isset($_POST['id_usuario'])) {
+    header("Location: tela-cadastro-user.php");
+    exit;
+}
 
-    if (!$stmt) {
-        die("Erro ao preparar exclusão: " . mysqli_error($conexao));
+$id_usuario = isset($_POST['id_usuario'])
+    ? (int) $_POST['id_usuario']
+    : (int) $_GET['id'];
+
+
+//    ATUALIZAR USUÁRIO
+
+if (isset($_POST['editar'])) {
+
+    $nome_usuario = trim($_POST['nome_usuario']);
+    $email_usuario = trim($_POST['email_usuario']);
+    $senha = $_POST['senha'];
+
+    if ($senha !== '') {
+
+        // Senha preenchida: atualiza nome, e-mail e senha
+        $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+
+        $sql = "UPDATE usuarios
+                SET nome_usuario = ?, email_usuario = ?, senha = ?
+                WHERE id_usuario = ?";
+
+        $stmt = mysqli_prepare($conexao, $sql);
+
+        if (!$stmt) {
+            die("Erro ao preparar atualização: " . mysqli_error($conexao));
+        }
+
+        mysqli_stmt_bind_param($stmt, "sssi", $nome_usuario, $email_usuario, $senha_hash, $id_usuario);
+
+    } else {
+
+        // Senha em branco: mantém a senha atual
+        $sql = "UPDATE usuarios
+                SET nome_usuario = ?, email_usuario = ?
+                WHERE id_usuario = ?";
+
+        $stmt = mysqli_prepare($conexao, $sql);
+
+        if (!$stmt) {
+            die("Erro ao preparar atualização: " . mysqli_error($conexao));
+        }
+
+        mysqli_stmt_bind_param($stmt, "ssi", $nome_usuario, $email_usuario, $id_usuario);
     }
 
-    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
-
     if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao excluir usuário: " . mysqli_stmt_error($stmt));
+        die("Erro ao atualizar usuário: " . mysqli_stmt_error($stmt));
     }
 
     mysqli_stmt_close($stmt);
@@ -29,39 +70,34 @@ if (isset($_POST['excluir'])) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome_usuario = $_POST['nome_usuario'] ?? '';
-    $email_usuario = $_POST['email_usuario'] ?? '';
-    $senha = $_POST['senha'] ?? '';
-    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO usuarios (nome_usuario, email_usuario, senha) VALUES (?, ?, ?)";
-    $stmt = mysqli_prepare($conexao, $sql);
+//    BUSCAR USUÁRIO PARA PREENCHER O FORMULÁRIO
 
-    if ($stmt === false) {
-        die('Erro ao preparar a consulta: ' . mysqli_error($conexao));
-    }
+$sql = "SELECT id_usuario, nome_usuario, email_usuario FROM usuarios WHERE id_usuario = ?";
 
-    mysqli_stmt_bind_param($stmt, 'sss', $nome_usuario, $email_usuario, $senha_hash);
+$stmt = mysqli_prepare($conexao, $sql);
 
-    if (mysqli_stmt_execute($stmt)) {
-        echo "Usuário cadastrado com sucesso!";
-        mysqli_stmt_close($stmt);
-        exit();
-    } else {
-        echo "Erro ao cadastrar usuário: " . mysqli_error($conexao);
-    }
-
-    mysqli_stmt_close($stmt);
-    exit();
+if (!$stmt) {
+    die("Erro ao preparar busca: " . mysqli_error($conexao));
 }
 
-$sql_lista = "SELECT id_usuario, nome_usuario, email_usuario FROM usuarios ORDER BY id_usuario DESC";
-$resultado = mysqli_query($conexao, $sql_lista);
+mysqli_stmt_bind_param($stmt, "i", $id_usuario);
 
-if (!$resultado) {
-    die('Erro ao listar usuários: ' . mysqli_error($conexao));
+if (!mysqli_stmt_execute($stmt)) {
+    die("Erro ao buscar usuário: " . mysqli_stmt_error($stmt));
 }
+
+$resultado = mysqli_stmt_get_result($stmt);
+
+if (!$resultado || mysqli_num_rows($resultado) === 0) {
+    header("Location: tela-cadastro-user.php");
+    exit;
+}
+
+$usuario = mysqli_fetch_assoc($resultado);
+
+mysqli_stmt_close($stmt);
+
 ?>
 
 <html lang="pt-br">
@@ -69,7 +105,7 @@ if (!$resultado) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usuários</title>
+    <title>Editar Usuário</title>
     <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -147,12 +183,15 @@ if (!$resultado) {
 
         <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
             style="font-size: 0.7rem;">
-            (+) CADASTRO DE USUÁRIOS
+            (✎) EDITAR USUÁRIO
         </div>
 
         <div class="p-4">
 
-            <form id="form-cadastro">
+            <form method="POST">
+
+                <input type="hidden" name="id_usuario"
+                    value="<?php echo $usuario['id_usuario']; ?>">
 
                 <div class="mb-3">
                     <label for="email_usuario" class="form-label text-secondary fw-semibold"
@@ -161,7 +200,7 @@ if (!$resultado) {
                     </label>
 
                     <input type="email" id="email_usuario" name="email_usuario" class="form-control"
-                        placeholder="exemplo@123.com" required>
+                        value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
                 </div>
 
                 <div class="mb-3">
@@ -171,113 +210,41 @@ if (!$resultado) {
                     </label>
 
                     <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
-                        placeholder="Usuário" required>
+                        value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
                 </div>
 
                 <div class="mb-3">
                     <label for="senha" class="form-label text-secondary fw-semibold"
                         style="font-size: 0.8rem;">
-                        SENHA
+                        NOVA SENHA
                     </label>
 
                     <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Senha" required>
+                        placeholder="Deixe em branco para manter a senha atual">
                 </div>
 
-                <button type="submit"
-                    class="btn btn-primary w-100 fw-semibold"
-                    style="background-color: #1b3f53; border: none; border-radius: 4px; font-size: 0.85rem;">
-                    CADASTRAR
-                </button>
+                <div class="d-flex gap-2">
+
+                    <a href="tela-cadastro-user.php"
+                        class="btn btn-outline-secondary w-50 fw-semibold"
+                        style="border-radius: 4px; font-size: 0.85rem;">
+                        CANCELAR
+                    </a>
+
+                    <button type="submit" name="editar"
+                        class="btn btn-primary w-50 fw-semibold"
+                        style="background-color: #1b3f53; border: none; border-radius: 4px; font-size: 0.85rem;">
+                        SALVAR
+                    </button>
+
+                </div>
 
             </form>
 
-            <div id="mensagem" class="mt-3"></div>
-
         </div>
-    </div>
-
-    <div class="card shadow-sm border-1 p-0" style="width: 900px; border-radius: 4px;">
-
-        <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
-            style="font-size: 0.7rem;">
-            (∞) USUÁRIOS CADASTRADOS
-        </div>
-
-        <table class="table table-bordered table-hover mb-0 align-middle">
-
-            <thead class="table-light">
-                <tr class="text-secondary" style="font-size: 0.75rem;">
-                    <th class="fw-semibold">ID</th>
-                    <th class="fw-semibold">LOGIN</th>
-                    <th class="fw-semibold">E-MAIL</th>
-                    <th class="fw-semibold text-center">AÇÕES</th>
-                </tr>
-            </thead>
-
-            <tbody style="font-size: 0.85rem;">
-
-                <?php if (mysqli_num_rows($resultado) > 0) { ?>
-
-                    <?php while ($usuario = mysqli_fetch_assoc($resultado)) { ?>
-
-                        <tr>
-
-                            <td class="text-primary-emphasis fw-bold">
-                                <?php echo $usuario['id_usuario']; ?>
-                            </td>
-
-                            <td class="text-secondary">
-                                <?php echo htmlspecialchars($usuario['nome_usuario']); ?>
-                            </td>
-
-                            <td class="text-body-tertiary">
-                                <?php echo htmlspecialchars($usuario['email_usuario']); ?>
-                            </td>
-
-                            <td class="text-center">
-
-                                <a href="tela-editar-user.php?id=<?php echo $usuario['id_usuario']; ?>"
-                                    class="btn btn-sm btn-outline-primary me-1">
-                                    EDITAR
-                                </a>
-
-                                <form method="POST" style="display: inline;"
-                                    onsubmit="return confirm('Tem certeza que deseja deletar este usuário?');">
-
-                                    <input type="hidden" name="id_usuario"
-                                        value="<?php echo $usuario['id_usuario']; ?>">
-
-                                    <button type="submit" name="excluir"
-                                        class="btn btn-sm btn-outline-danger">
-                                        X
-                                    </button>
-
-                                </form>
-
-                            </td>
-                        </tr>
-
-                    <?php } ?>
-
-                <?php } else { ?>
-
-                    <tr>
-                        <td colspan="4" class="text-center text-secondary py-4">
-                            Nenhum usuário cadastrado.
-                        </td>
-                    </tr>
-
-                <?php } ?>
-
-            </tbody>
-
-        </table>
     </div>
 
 </main>
-
-    <script src="../../script/validacao_cadastro_user.js"></script>
 
 </body>
 
