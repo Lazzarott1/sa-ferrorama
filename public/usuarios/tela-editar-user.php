@@ -1,10 +1,10 @@
 <?php
 
 include __DIR__ . '/../../infra/verifica-login.php';
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+exigir_admin(); // somente administradores gerenciam usuários
 
 include __DIR__ . '/../../infra/conexao.php';
+require_once __DIR__ . '/../../infra/usuarios.php';
 
 
 //    VALIDAR ID RECEBIDO
@@ -18,88 +18,61 @@ $id_usuario = isset($_POST['id_usuario'])
     ? (int) $_POST['id_usuario']
     : (int) $_GET['id'];
 
+$usuario = buscar_usuario($conexao, $id_usuario);
+
+if (!$usuario) {
+    header("Location: tela-cadastro-user.php");
+    exit;
+}
+
+$erros = [];
+
 
 //    ATUALIZAR USUÁRIO
 
 if (isset($_POST['editar'])) {
 
-    $nome_usuario = trim($_POST['nome_usuario']);
-    $email_usuario = trim($_POST['email_usuario']);
-    $senha = $_POST['senha'];
-
-    if ($senha !== '') {
-
-        // Senha preenchida: atualiza nome, e-mail e senha
-        $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-
-        $sql = "UPDATE usuarios
-                SET nome_usuario = ?, email_usuario = ?, senha = ?
-                WHERE id_usuario = ?";
-
-        $stmt = mysqli_prepare($conexao, $sql);
-
-        if (!$stmt) {
-            die("Erro ao preparar atualização: " . mysqli_error($conexao));
-        }
-
-        mysqli_stmt_bind_param($stmt, "sssi", $nome_usuario, $email_usuario, $senha_hash, $id_usuario);
-
+    if (!csrf_valido()) {
+        $erros['geral'] = 'Requisição inválida. Atualize a página e tente novamente.';
     } else {
+        $resultado = atualizar_usuario($conexao, $id_usuario, $_POST);
 
-        // Senha em branco: mantém a senha atual
-        $sql = "UPDATE usuarios
-                SET nome_usuario = ?, email_usuario = ?
-                WHERE id_usuario = ?";
+        if ($resultado['sucesso']) {
 
-        $stmt = mysqli_prepare($conexao, $sql);
+            // Se o usuário editou o próprio cadastro, atualiza os dados da sessão
+            if ($id_usuario === (int) $_SESSION['id_usuario']) {
+                $atualizado = buscar_usuario($conexao, $id_usuario);
+                $_SESSION['usuario'] = $atualizado['nome_usuario'];
+                $_SESSION['perfil_usuario'] = $atualizado['perfil_usuario'];
+            }
 
-        if (!$stmt) {
-            die("Erro ao preparar atualização: " . mysqli_error($conexao));
+            $_SESSION['mensagem_usuarios'] = ['tipo' => 'success', 'texto' => 'Usuário atualizado com sucesso.'];
+            header("Location: tela-cadastro-user.php");
+            exit;
         }
 
-        mysqli_stmt_bind_param($stmt, "ssi", $nome_usuario, $email_usuario, $id_usuario);
+        $erros = $resultado['erros'];
     }
 
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao atualizar usuário: " . mysqli_stmt_error($stmt));
-    }
-
-    mysqli_stmt_close($stmt);
-
-    header("Location: tela-cadastro-user.php");
-    exit;
+    // Mantém no formulário o que foi digitado (menos a senha)
+    $usuario['nome_usuario'] = trim((string) ($_POST['nome_usuario'] ?? ''));
+    $usuario['email_usuario'] = trim((string) ($_POST['email_usuario'] ?? ''));
+    $usuario['perfil_usuario'] = (string) ($_POST['perfil_usuario'] ?? $usuario['perfil_usuario']);
 }
 
-
-//    BUSCAR USUÁRIO PARA PREENCHER O FORMULÁRIO
-
-$sql = "SELECT id_usuario, nome_usuario, email_usuario FROM usuarios WHERE id_usuario = ?";
-
-$stmt = mysqli_prepare($conexao, $sql);
-
-if (!$stmt) {
-    die("Erro ao preparar busca: " . mysqli_error($conexao));
+function classe_erro(array $erros, string $campo): string
+{
+    return isset($erros[$campo]) ? ' is-invalid' : '';
 }
 
-mysqli_stmt_bind_param($stmt, "i", $id_usuario);
-
-if (!mysqli_stmt_execute($stmt)) {
-    die("Erro ao buscar usuário: " . mysqli_stmt_error($stmt));
+function mensagem_erro(array $erros, string $campo): string
+{
+    return isset($erros[$campo]) ? '<div class="invalid-feedback">' . e($erros[$campo]) . '</div>' : '';
 }
-
-$resultado = mysqli_stmt_get_result($stmt);
-
-if (!$resultado || mysqli_num_rows($resultado) === 0) {
-    header("Location: tela-cadastro-user.php");
-    exit;
-}
-
-$usuario = mysqli_fetch_assoc($resultado);
-
-mysqli_stmt_close($stmt);
 
 ?>
 
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -179,7 +152,7 @@ mysqli_stmt_close($stmt);
 <main class="d-flex flex-column align-items-center gap-5 w-100"
     style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
 
-    <div class="card shadow-sm border-1 p-0" style="width: 600px; border-radius: 4px;">
+    <div class="card shadow-sm border-1 p-0" style="width: 600px; max-width: calc(100vw - 32px); border-radius: 4px;">
 
         <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
             style="font-size: 0.7rem;">
@@ -188,10 +161,18 @@ mysqli_stmt_close($stmt);
 
         <div class="p-4">
 
-            <form method="POST">
+            <?php if (isset($erros['geral'])) { ?>
+                <div class="alert alert-danger"><?php echo e($erros['geral']); ?></div>
+            <?php } elseif ($erros) { ?>
+                <div class="alert alert-danger">Corrija os campos destacados.</div>
+            <?php } ?>
+
+            <form method="POST" novalidate>
+
+                <?php echo campo_csrf(); ?>
 
                 <input type="hidden" name="id_usuario"
-                    value="<?php echo $usuario['id_usuario']; ?>">
+                    value="<?php echo (int) $id_usuario; ?>">
 
                 <div class="mb-3">
                     <label for="email_usuario" class="form-label text-secondary fw-semibold"
@@ -199,8 +180,10 @@ mysqli_stmt_close($stmt);
                         EMAIL
                     </label>
 
-                    <input type="email" id="email_usuario" name="email_usuario" class="form-control"
-                        value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
+                    <input type="email" id="email_usuario" name="email_usuario"
+                        class="form-control<?php echo classe_erro($erros, 'email_usuario'); ?>"
+                        value="<?php echo e($usuario['email_usuario']); ?>" maxlength="200" required>
+                    <?php echo mensagem_erro($erros, 'email_usuario'); ?>
                 </div>
 
                 <div class="mb-3">
@@ -209,8 +192,10 @@ mysqli_stmt_close($stmt);
                         NOME DE USUÁRIO
                     </label>
 
-                    <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
-                        value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
+                    <input type="text" id="nome_usuario" name="nome_usuario"
+                        class="form-control<?php echo classe_erro($erros, 'nome_usuario'); ?>"
+                        value="<?php echo e($usuario['nome_usuario']); ?>" minlength="3" maxlength="50" required>
+                    <?php echo mensagem_erro($erros, 'nome_usuario'); ?>
                 </div>
 
                 <div class="mb-3">
@@ -219,8 +204,24 @@ mysqli_stmt_close($stmt);
                         NOVA SENHA
                     </label>
 
-                    <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Deixe em branco para manter a senha atual">
+                    <input type="password" id="senha" name="senha"
+                        class="form-control<?php echo classe_erro($erros, 'senha'); ?>"
+                        placeholder="Deixe em branco para manter a senha atual" maxlength="72" autocomplete="new-password">
+                    <?php echo mensagem_erro($erros, 'senha'); ?>
+                </div>
+
+                <div class="mb-3">
+                    <label for="perfil_usuario" class="form-label text-secondary fw-semibold"
+                        style="font-size: 0.8rem;">
+                        PERFIL
+                    </label>
+
+                    <select id="perfil_usuario" name="perfil_usuario"
+                        class="form-select<?php echo classe_erro($erros, 'perfil_usuario'); ?>" required>
+                        <option value="FUNCIONARIO" <?php echo $usuario['perfil_usuario'] === 'FUNCIONARIO' ? 'selected' : ''; ?>>Funcionário</option>
+                        <option value="ADMIN" <?php echo $usuario['perfil_usuario'] === 'ADMIN' ? 'selected' : ''; ?>>Administrador</option>
+                    </select>
+                    <?php echo mensagem_erro($erros, 'perfil_usuario'); ?>
                 </div>
 
                 <div class="d-flex gap-2">

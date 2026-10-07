@@ -1,69 +1,59 @@
 <?php
 
 include __DIR__ . '/../../infra/verifica-login.php';
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+exigir_admin(); // somente administradores gerenciam usuários
 
 include __DIR__ . '/../../infra/conexao.php';
+require_once __DIR__ . '/../../infra/usuarios.php';
 
-if (isset($_POST['excluir'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $id_usuario = (int) $_POST['id_usuario'];
+    //    EXCLUIR USUÁRIO
 
-    $sql = "DELETE FROM usuarios WHERE id_usuario = ?";
-    $stmt = mysqli_prepare($conexao, $sql);
+    if (isset($_POST['excluir'])) {
 
-    if (!$stmt) {
-        die("Erro ao preparar exclusão: " . mysqli_error($conexao));
+        if (!csrf_valido()) {
+            $_SESSION['mensagem_usuarios'] = ['tipo' => 'danger', 'texto' => 'Requisição inválida. Atualize a página e tente novamente.'];
+        } else {
+            $resultado_exclusao = excluir_usuario($conexao, (int) ($_POST['id_usuario'] ?? 0), (int) $_SESSION['id_usuario']);
+
+            $_SESSION['mensagem_usuarios'] = $resultado_exclusao['sucesso']
+                ? ['tipo' => 'success', 'texto' => 'Usuário excluído com sucesso.']
+                : ['tipo' => 'danger', 'texto' => $resultado_exclusao['erros']['geral']];
+        }
+
+        header("Location: tela-cadastro-user.php");
+        exit;
     }
 
-    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    //    CADASTRAR USUÁRIO (requisição do fetch, responde JSON)
 
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao excluir usuário: " . mysqli_stmt_error($stmt));
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (!csrf_valido()) {
+        http_response_code(403);
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Requisição inválida. Atualize a página e tente novamente.', 'erros' => []]);
+        exit;
     }
 
-    mysqli_stmt_close($stmt);
+    $resultado_cadastro = cadastrar_usuario($conexao, $_POST);
 
-    header("Location: tela-cadastro-user.php");
+    if ($resultado_cadastro['sucesso']) {
+        echo json_encode(['sucesso' => true, 'mensagem' => 'Usuário cadastrado com sucesso!', 'erros' => []]);
+    } else {
+        http_response_code(422);
+        echo json_encode(['sucesso' => false, 'mensagem' => 'Corrija os campos destacados.', 'erros' => $resultado_cadastro['erros']]);
+    }
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome_usuario = $_POST['nome_usuario'] ?? '';
-    $email_usuario = $_POST['email_usuario'] ?? '';
-    $senha = $_POST['senha'] ?? '';
-    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+$usuarios = listar_usuarios($conexao);
 
-    $sql = "INSERT INTO usuarios (nome_usuario, email_usuario, senha) VALUES (?, ?, ?)";
-    $stmt = mysqli_prepare($conexao, $sql);
-
-    if ($stmt === false) {
-        die('Erro ao preparar a consulta: ' . mysqli_error($conexao));
-    }
-
-    mysqli_stmt_bind_param($stmt, 'sss', $nome_usuario, $email_usuario, $senha_hash);
-
-    if (mysqli_stmt_execute($stmt)) {
-        echo "Usuário cadastrado com sucesso!";
-        mysqli_stmt_close($stmt);
-        exit();
-    } else {
-        echo "Erro ao cadastrar usuário: " . mysqli_error($conexao);
-    }
-
-    mysqli_stmt_close($stmt);
-    exit();
-}
-
-$sql_lista = "SELECT id_usuario, nome_usuario, email_usuario FROM usuarios ORDER BY id_usuario DESC";
-$resultado = mysqli_query($conexao, $sql_lista);
-
-if (!$resultado) {
-    die('Erro ao listar usuários: ' . mysqli_error($conexao));
-}
+$mensagem = $_SESSION['mensagem_usuarios'] ?? null;
+unset($_SESSION['mensagem_usuarios']);
 ?>
 
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -143,7 +133,7 @@ if (!$resultado) {
 <main class="d-flex flex-column align-items-center gap-5 w-100"
     style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
 
-    <div class="card shadow-sm border-1 p-0" style="width: 600px; border-radius: 4px;">
+    <div class="card shadow-sm border-1 p-0" style="width: 600px; max-width: calc(100vw - 32px); border-radius: 4px;">
 
         <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
             style="font-size: 0.7rem;">
@@ -152,7 +142,9 @@ if (!$resultado) {
 
         <div class="p-4">
 
-            <form id="form-cadastro">
+            <form id="form-cadastro" novalidate>
+
+                <?php echo campo_csrf(); ?>
 
                 <div class="mb-3">
                     <label for="email_usuario" class="form-label text-secondary fw-semibold"
@@ -161,7 +153,8 @@ if (!$resultado) {
                     </label>
 
                     <input type="email" id="email_usuario" name="email_usuario" class="form-control"
-                        placeholder="exemplo@123.com" required>
+                        placeholder="exemplo@123.com" maxlength="200" required>
+                    <div class="invalid-feedback" data-erro="email_usuario"></div>
                 </div>
 
                 <div class="mb-3">
@@ -171,7 +164,8 @@ if (!$resultado) {
                     </label>
 
                     <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
-                        placeholder="Usuário" required>
+                        placeholder="Usuário" minlength="3" maxlength="50" required>
+                    <div class="invalid-feedback" data-erro="nome_usuario"></div>
                 </div>
 
                 <div class="mb-3">
@@ -181,7 +175,24 @@ if (!$resultado) {
                     </label>
 
                     <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Senha" required>
+                        placeholder="Senha" minlength="8" maxlength="72" autocomplete="new-password" required>
+                    <div class="form-text" style="font-size: 0.75rem;">
+                        Mínimo de 8 caracteres, com letra maiúscula, letra minúscula e número.
+                    </div>
+                    <div class="invalid-feedback" data-erro="senha"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="perfil_usuario" class="form-label text-secondary fw-semibold"
+                        style="font-size: 0.8rem;">
+                        PERFIL
+                    </label>
+
+                    <select id="perfil_usuario" name="perfil_usuario" class="form-select" required>
+                        <option value="FUNCIONARIO" selected>Funcionário</option>
+                        <option value="ADMIN">Administrador</option>
+                    </select>
+                    <div class="invalid-feedback" data-erro="perfil_usuario"></div>
                 </div>
 
                 <button type="submit"
@@ -197,12 +208,18 @@ if (!$resultado) {
         </div>
     </div>
 
-    <div class="card shadow-sm border-1 p-0" style="width: 900px; border-radius: 4px;">
+    <div class="card shadow-sm border-1 p-0" style="width: 900px; max-width: calc(100vw - 32px); border-radius: 4px;">
 
         <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
             style="font-size: 0.7rem;">
             (∞) USUÁRIOS CADASTRADOS
         </div>
+
+        <?php if ($mensagem) { ?>
+            <div class="alert alert-<?php echo e($mensagem['tipo']); ?> m-2 mb-0" role="alert">
+                <?php echo e($mensagem['texto']); ?>
+            </div>
+        <?php } ?>
 
         <table class="table table-bordered table-hover mb-0 align-middle">
 
@@ -211,33 +228,42 @@ if (!$resultado) {
                     <th class="fw-semibold">ID</th>
                     <th class="fw-semibold">LOGIN</th>
                     <th class="fw-semibold">E-MAIL</th>
+                    <th class="fw-semibold">PERFIL</th>
                     <th class="fw-semibold text-center">AÇÕES</th>
                 </tr>
             </thead>
 
             <tbody style="font-size: 0.85rem;">
 
-                <?php if (mysqli_num_rows($resultado) > 0) { ?>
+                <?php if (count($usuarios) > 0) { ?>
 
-                    <?php while ($usuario = mysqli_fetch_assoc($resultado)) { ?>
+                    <?php foreach ($usuarios as $usuario) { ?>
 
                         <tr>
 
                             <td class="text-primary-emphasis fw-bold">
-                                <?php echo $usuario['id_usuario']; ?>
+                                <?php echo (int) $usuario['id_usuario']; ?>
                             </td>
 
                             <td class="text-secondary">
-                                <?php echo htmlspecialchars($usuario['nome_usuario']); ?>
+                                <?php echo e($usuario['nome_usuario']); ?>
                             </td>
 
                             <td class="text-body-tertiary">
-                                <?php echo htmlspecialchars($usuario['email_usuario']); ?>
+                                <?php echo e($usuario['email_usuario']); ?>
+                            </td>
+
+                            <td>
+                                <?php if ($usuario['perfil_usuario'] === 'ADMIN') { ?>
+                                    <span class="badge" style="background-color: #daa301; color: #1b3f53;">ADMINISTRADOR</span>
+                                <?php } else { ?>
+                                    <span class="badge text-bg-secondary">FUNCIONÁRIO</span>
+                                <?php } ?>
                             </td>
 
                             <td class="text-center">
 
-                                <a href="tela-editar-user.php?id=<?php echo $usuario['id_usuario']; ?>"
+                                <a href="tela-editar-user.php?id=<?php echo (int) $usuario['id_usuario']; ?>"
                                     class="btn btn-sm btn-outline-primary me-1">
                                     EDITAR
                                 </a>
@@ -245,8 +271,10 @@ if (!$resultado) {
                                 <form method="POST" style="display: inline;"
                                     onsubmit="return confirm('Tem certeza que deseja deletar este usuário?');">
 
+                                    <?php echo campo_csrf(); ?>
+
                                     <input type="hidden" name="id_usuario"
-                                        value="<?php echo $usuario['id_usuario']; ?>">
+                                        value="<?php echo (int) $usuario['id_usuario']; ?>">
 
                                     <button type="submit" name="excluir"
                                         class="btn btn-sm btn-outline-danger">
@@ -263,7 +291,7 @@ if (!$resultado) {
                 <?php } else { ?>
 
                     <tr>
-                        <td colspan="4" class="text-center text-secondary py-4">
+                        <td colspan="5" class="text-center text-secondary py-4">
                             Nenhum usuário cadastrado.
                         </td>
                     </tr>
