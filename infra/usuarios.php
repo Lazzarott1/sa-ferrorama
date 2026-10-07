@@ -75,10 +75,8 @@ function cadastrar_usuario(mysqli $conexao, array $entrada): array
 {
     $dados = normalizar_usuario($entrada);
 
-    $erros = validar_usuario($dados, true);
-    if (!$erros) {
-        $erros = verificar_duplicados($conexao, $dados);
-    }
+    // Junta erros de formato e de duplicidade para mostrar tudo de uma vez
+    $erros = validar_usuario($dados, true) + verificar_duplicados($conexao, $dados);
     if ($erros) {
         return ['sucesso' => false, 'erros' => $erros];
     }
@@ -106,10 +104,7 @@ function atualizar_usuario(mysqli $conexao, int $id_usuario, array $entrada): ar
 
     $dados = normalizar_usuario($entrada);
 
-    $erros = validar_usuario($dados, false);
-    if (!$erros) {
-        $erros = verificar_duplicados($conexao, $dados, $id_usuario);
-    }
+    $erros = validar_usuario($dados, false) + verificar_duplicados($conexao, $dados, $id_usuario);
 
     // O sistema nunca pode ficar sem administrador
     if (!$erros && $atual['perfil_usuario'] === 'ADMIN' && $dados['perfil_usuario'] !== 'ADMIN'
