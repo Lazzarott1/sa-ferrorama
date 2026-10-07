@@ -303,6 +303,8 @@ $sem_administrador = contar_administradores($conexao) === 0;
                 <div id="mensagem" class="mt-3">
                     <?php if ($erro !== '') { ?>
                         <div class="alert alert-danger"><?php echo e($erro); ?></div>
+                    <?php } elseif (isset($_GET['admin_criado'])) { ?>
+                        <div class="alert alert-success">Administrador cadastrado com sucesso! Faça o login.</div>
                     <?php } elseif (isset($_GET['expirada'])) { ?>
                         <div class="alert alert-warning">Sua sessão expirou por inatividade. Entre novamente.</div>
                     <?php } ?>

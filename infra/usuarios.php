@@ -235,3 +235,43 @@ function autenticar_usuario(mysqli $conexao, string $nome_usuario, string $senha
         ],
     ];
 }
+
+// Cadastro do primeiro administrador (tela de primeiro acesso).
+// Só funciona enquanto o sistema não tiver nenhum administrador.
+function cadastrar_primeiro_administrador(mysqli $conexao, array $entrada): array
+{
+    $senha = (string) ($entrada['senha'] ?? '');
+    $confirmacao = (string) ($entrada['confirmar_senha'] ?? '');
+
+    mysqli_begin_transaction($conexao);
+
+    try {
+        // FOR UPDATE trava a consulta até o fim da transação: dois cadastros
+        // ao mesmo tempo não conseguem criar dois "primeiros" administradores
+        $resultado = mysqli_query($conexao, "SELECT COUNT(*) FROM usuarios WHERE perfil_usuario = 'ADMIN' FOR UPDATE");
+        if ((int) mysqli_fetch_row($resultado)[0] > 0) {
+            mysqli_rollback($conexao);
+            return ['sucesso' => false, 'erros' => ['geral' => 'Já existe um administrador cadastrado.']];
+        }
+
+        $entrada['perfil_usuario'] = 'ADMIN';
+        $resultado = cadastrar_usuario($conexao, $entrada);
+
+        if ($resultado['sucesso'] && $senha !== $confirmacao) {
+            $resultado = ['sucesso' => false, 'erros' => ['confirmar_senha' => 'As senhas não conferem.']];
+        } elseif (!$resultado['sucesso'] && $senha !== $confirmacao) {
+            $resultado['erros']['confirmar_senha'] = 'As senhas não conferem.';
+        }
+
+        if ($resultado['sucesso']) {
+            mysqli_commit($conexao);
+        } else {
+            mysqli_rollback($conexao);
+        }
+
+        return $resultado;
+    } catch (Throwable $erro) {
+        mysqli_rollback($conexao);
+        throw $erro;
+    }
+}
