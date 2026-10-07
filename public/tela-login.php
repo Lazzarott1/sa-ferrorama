@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario = trim($_POST['nome_usuario'] ?? '');
     $senha = trim($_POST['senha'] ?? '');
 
-    $sql = "SELECT id_usuario, nome_usuario, senha FROM usuarios WHERE nome_usuario = ?";
+    $sql = "SELECT id_usuario, nome_usuario, senha, perfil, status_usuario FROM usuarios WHERE nome_usuario = ?";
     $stmt = mysqli_prepare($conexao, $sql);
 
     if ($stmt === false) {
@@ -34,9 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     mysqli_stmt_close($stmt);
 
-    if ($dados && password_verify($senha, $dados['senha'])) {
+    if ($dados && password_verify($senha, $dados['senha']) && $dados['status_usuario'] !== 'ATIVO') {
+        $erro = "Usuário inativo. Fale com o administrador.";
+
+        if ($ehAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
+            exit();
+        }
+    } elseif ($dados && password_verify($senha, $dados['senha'])) {
         $_SESSION['id_usuario'] = $dados['id_usuario'];
         $_SESSION['usuario'] = $dados['nome_usuario'];
+        $_SESSION['perfil'] = $dados['perfil'];
 
         if ($ehAjax) {
             header('Content-Type: application/json');
