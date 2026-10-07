@@ -1,6 +1,8 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/seguranca.php';
+
+iniciar_sessao_segura();
 
 $_SESSION = [];
 
