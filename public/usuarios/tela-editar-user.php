@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-login.php';
+include __DIR__ . '/../../infra/verifica-admin.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -18,6 +18,8 @@ $id_usuario = isset($_POST['id_usuario'])
     ? (int) $_POST['id_usuario']
     : (int) $_GET['id'];
 
+$proprio_usuario = $id_usuario === (int) $_SESSION['id_usuario'];
+
 
 //    ATUALIZAR USUÁRIO
 
@@ -26,6 +28,17 @@ if (isset($_POST['editar'])) {
     $nome_usuario = trim($_POST['nome_usuario']);
     $email_usuario = trim($_POST['email_usuario']);
     $senha = $_POST['senha'];
+    $perfil = $_POST['perfil'] ?? '';
+    $status_usuario = $_POST['status_usuario'] ?? '';
+
+    if ($proprio_usuario) {
+        $perfil = 'ADMINISTRADOR';
+        $status_usuario = 'ATIVO';
+    }
+
+    if (!in_array($perfil, ['ADMINISTRADOR', 'OPERADOR'], true) || !in_array($status_usuario, ['ATIVO', 'INATIVO'], true)) {
+        die("Perfil ou status inválido.");
+    }
 
     if ($senha !== '') {
 
@@ -33,7 +46,7 @@ if (isset($_POST['editar'])) {
         $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
 
         $sql = "UPDATE usuarios
-                SET nome_usuario = ?, email_usuario = ?, senha = ?
+                SET nome_usuario = ?, email_usuario = ?, senha = ?, perfil = ?, status_usuario = ?
                 WHERE id_usuario = ?";
 
         $stmt = mysqli_prepare($conexao, $sql);
@@ -42,13 +55,13 @@ if (isset($_POST['editar'])) {
             die("Erro ao preparar atualização: " . mysqli_error($conexao));
         }
 
-        mysqli_stmt_bind_param($stmt, "sssi", $nome_usuario, $email_usuario, $senha_hash, $id_usuario);
+        mysqli_stmt_bind_param($stmt, "sssssi", $nome_usuario, $email_usuario, $senha_hash, $perfil, $status_usuario, $id_usuario);
 
     } else {
 
         // Senha em branco: mantém a senha atual
         $sql = "UPDATE usuarios
-                SET nome_usuario = ?, email_usuario = ?
+                SET nome_usuario = ?, email_usuario = ?, perfil = ?, status_usuario = ?
                 WHERE id_usuario = ?";
 
         $stmt = mysqli_prepare($conexao, $sql);
@@ -57,23 +70,25 @@ if (isset($_POST['editar'])) {
             die("Erro ao preparar atualização: " . mysqli_error($conexao));
         }
 
-        mysqli_stmt_bind_param($stmt, "ssi", $nome_usuario, $email_usuario, $id_usuario);
+        mysqli_stmt_bind_param($stmt, "ssssi", $nome_usuario, $email_usuario, $perfil, $status_usuario, $id_usuario);
     }
 
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao atualizar usuário: " . mysqli_stmt_error($stmt));
+    try {
+        mysqli_stmt_execute($stmt);
+    } catch (mysqli_sql_exception $e) {
+        die($e->getCode() === 1062 ? "Esse nome de usuário já existe." : "Erro ao atualizar usuário.");
     }
 
     mysqli_stmt_close($stmt);
 
-    header("Location: tela-cadastro-user.php");
+    header("Location: tela-cadastro-user.php?msg=editado");
     exit;
 }
 
 
 //    BUSCAR USUÁRIO PARA PREENCHER O FORMULÁRIO
 
-$sql = "SELECT id_usuario, nome_usuario, email_usuario FROM usuarios WHERE id_usuario = ?";
+$sql = "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario FROM usuarios WHERE id_usuario = ?";
 
 $stmt = mysqli_prepare($conexao, $sql);
 
@@ -221,6 +236,34 @@ mysqli_stmt_close($stmt);
 
                     <input type="password" id="senha" name="senha" class="form-control"
                         placeholder="Deixe em branco para manter a senha atual">
+                </div>
+
+                <div class="mb-3">
+                    <label for="perfil" class="form-label text-secondary fw-semibold"
+                        style="font-size: 0.8rem;">
+                        PERFIL
+                    </label>
+
+                    <select id="perfil" name="perfil" class="form-select" <?php echo $proprio_usuario ? 'disabled' : ''; ?>>
+                        <option value="OPERADOR" <?php echo $usuario['perfil'] === 'OPERADOR' ? 'selected' : ''; ?>>Operador</option>
+                        <option value="ADMINISTRADOR" <?php echo $usuario['perfil'] === 'ADMINISTRADOR' ? 'selected' : ''; ?>>Administrador</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="status_usuario" class="form-label text-secondary fw-semibold"
+                        style="font-size: 0.8rem;">
+                        STATUS
+                    </label>
+
+                    <select id="status_usuario" name="status_usuario" class="form-select" <?php echo $proprio_usuario ? 'disabled' : ''; ?>>
+                        <option value="ATIVO" <?php echo $usuario['status_usuario'] === 'ATIVO' ? 'selected' : ''; ?>>Ativo</option>
+                        <option value="INATIVO" <?php echo $usuario['status_usuario'] === 'INATIVO' ? 'selected' : ''; ?>>Inativo</option>
+                    </select>
+
+                    <?php if ($proprio_usuario) { ?>
+                        <div class="form-text">Você não pode alterar o próprio perfil nem o próprio status.</div>
+                    <?php } ?>
                 </div>
 
                 <div class="d-flex gap-2">
