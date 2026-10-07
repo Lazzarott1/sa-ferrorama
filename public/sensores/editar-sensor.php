@@ -183,7 +183,7 @@ $ehTrem = $sensor['categoria_sensor'] == 'TREM';
             </div>
 
             <div class="mt-4">
-                <button type="submit" name="editar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+                <button type="submit" name="editar" class="btn btn-navbar">SALVAR ALTERAÇÕES</button>
                 <a href="tela-cadastro-sensores.php" class="btn btn-secondary">CANCELAR</a>
             </div>
         </form>

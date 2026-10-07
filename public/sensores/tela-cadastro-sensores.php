@@ -149,7 +149,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                 <p class="subtitulo-sensores">Gerencie os sensores cadastrados na ferrovia</p>
             </div>
 
-            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formSensor">
+            <button type="button" class="btn btn-navbar" data-bs-toggle="collapse" data-bs-target="#formSensor">
                 + NOVO SENSOR
             </button>
         </div>
@@ -222,14 +222,14 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                 </div>
 
                 <div class="mt-4">
-                    <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
+                    <button type="submit" name="cadastrar" class="btn btn-navbar">CADASTRAR</button>
                     <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formSensor">CANCELAR</button>
                 </div>
             </form>
         </div>
 
         <div class="card shadow-sm mb-4">
-            <div class="bg-primary-subtle text-primary-emphasis p-2 fw-bold" style="font-size: 0.7rem;">
+            <div class="p-2 fw-bold" style="background-color: #1b3f53; color: #ffffff; font-size: 0.7rem;">
                 SENSORES CADASTRADOS
             </div>
 
@@ -272,7 +272,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                             <td><?php echo htmlspecialchars($sensor['nome_trem'] ?? $sensor['nome_trilho'] ?? '-'); ?></td>
                             <td><span class="badge <?php echo $cor; ?>"><?php echo htmlspecialchars($sensor['status_sensor']); ?></span></td>
                             <td class="text-center">
-                                <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-primary">EDITAR</a>
+                                <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-navbar">EDITAR</a>
 
                                 <?php if ($sensor['total_trens'] > 0 || $sensor['total_trilhos'] > 0) { ?>
                                     <button type="button" class="btn btn-sm btn-outline-danger"

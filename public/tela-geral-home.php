@@ -71,11 +71,13 @@ $data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . da
                                         <a class="nav-link text-white" href="relatorios/tela-relatorios.php">Relatórios</a>
                                     </li>
                                 </div>
+                                <?php if (($_SESSION['perfil'] ?? '') === 'ADMINISTRADOR') { ?>
                                 <div>
                                     <li class="nav-item">
                                         <a class="nav-link text-white" href="usuarios/tela-cadastro-user.php">Usuários</a>
                                     </li>
                                 </div>
+                                <?php } ?>
 
                             </ul>
                         </div>
@@ -95,6 +97,12 @@ $data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . da
         <div class="container-fluid mt-4 p-0 px-4">
             <h1 class="text-start">Bem-vindo(a), <?php echo htmlspecialchars($nome_usuario); ?>!</h1>
             <p class="text-start"><?php echo $data_hoje; ?></p>
+
+            <?php if (isset($_GET['acesso'])) { ?>
+                <div class="alert alert-warning rounded-1" style="border-left: 4px solid #daa301;">
+                    Você não tem permissão para acessar a tela de usuários.
+                </div>
+            <?php } ?>
         </div>
 
     </main>
