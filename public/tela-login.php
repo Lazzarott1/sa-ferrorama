@@ -1,64 +1,57 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+require_once __DIR__ . '/../infra/seguranca.php';
 
-session_start();
+iniciar_sessao_segura();
+enviar_cabecalhos_seguranca();
 
-include '../infra/conexao.php';
+include __DIR__ . '/../infra/conexao.php';
+require_once __DIR__ . '/../infra/usuarios.php';
 
 $erro = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ehAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
 
-    $usuario = trim($_POST['nome_usuario'] ?? '');
-    $senha = trim($_POST['senha'] ?? '');
+    $resultado = autenticar_usuario(
+        $conexao,
+        (string) ($_POST['nome_usuario'] ?? ''),
+        (string) ($_POST['senha'] ?? '')
+    );
 
-    $sql = "SELECT id_usuario, nome_usuario, senha FROM usuarios WHERE nome_usuario = ?";
-    $stmt = mysqli_prepare($conexao, $sql);
+    if ($resultado['sucesso']) {
+        // Novo ID de sessão a cada login (evita fixação de sessão)
+        session_regenerate_id(true);
 
-    if ($stmt === false) {
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao preparar a consulta: ' . mysqli_error($conexao)]);
-            exit();
-        }
-        die('Erro ao preparar a consulta: ' . mysqli_error($conexao));
-    }
-
-    mysqli_stmt_bind_param($stmt, 's', $usuario);
-    mysqli_stmt_execute($stmt);
-    $resultado = mysqli_stmt_get_result($stmt);
-    $dados = mysqli_fetch_assoc($resultado);
-
-    mysqli_stmt_close($stmt);
-
-    if ($dados && password_verify($senha, $dados['senha'])) {
-        $_SESSION['id_usuario'] = $dados['id_usuario'];
-        $_SESSION['usuario'] = $dados['nome_usuario'];
+        $_SESSION['id_usuario'] = $resultado['usuario']['id_usuario'];
+        $_SESSION['usuario'] = $resultado['usuario']['nome_usuario'];
+        $_SESSION['perfil_usuario'] = $resultado['usuario']['perfil_usuario'];
+        $_SESSION['ultimo_acesso'] = time();
 
         if ($ehAjax) {
             header('Content-Type: application/json');
-            echo json_encode(['sucesso' => true, 'mensagem' => 'Login realizado com sucesso!']);
+            echo json_encode(['sucesso' => true, 'mensagem' => $resultado['mensagem']]);
             exit();
         }
 
         header("Location: tela-geral-home.php");
         exit();
-    } else {
-        $erro = "Usuário ou senha incorretos.";
+    }
 
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
-            exit();
-        }
+    $erro = $resultado['mensagem'];
+
+    if ($ehAjax) {
+        header('Content-Type: application/json');
+        echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
+        exit();
     }
 }
 
+$sem_administrador = contar_administradores($conexao) === 0;
+
 ?>
 
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -307,7 +300,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </form>
 
-                <div id="mensagem" class="mt-3"></div>
+                <div id="mensagem" class="mt-3">
+                    <?php if ($erro !== '') { ?>
+                        <div class="alert alert-danger"><?php echo e($erro); ?></div>
+                    <?php } elseif (isset($_GET['expirada'])) { ?>
+                        <div class="alert alert-warning">Sua sessão expirou por inatividade. Entre novamente.</div>
+                    <?php } ?>
+                </div>
+
+                <?php if ($sem_administrador) { ?>
+                    <p class="text-center mt-2 mb-0" style="font-size: 0.85rem;">
+                        Nenhum administrador cadastrado.
+                        <a href="usuarios/tela-cadastro-admin.php">Cadastrar o primeiro administrador</a>
+                    </p>
+                <?php } ?>
 
             </div>
 
