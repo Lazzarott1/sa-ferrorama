@@ -13,7 +13,13 @@ CREATE TABLE usuarios(
 id_usuario INT AUTO_INCREMENT PRIMARY KEY,
 nome_usuario VARCHAR(200) NOT NULL,
 senha VARCHAR(255) NOT NULL,
-email_usuario VARCHAR(200) NOT NULL
+email_usuario VARCHAR(200) NOT NULL,
+perfil_usuario ENUM('ADMIN', 'FUNCIONARIO') NOT NULL DEFAULT 'FUNCIONARIO',
+tentativas_login INT NOT NULL DEFAULT 0,
+bloqueado_ate DATETIME NULL,
+criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+UNIQUE KEY uk_usuarios_nome (nome_usuario),
+UNIQUE KEY uk_usuarios_email (email_usuario)
 );
 
 CREATE TABLE trens (
@@ -40,7 +46,7 @@ CREATE TABLE sensores (
 
 USE sa_teste;
 
-INSERT INTO usuarios (nome_usuario, senha, email_usuario) VALUES
-('admin',    '$2y$12$rMdLkQLkxCcq6Cbmazqc.O9mvluYpbGTNkiWy.M5fmqVeVA.S1zYi', 'admin@ferromonitor.com'),
-('operador', '$2y$12$PfDzvJ35IUzg7JEslLJhB.f4nMQxHhXVLUUpSsuIyMKQgu12tQsQq', 'operador@ferromonitor.com'),
-('tecnico',  '$2y$12$J9Rrgjjn.M3xFI9nXqKSV.zMsTf9wLBR/1Rv5HvP92nSrkdHqgE2O', 'tecnico@ferromonitor.com');
+INSERT INTO usuarios (nome_usuario, senha, email_usuario, perfil_usuario) VALUES
+('admin',    '$2y$12$rMdLkQLkxCcq6Cbmazqc.O9mvluYpbGTNkiWy.M5fmqVeVA.S1zYi', 'admin@ferromonitor.com',    'ADMIN'),
+('operador', '$2y$12$PfDzvJ35IUzg7JEslLJhB.f4nMQxHhXVLUUpSsuIyMKQgu12tQsQq', 'operador@ferromonitor.com', 'FUNCIONARIO'),
+('tecnico',  '$2y$12$J9Rrgjjn.M3xFI9nXqKSV.zMsTf9wLBR/1Rv5HvP92nSrkdHqgE2O', 'tecnico@ferromonitor.com',  'FUNCIONARIO');
