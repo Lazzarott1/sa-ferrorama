@@ -1,0 +1,26 @@
+# Execução: php teste/testes-http.php http://127.0.0.1:8081  (07/10/2026 14:22)
+
+Servidor testado: http://127.0.0.1:8081/public
+
+[PASSOU] H01 - Sem login, a tela de usuários redireciona para o login  (HTTP 302)
+[PASSOU] H02 - Cabeçalhos de segurança presentes (X-Frame-Options e nosniff)
+[PASSOU] H03 - Cookie de sessão com HttpOnly e SameSite=Strict
+[PASSOU] H04 - Login do administrador pela tela
+[PASSOU] H05 - ID da sessão muda após o login (fixação de sessão)
+[PASSOU] H06 - SQL Injection no login (' OR '1'='1) é recusado  ({"sucesso":false,"mensagem":"Usu\u00e1rio ou senha incorretos."})
+[PASSOU] H07 - Administrador acessa a tela de usuários
+[PASSOU] H08 - Cadastro sem token CSRF é recusado (HTTP 403)  (HTTP 403)
+[PASSOU] H09 - Dados inválidos enviados direto ao servidor (sem JavaScript) retornam HTTP 422  (HTTP 422, 4 erros)
+[PASSOU] H10 - Cadastro válido pela tela retorna sucesso
+[PASSOU] H11 - Novo funcionário aparece na listagem
+[PASSOU] H12 - Edição válida salva e volta para a listagem
+[PASSOU] H13 - Exclusão sem token CSRF não apaga o usuário
+[PASSOU] H14 - Exclusão com token CSRF apaga o usuário
+[PASSOU] H15 - Tela de primeiro administrador fica bloqueada quando já existe admin
+[PASSOU] H16 - Funcionário faz login e acessa a Home
+[PASSOU] H17 - Funcionário NÃO acessa a tela de usuários (HTTP 403)  (HTTP 403)
+[PASSOU] H18 - Funcionário NÃO acessa a edição de usuários (HTTP 403)  (HTTP 403)
+[PASSOU] H19 - Depois do logout a sessão não vale mais
+
+============================================================
+Total: 19 | Passaram: 19 | Falharam: 0

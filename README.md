@@ -23,3 +23,13 @@ A qualidade e a confiabilidade do FerroMonitor são garantidas por requisitos n�
 ### Tecnologias Utilizadas
 
 Além do HTML, o projeto emprega diversas linguagens e tecnologias para garantir seu pleno funcionamento, entre elas JavaScript, PHP, CSS e Bootstrap para o desenvolvimento da interface; MySQL, gerenciado via phpMyAdmin, para o armazenamento dos dados; e XAMPP como ambiente de desenvolvimento local. A operação CRUD (Create, Read, Update, Delete) estrutura as ações de cadastro e manipulação de dados, enquanto Scrum e Kanban orientam a organização e o acompanhamento do trabalho da equipe.
+### Usuários, Administrador e Segurança
+
+O sistema tem dois perfis: **Administrador** e **Funcionário**. Somente administradores acessam a tela de Usuários, onde é possível cadastrar, listar, editar e excluir funcionários e outros administradores. Quando o banco ainda não tem nenhum administrador, a tela de login mostra o link **Cadastrar o primeiro administrador**.
+
+As senhas são gravadas apenas como hash bcrypt. Todas as consultas usam *prepared statements* (proteção contra SQL Injection) e todos os dados são validados no servidor. O login bloqueia o usuário depois de 5 tentativas erradas, e os formulários são protegidos contra CSRF.
+
+- Banco novo: importar `database/db_sa.sql`.
+- Banco criado antes desta versão: executar `database/alterar_usuarios.sql`.
+- Testes: `php teste/testes-usuarios.php` (detalhes em `doc/validacoes-e-testes.md`).
+- Requisitos não funcionais revisados: `doc/requisitos-nao-funcionais.md`.

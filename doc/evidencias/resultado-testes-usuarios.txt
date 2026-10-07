@@ -1,0 +1,84 @@
+# Execução: php teste/testes-usuarios.php  (07/10/2026 14:22, PHP 8.3.6, 10.11.14-MariaDB-0ubuntu0.24.04.1)
+
+
+== 1. Validações do backend (infra/validacao-usuario.php) ==
+[PASSOU] V01 - Dados válidos não geram erro
+[PASSOU] V02 - Nome de usuário vazio é rejeitado
+[PASSOU] V03 - Nome com menos de 3 caracteres é rejeitado
+[PASSOU] V04 - Nome com mais de 50 caracteres é rejeitado
+[PASSOU] V05 - Nome com aspas/SQL (admin' --) é rejeitado
+[PASSOU] V06 - Nome com HTML (<script>) é rejeitado
+[PASSOU] V07 - E-mail vazio é rejeitado
+[PASSOU] V08 - E-mail sem formato válido é rejeitado
+[PASSOU] V09 - E-mail com mais de 200 caracteres é rejeitado
+[PASSOU] V10 - E-mail é normalizado (espaços e maiúsculas)
+[PASSOU] V11 - Senha vazia é rejeitada no cadastro
+[PASSOU] V12 - Senha com menos de 8 caracteres é rejeitada
+[PASSOU] V13 - Senha com mais de 72 caracteres é rejeitada
+[PASSOU] V14 - Senha sem letra maiúscula é rejeitada
+[PASSOU] V15 - Senha sem número é rejeitada
+[PASSOU] V16 - Senha que contém o nome de usuário é rejeitada
+[PASSOU] V17 - Perfil fora da lista (ROOT) é rejeitado
+[PASSOU] V18 - Na edição, senha em branco é aceita (mantém a atual)
+[PASSOU] V19 - Na edição, senha preenchida continua sendo validada
+
+== 2. Cadastro de Administrador ==
+[PASSOU] A01 - Primeiro admin com confirmação de senha diferente é rejeitado
+[PASSOU] A02 - Primeiro admin é criado quando não há administrador
+[PASSOU] A03 - Primeiro admin recebe perfil ADMIN mesmo se outro perfil for enviado
+[PASSOU] A04 - Tela de primeiro admin é bloqueada depois que já existe um admin
+[PASSOU] A05 - Administrador cadastra outro administrador pela tela de usuários
+
+== 3. CRUD de Funcionários/Usuários (infra/usuarios.php) ==
+[PASSOU] C01 - CREATE: funcionário válido é cadastrado
+[PASSOU] C02 - READ: funcionário aparece na listagem  (joao.silva, maria.admin, admin.ferro)
+[PASSOU] C03 - READ: busca por ID retorna os dados certos
+[PASSOU] C04 - CREATE: nome de usuário repetido é rejeitado
+[PASSOU] C05 - CREATE: e-mail repetido (maiúsculas diferentes) é rejeitado
+[PASSOU] C06 - CREATE: dados inválidos retornam erro e nada é gravado
+[PASSOU] C07 - UPDATE: nome e e-mail são alterados
+[PASSOU] C08 - UPDATE: senha em branco mantém a senha atual
+[PASSOU] C09 - UPDATE: nova senha gera novo hash
+[PASSOU] C10 - UPDATE: login funciona com a nova senha
+[PASSOU] C11 - UPDATE: não permite usar o nome de outro usuário
+[PASSOU] C12 - UPDATE: dados inválidos são rejeitados
+[PASSOU] C13 - UPDATE: usuário inexistente retorna erro
+[PASSOU] C14 - DELETE: usuário não pode excluir a si mesmo
+[PASSOU] C15 - DELETE: funcionário é excluído
+[PASSOU] C16 - DELETE: usuário inexistente retorna erro
+[PASSOU] C17 - DELETE: um admin pode excluir outro admin quando sobra pelo menos um
+[PASSOU] C18 - DELETE: o único administrador não pode ser excluído
+[PASSOU] C19 - UPDATE: o único administrador não pode perder o perfil ADMIN
+
+== 4. Proteção das senhas ==
+[PASSOU] P01 - Senha não é gravada em texto puro
+[PASSOU] P02 - Senha é gravada com bcrypt custo 12 ($2y$12$)  ($2y$12$my.WQglhRx./H8ht1IkVf....)
+[PASSOU] P03 - password_verify confere a senha correta
+[PASSOU] P04 - Mesma senha em dois usuários gera hashes diferentes (salt)
+[PASSOU] P05 - Listagem e busca não retornam a coluna senha
+[PASSOU] P06 - Hash antigo (custo 10) é atualizado para custo 12 no login
+
+== 5. Login e bloqueio por tentativas ==
+[PASSOU] L01 - Login com usuário e senha corretos
+[PASSOU] L02 - Senha errada é recusada
+[PASSOU] L03 - Usuário inexistente recebe a mesma mensagem (não revela quem existe)  (Usuário ou senha incorretos.)
+[PASSOU] L04 - Campos vazios são recusados
+[PASSOU] L05 - Após 5 senhas erradas o usuário é bloqueado (até a senha certa é recusada)  (Usuário bloqueado temporariamente por excesso de tentativas. Tente novamente em 15 minutos.)
+[PASSOU] L06 - Depois do tempo de bloqueio o login volta a funcionar
+
+== 6. Proteção contra SQL Injection ==
+[PASSOU] S01 - Login com nome = ' OR '1'='1 é recusado
+[PASSOU] S02 - Login com nome = ' OR 1=1 --  é recusado
+[PASSOU] S03 - Login com nome = admin.ferro' --  é recusado
+[PASSOU] S04 - Login com nome = admin.ferro' # é recusado
+[PASSOU] S05 - Login com nome = " OR ""=" é recusado
+[PASSOU] S06 - Login com senha = ' OR '1'='1 é recusado
+[PASSOU] S07 - Cadastro com DROP TABLE no e-mail é recusado
+[PASSOU] S08 - Consulta de duplicidade trata o ataque como texto (nenhum registro encontrado)
+[PASSOU] S09 - ID "1 OR 1=1" vira o número 1 e retorna no máximo um registro
+[PASSOU] S10 - Exclusão com ID "0 OR 1=1" não apaga nenhum registro
+[PASSOU] S11 - Tabela usuarios continua existindo e com os mesmos registros  (4 registros)
+[PASSOU] S12 - Nenhuma consulta em infra/usuarios.php interpola variáveis no SQL
+
+============================================================
+Total: 67 | Passaram: 67 | Falharam: 0

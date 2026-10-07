@@ -1,0 +1,24 @@
+# Consulta no banco depois dos testes de tela: senhas gravadas apenas como hash bcrypt
+# SELECT id_usuario, nome_usuario, perfil_usuario, senha FROM usuarios;
+
++------------+--------------+----------------+--------------------------------------------------------------+
+| id_usuario | nome_usuario | perfil_usuario | senha                                                        |
++------------+--------------+----------------+--------------------------------------------------------------+
+|          1 | admin.ferro  | ADMIN          | $2y$12$E2Zd0uzFicn70KyXCn0WK.zSqdxiBJOQyqbWBVdvj//VQfNE5xtYe |
+|          3 | maria.costa  | ADMIN          | $2y$12$uLBvFP2ARQlgVjPf5Q3e0u0B6.kr9.JRN06UGa5.b.CFFDlHYmp5W |
+|          4 | operador     | FUNCIONARIO    | $2y$12$VQx5i8QmzGwXhDuXW/KXZO9KOz.8ViYl.2ZWbIqriQzLOQ3OORWJ. |
+|          5 | tecnico      | FUNCIONARIO    | $2y$12$meXtTAmkCL//kNydCnjs4.FyYrwc6l8lo4Qtt/whahVwBHx2MEK22 |
++------------+--------------+----------------+--------------------------------------------------------------+
+
+# Índices únicos da tabela usuarios
++--------------------+----------------+
+| Key_name           | Column_name    |
++--------------------+----------------+
+| PRIMARY            | id_usuario     |
+| uk_usuarios_nome   | nome_usuario   |
+| uk_usuarios_email  | email_usuario  |
++--------------------+----------------+
+
+# Tentativa de cadastro duplicado direto no banco (constraint UNIQUE)
+INSERT INTO usuarios (nome_usuario, email_usuario, senha) VALUES ('admin.ferro','x@x.com','x');
+ERROR 1062 (23000) at line 1: Duplicate entry 'admin.ferro' for key 'uk_usuarios_nome'
