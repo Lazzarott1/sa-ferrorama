@@ -41,6 +41,21 @@ CREATE TABLE sensores (
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
 );
 
+CREATE TABLE relatorios (
+    id_relatorio     INT AUTO_INCREMENT PRIMARY KEY,
+    titulo           VARCHAR(150)    NOT NULL,
+    tipo             VARCHAR(50)     NOT NULL,
+    data_inicio      DATE            NOT NULL,
+    data_fim         DATE            NOT NULL,
+    id_trem          INT             NULL,
+    id_trilho        INT             NULL,
+    tipo_dado        VARCHAR(50)     NULL,
+    status_relatorio VARCHAR(20)     NOT NULL DEFAULT 'PROCESSANDO',
+    gerado_em        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_trem) REFERENCES trens(id_trem),
+    FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho)
+);
+
 USE sa_teste;
 
 INSERT INTO usuarios (nome_usuario, senha, email_usuario, perfil) VALUES
