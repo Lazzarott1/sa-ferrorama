@@ -1,6 +1,6 @@
 <?php
-include '../../infra/conexao.php';
 include __DIR__ . '/../../infra/verifica-login.php';
+include '../../infra/conexao.php';
 
 // VERIFICA SE O TRILHO OU TREM ESCOLHIDO ESTÁ CADASTRADO
 function referenciaExiste($conexao, $categoria, $id) {
@@ -19,24 +19,11 @@ function referenciaExiste($conexao, $categoria, $id) {
     return mysqli_fetch_row(mysqli_stmt_get_result($stmt)) !== null;
 }
 
-// EXCLUIR SENSOR
-if (isset($_POST['excluir'])) {
+// INATIVAR SENSOR
+if ($admin && isset($_POST['inativar'])) {
     $id_sensor = (int) $_POST['id_sensor'];
 
-    $stmt = mysqli_prepare($conexao, "SELECT
-            (id_trem IS NOT NULL) AS total_trens,
-            (id_trilho IS NOT NULL) AS total_trilhos
-        FROM sensores WHERE id_sensor = ?");
-    mysqli_stmt_bind_param($stmt, "i", $id_sensor);
-    mysqli_stmt_execute($stmt);
-    $associacoes = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-    if ($associacoes && ($associacoes['total_trens'] > 0 || $associacoes['total_trilhos'] > 0)) {
-        header("Location: tela-cadastro-sensores.php?bloqueado=" . $id_sensor);
-        exit;
-    }
-
-    $stmt = mysqli_prepare($conexao, "DELETE FROM sensores WHERE id_sensor = ?");
+    $stmt = mysqli_prepare($conexao, "UPDATE sensores SET status_sensor = 'INATIVO' WHERE id_sensor = ?");
     mysqli_stmt_bind_param($stmt, "i", $id_sensor);
     mysqli_stmt_execute($stmt);
 
@@ -45,7 +32,7 @@ if (isset($_POST['excluir'])) {
 }
 
 // CADASTRAR SENSOR
-if (isset($_POST['cadastrar'])) {
+if ($admin && isset($_POST['cadastrar'])) {
     $nome = $_POST['nome'];
     $categoria = $_POST['categoria'];
     $tipo = $_POST['tipo'];
@@ -71,31 +58,25 @@ if (isset($_POST['cadastrar'])) {
 }
 
 // BUSCAR SENSORES
-$resultado = mysqli_query($conexao, "SELECT sensores.*, trens.nome_trem, trilhos.nome_trilho,
-        (sensores.id_trem IS NOT NULL) AS total_trens,
-        (sensores.id_trilho IS NOT NULL) AS total_trilhos
+$filtro = $_GET['filtro'] ?? 'ativos';
+
+$where = "";
+
+if ($filtro == 'ativos') {
+    $where = "WHERE sensores.status_sensor <> 'INATIVO'";
+} elseif ($filtro == 'inativos') {
+    $where = "WHERE sensores.status_sensor = 'INATIVO'";
+}
+
+$resultado = mysqli_query($conexao, "SELECT sensores.*, trens.nome_trem, trilhos.nome_trilho
     FROM sensores
     LEFT JOIN trens ON trens.id_trem = sensores.id_trem
     LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
+    $where
     ORDER BY sensores.id_sensor DESC");
 
-$sensorBloqueado = null;
-
-if (isset($_GET['bloqueado'])) {
-    $idBloqueado = (int) $_GET['bloqueado'];
-
-    while ($linha = mysqli_fetch_assoc($resultado)) {
-        if ((int) $linha['id_sensor'] === $idBloqueado) {
-            $sensorBloqueado = $linha;
-            break;
-        }
-    }
-
-    mysqli_data_seek($resultado, 0);
-}
-
-$trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos ORDER BY nome_trilho");
-$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY nome_trem");
+$trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
+$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem");
 ?>
 
 <!DOCTYPE html>
@@ -112,33 +93,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
 <body>
 
     
-    <header class="container-fluid p-2" style="background-color: #1b3f53; color: #ffffff;">
-        <div id="header" class="hstack gap-3 px-2">
-
-            <div class="d-flex" id="logo">
-                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo">
-                <div class="nome-sistema">
-                    <h2 class="mb-0 text-white">FerroMonitor</h2>
-                    <p>SISTEMA FERROVIÁRIO</p>
-                </div>
-            </div>
-
-            <nav class="navbar navbar-expand-lg navbar-dark">
-                <ul class="navbar-nav">
-                    <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="tela-cadastro-sensores.php">Sensores</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
-                </ul>
-            </nav>
-
-            <div>
-                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
-            </div>
-        </div>
-    </header>
+    <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="container px-4 mt-4">
 
@@ -149,15 +104,18 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                 <p class="subtitulo-sensores">Gerencie os sensores cadastrados na ferrovia</p>
             </div>
 
-            <button type="button" class="btn btn-navbar" data-bs-toggle="collapse" data-bs-target="#formSensor">
-                + NOVO SENSOR
-            </button>
+            <?php if ($admin) { ?>
+                <button type="button" class="btn btn-navbar" data-bs-toggle="collapse" data-bs-target="#formSensor">
+                    + NOVO SENSOR
+                </button>
+            <?php } ?>
         </div>
 
         <?php if (isset($_GET['erro'])) { ?>
             <div class="alert alert-danger">Selecione um trilho ou trem cadastrado no sistema.</div>
         <?php } ?>
 
+        <?php if ($admin) { ?>
         <div class="collapse mb-4" id="formSensor">
             <div class="cardcadastro p-3">
                 <span class="spancadastrosensor">CADASTRAR NOVO SENSOR</span>
@@ -227,10 +185,19 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                 </div>
             </form>
         </div>
+        <?php } ?>
 
         <div class="card shadow-sm mb-4">
-            <div class="p-2 fw-bold" style="background-color: #1b3f53; color: #ffffff; font-size: 0.7rem;">
+            <div class="p-2 fw-bold d-flex justify-content-between align-items-center" style="background-color: #1b3f53; color: #ffffff; font-size: 0.7rem;">
                 SENSORES CADASTRADOS
+
+                <form method="GET">
+                    <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>Ativos</option>
+                        <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>Inativos</option>
+                        <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>Todos</option>
+                    </select>
+                </form>
             </div>
 
             <table class="table table-bordered table-hover mb-0 align-middle">
@@ -272,19 +239,18 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                             <td><?php echo htmlspecialchars($sensor['nome_trem'] ?? $sensor['nome_trilho'] ?? '-'); ?></td>
                             <td><span class="badge <?php echo $cor; ?>"><?php echo htmlspecialchars($sensor['status_sensor']); ?></span></td>
                             <td class="text-center">
-                                <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-navbar">EDITAR</a>
+                                <?php if ($admin) { ?>
+                                    <a href="editar-sensor.php?id=<?php echo $sensor['id_sensor']; ?>" class="btn btn-sm btn-outline-navbar">EDITAR</a>
 
-                                <?php if ($sensor['total_trens'] > 0 || $sensor['total_trilhos'] > 0) { ?>
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal" data-bs-target="#modalSensorAssociado"
-                                        data-nome="<?php echo htmlspecialchars($sensor['nome_sensor']); ?>"
-                                        data-trens="<?php echo (int) $sensor['total_trens']; ?>"
-                                        data-trilhos="<?php echo (int) $sensor['total_trilhos']; ?>">X</button>
+                                    <?php if ($sensor['status_sensor'] != 'INATIVO') { ?>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#modalSensorAssociado"
+                                            data-id="<?php echo $sensor['id_sensor']; ?>"
+                                            data-nome="<?php echo htmlspecialchars($sensor['nome_sensor']); ?>"
+                                            data-vinculo="<?php echo htmlspecialchars(($sensor['categoria_sensor'] == 'TREM' ? 'Trem: ' : 'Trilho: ') . ($sensor['nome_trem'] ?? $sensor['nome_trilho'] ?? '-')); ?>">INATIVAR</button>
+                                    <?php } ?>
                                 <?php } else { ?>
-                                    <form method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir este sensor?');">
-                                        <input type="hidden" name="id_sensor" value="<?php echo $sensor['id_sensor']; ?>">
-                                        <button type="submit" name="excluir" class="btn btn-sm btn-outline-danger">X</button>
-                                    </form>
+                                    -
                                 <?php } ?>
                             </td>
                         </tr>
@@ -301,47 +267,30 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
                 <div class="modal-header rounded-top-1 text-white py-2" style="background-color: #1b3f53; border-bottom: 3px solid #daa301;">
                     <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2" id="tituloModalSensorAssociado">
                         <span style="color: #daa301; font-size: 1.1rem; line-height: 1;">&#9888;</span>
-                        ATENÇÃO: EXCLUSÃO NÃO PERMITIDA
+                        ATENÇÃO: SENSOR COM ASSOCIAÇÃO
                     </h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
 
                 <div class="modal-body">
-                    <div class="alert alert-warning rounded-1 d-flex gap-2 mb-3 py-2" role="alert" style="border-left: 4px solid #daa301;">
+                    <div class="alert alert-warning rounded-1 d-flex gap-2 mb-0 py-2" role="alert" style="border-left: 4px solid #daa301;">
                         <span class="fw-bold" style="font-size: 1.2rem; line-height: 1.3;">&#9888;</span>
                         <div>
-                            <strong>
-                                O sensor
-                                <span id="modalNomeSensor"><?php echo $sensorBloqueado ? htmlspecialchars($sensorBloqueado['nome_sensor']) : ''; ?></span>
-                                possui associações.
-                            </strong>
+                            <strong>O sensor <span id="modalNomeSensor"></span> está ligado a:</strong>
                             <br>
-                            <span style="font-size: 0.9rem;">Remova ou altere o trem ou trilho vinculado a ele antes de excluí-lo.</span>
+                            <span id="modalVinculoSensor"></span>
+                            <br>
+                            <span style="font-size: 0.9rem;">Deseja inativar mesmo assim?</span>
                         </div>
                     </div>
-
-                    <table class="table table-bordered table-sm mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr class="text-secondary">
-                                <th class="fw-semibold">ASSOCIAÇÃO</th>
-                                <th class="fw-semibold text-center" style="width: 110px;">QUANTIDADE</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Trens</td>
-                                <td class="text-center fw-bold" id="modalTotalTrens"><?php echo $sensorBloqueado ? (int) $sensorBloqueado['total_trens'] : 0; ?></td>
-                            </tr>
-                            <tr>
-                                <td>Trilhos</td>
-                                <td class="text-center fw-bold" id="modalTotalTrilhos"><?php echo $sensorBloqueado ? (int) $sensorBloqueado['total_trilhos'] : 0; ?></td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
 
                 <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-sm px-3 fw-bold" style="background-color: #daa301; color: #1b3f53;" data-bs-dismiss="modal">ENTENDI</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">CANCELAR</button>
+                    <form method="POST" class="d-inline">
+                        <input type="hidden" name="id_sensor" id="modalIdSensor">
+                        <button type="submit" name="inativar" class="btn btn-sm px-3 fw-bold" style="background-color: #daa301; color: #1b3f53;">INATIVAR MESMO ASSIM</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -371,27 +320,20 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY n
             selectTrem.disabled = !ehTrem;
         }
 
-        categoria.addEventListener('change', atualizarCampo);
-        atualizarCampo();
+        if (categoria) {
+            categoria.addEventListener('change', atualizarCampo);
+            atualizarCampo();
+        }
 
         const modalSensorAssociado = document.getElementById('modalSensorAssociado');
 
         modalSensorAssociado.addEventListener('show.bs.modal', function (evento) {
             const botao = evento.relatedTarget;
 
-            if (!botao) {
-                return;
-            }
-
+            document.getElementById('modalIdSensor').value = botao.dataset.id;
             document.getElementById('modalNomeSensor').textContent = botao.dataset.nome;
-            document.getElementById('modalTotalTrens').textContent = botao.dataset.trens;
-            document.getElementById('modalTotalTrilhos').textContent = botao.dataset.trilhos;
+            document.getElementById('modalVinculoSensor').textContent = botao.dataset.vinculo;
         });
-
-        <?php if ($sensorBloqueado) { ?>
-        new bootstrap.Modal(modalSensorAssociado).show();
-        history.replaceState(null, '', 'tela-cadastro-sensores.php');
-        <?php } ?>
     </script>
 </body>
 

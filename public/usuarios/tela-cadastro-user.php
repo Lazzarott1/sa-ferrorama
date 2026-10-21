@@ -108,40 +108,7 @@ try {
 
 
 <body class="bg-light">
-    <header class="container-fluid p-2 rounded-0" style="background-color: #1b3f53; color: #ffffff;">
-        <div id="header" class="hstack gap-3 px-2">
-            <div class="d-flex" id="logo">
-                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo">
-                <div class="nome-sistema">
-                    <h2 class="mb-0 text-white">FerroMonitor</h2>
-                    <p>SISTEMA FERROVIÁRIO</p>
-                </div>
-            </div>
-            <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #1b3f53;">
-                <div class="container-fluid">
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <div class="d-flex">
-                            <ul class="navbar-nav">
-                                <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
-                                <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
-                                <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
-                                <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
-                                <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
-                                <?php if ($admin) { ?>
-                                    <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
-                                <?php } ?>
-                            </ul>
-                        </div>
-
-                    </div>
-                </div>
-            </nav>
-
-            <div>
-                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
-            </div>
-        </div>
-    </header>
+    <?php include __DIR__ . '/../navbar.php'; ?>
 
 <main class="d-flex flex-column align-items-center gap-5 w-100"
     style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
