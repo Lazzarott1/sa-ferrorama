@@ -22,6 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    if (!filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo "Informe um e-mail válido.";
+        exit();
+    }
+
+    if (strlen($senha) < 8) {
+        http_response_code(400);
+        echo "A senha deve ter pelo menos 8 caracteres.";
+        exit();
+    }
+
     $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
 
     try {
@@ -110,43 +122,14 @@ try {
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <div class="d-flex">
                             <ul class="navbar-nav">
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" aria-current="page"
-                                            href="../tela-geral-home.php">Home</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../monitoramento/tela-monitoramento.php">Monitoramento</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../relatorios/tela-relatorios.php">Relatórios</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-user.php">Usuários</a>
-                                    </li>
-                                </div>
-
+                                <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                                <?php if ($admin) { ?>
+                                    <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
+                                <?php } ?>
                             </ul>
                         </div>
 
@@ -201,7 +184,7 @@ try {
                     </label>
 
                     <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Senha" required>
+                        placeholder="Senha (mínimo 8 caracteres)" minlength="8" required>
                 </div>
 
                 <div class="mb-3">
