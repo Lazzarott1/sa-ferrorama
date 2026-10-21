@@ -40,6 +40,14 @@ if (isset($_POST['editar'])) {
         die("Perfil ou status inválido.");
     }
 
+    if ($nome_usuario === '' || !filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
+        die("Preencha o nome e um e-mail válido.");
+    }
+
+    if ($senha !== '' && strlen($senha) < 8) {
+        die("A senha deve ter pelo menos 8 caracteres.");
+    }
+
     if ($senha !== '') {
 
         // Senha preenchida: atualiza nome, e-mail e senha
@@ -141,43 +149,14 @@ mysqli_stmt_close($stmt);
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <div class="d-flex">
                             <ul class="navbar-nav">
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" aria-current="page"
-                                            href="../tela-geral-home.php">Home</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../monitoramento/tela-monitoramento.php">Monitoramento</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="../relatorios/tela-relatorios.php">Relatórios</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="tela-cadastro-user.php">Usuários</a>
-                                    </li>
-                                </div>
-
+                                <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                                <?php if ($admin) { ?>
+                                    <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
+                                <?php } ?>
                             </ul>
                         </div>
 
@@ -235,7 +214,7 @@ mysqli_stmt_close($stmt);
                     </label>
 
                     <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Deixe em branco para manter a senha atual">
+                        placeholder="Deixe em branco para manter a senha atual" minlength="8">
                 </div>
 
                 <div class="mb-3">
