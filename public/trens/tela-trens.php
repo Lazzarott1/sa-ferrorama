@@ -8,24 +8,36 @@ if (!isset($conexao) || $conexao === false) {
 }
 
 
-//    EXCLUIR TREM
+//    INATIVAR TREM
 
-if (isset($_POST['excluir'])) {
+if ($admin && isset($_POST['inativar'])) {
 
     $id_trem = (int) $_POST['id_trem'];
 
-    $sql = "DELETE FROM trens WHERE id_trem = ?";
+    $sql = "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'";
+    $stmt = mysqli_prepare($conexao, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_trem);
+    mysqli_stmt_execute($stmt);
+    $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    if ($sensores['total'] > 0) {
+        header("Location: tela-trens.php?bloqueado=" . $sensores['total']);
+        exit;
+    }
+
+    $sql = "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?";
 
     $stmt = mysqli_prepare($conexao, $sql);
 
     if (!$stmt) {
-        die("Erro ao preparar exclusão: " . mysqli_error($conexao));
+        die("Erro ao preparar inativação: " . mysqli_error($conexao));
     }
 
     mysqli_stmt_bind_param($stmt, "i", $id_trem);
 
     if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao excluir trem: " . mysqli_stmt_error($stmt));
+        die("Erro ao inativar trem: " . mysqli_stmt_error($stmt));
     }
 
     mysqli_stmt_close($stmt);
@@ -37,26 +49,13 @@ if (isset($_POST['excluir'])) {
 
 //    CADASTRAR TREM
 
-if (isset($_POST['cadastrar'])) {
+if ($admin && isset($_POST['cadastrar'])) {
 
-    $nome = trim($_POST['nome'] ?? '');
-    $modelo = $_POST['modelo'] ?? '';
-    $capacidade = (int) ($_POST['capacidade'] ?? 0);
-    $id_trilho = (int) ($_POST['id_trilho'] ?? 0);
-    $status = $_POST['status'] ?? '';
-
-    $modelosValidos = ['De passageiros', 'De carga'];
-    $statusValidos = ['ATIVO', 'MANUTENCAO', 'INATIVO'];
-
-    if (
-        $nome === '' ||
-        !in_array($modelo, $modelosValidos, true) ||
-        $capacidade <= 0 ||
-        $id_trilho <= 0 ||
-        !in_array($status, $statusValidos, true)
-    ) {
-        die("Erro: preencha todos os campos corretamente.");
-    }
+    $nome = $_POST['nome'];
+    $modelo = $_POST['modelo'];
+    $capacidade = (int) $_POST['capacidade'];
+    $id_trilho = (int) $_POST['id_trilho'];
+    $status = $_POST['status'];
 
     $sql = "INSERT INTO trens
             (
@@ -95,11 +94,22 @@ if (isset($_POST['cadastrar'])) {
 }
 
 
-//    BUSCAR TRENS (COM O NOME DO TRILHO)
+//    BUSCAR TRENS
+
+$filtro = $_GET['filtro'] ?? 'ativos';
+
+$where = "";
+
+if ($filtro == 'ativos') {
+    $where = "WHERE trens.status_trem <> 'INATIVO'";
+} elseif ($filtro == 'inativos') {
+    $where = "WHERE trens.status_trem = 'INATIVO'";
+}
 
 $sql = "SELECT trens.*, trilhos.nome_trilho
         FROM trens
         LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
+        $where
         ORDER BY trens.id_trem DESC";
 
 $resultado = mysqli_query($conexao, $sql);
@@ -109,10 +119,11 @@ if (!$resultado) {
 }
 
 
-//    BUSCAR TRILHOS PARA A LISTA DO FORMULÁRIO
+//    BUSCAR TRILHOS
 
-$sql = "SELECT id_trilho, nome_trilho, status_trilho
+$sql = "SELECT id_trilho, nome_trilho
         FROM trilhos
+        WHERE status_trilho <> 'INATIVO'
         ORDER BY nome_trilho";
 
 $resultadoTrilhos = mysqli_query($conexao, $sql);
@@ -149,6 +160,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const modelo = document.getElementById("modeloTrem");
     const label = document.getElementById("labelCapacidade");
     const input = document.getElementById("capacidadeTrem");
+
+    if (!modelo) {
+        return;
+    }
 
     modelo.addEventListener("change", function () {
 
@@ -216,63 +231,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         id="navbarNav">
 
                         <ul class="navbar-nav">
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-geral-home.php">
-                                    Home
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="#">
-                                    Dashboard
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../sensores/tela-cadastro-sensores.php">
-                                    Sensores
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="tela-trens.php">
-                                    Trens
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../trilhos/tela-cadastro-trilhos.php">
-                                    Trilhos
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../monitoramento/tela-monitoramento.php">
-                                    Monitoramento
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../relatorios/relatorios.php">
-                                    Relatórios
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../usuarios/tela-cadastro-user.php">
-                                    Usuários
-                                </a>
-                            </li>
-
+                            <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                            <?php if ($admin) { ?>
+                                <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
+                            <?php } ?>
                         </ul>
 
                     </div>
@@ -317,6 +283,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             <!-- BOTÃO NOVO TREM -->
 
+            <?php if ($admin) { ?>
+
             <button type="button"
                 class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2"
                 data-bs-toggle="collapse"
@@ -332,10 +300,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
             </button>
 
+            <?php } ?>
+
         </div>
 
 
              <!-- FORMULÁRIO -->
+
+        <?php if ($admin) { ?>
 
         <div class="collapse mb-4"
             id="collapseCadastroTrem">
@@ -462,27 +434,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <?php while ($trilho = mysqli_fetch_assoc($resultadoTrilhos)) { ?>
 
                                     <option value="<?php echo $trilho['id_trilho']; ?>">
-                                        <?php
-                                        echo htmlspecialchars($trilho['nome_trilho']);
-
-                                        if ($trilho['status_trilho'] !== 'ATIVO') {
-                                            echo ' (' . htmlspecialchars($trilho['status_trilho']) . ')';
-                                        }
-                                        ?>
+                                        <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
                                     </option>
 
                                 <?php } ?>
 
                             </select>
-
-                            <?php if (mysqli_num_rows($resultadoTrilhos) === 0) { ?>
-
-                                <div class="form-text text-danger">
-                                    Nenhum trilho cadastrado. Cadastre um na
-                                    <a href="../trilhos/tela-cadastro-trilhos.php">tela de trilhos</a>.
-                                </div>
-
-                            <?php } ?>
 
                         </div>
 
@@ -552,6 +509,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         </div>
 
+        <?php } ?>
+
 
              <!-- TABELA -->
 
@@ -565,10 +524,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <!-- TÍTULO DA TABELA -->
 
-                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
+                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center"
                     style="font-size: 0.7rem;">
 
                     TRENS CADASTRADOS
+
+                    <form method="GET">
+                        <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>Ativos</option>
+                            <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>Inativos</option>
+                            <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>Todos</option>
+                        </select>
+                    </form>
 
                 </div>
 
@@ -732,6 +699,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <td class="text-center">
 
+                                        <?php if ($admin) { ?>
 
                                         <!-- EDITAR -->
 
@@ -743,25 +711,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </a>
 
 
-                                        <!-- EXCLUIR -->
+                                        <!-- INATIVAR -->
 
-                                        <form method="POST"
-                                            style="display: inline;"
-                                            onsubmit="return confirm('Tem certeza que deseja excluir este trem?');">
+                                        <?php if ($trem['status_trem'] != 'INATIVO') { ?>
 
-                                            <input type="hidden"
-                                                name="id_trem"
-                                                value="<?php echo $trem['id_trem']; ?>">
+                                            <form method="POST"
+                                                style="display: inline;"
+                                                onsubmit="return confirm('Tem certeza que deseja inativar este trem?');">
 
-                                            <button type="submit"
-                                                name="excluir"
-                                                class="btn btn-sm btn-outline-danger">
+                                                <input type="hidden"
+                                                    name="id_trem"
+                                                    value="<?php echo $trem['id_trem']; ?>">
 
-                                                X
+                                                <button type="submit"
+                                                    name="inativar"
+                                                    class="btn btn-sm btn-outline-danger">
 
-                                            </button>
+                                                    INATIVAR
 
-                                        </form>
+                                                </button>
+
+                                            </form>
+
+                                        <?php } ?>
+
+                                        <?php } else { ?>
+                                            -
+                                        <?php } ?>
 
                                     </td>
 
@@ -800,9 +776,36 @@ document.addEventListener("DOMContentLoaded", function () {
     </main>
 
 
+    <!-- AVISO -->
+
+    <div class="modal fade" id="modalTremBloqueado" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-1 border-0">
+                <div class="modal-header text-white py-2" style="background-color: #1b3f53;">
+                    <h6 class="modal-title fw-bold mb-0">Não é possível inativar este trem</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Este trem tem <?php echo (int) ($_GET['bloqueado'] ?? 0); ?> sensor(es) ativo(s).
+                    Inative ou altere os sensores ligados a ele antes de inativá-lo.
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Entendi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- BOOTSTRAP -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <?php if (isset($_GET['bloqueado'])) { ?>
+        <script>
+            new bootstrap.Modal(document.getElementById('modalTremBloqueado')).show();
+        </script>
+    <?php } ?>
 
 </body>
 
