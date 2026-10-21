@@ -1,6 +1,6 @@
 <?php
+include __DIR__ . '/../../infra/verifica-admin.php';
 include '../../infra/conexao.php';
-include __DIR__ . '/../../infra/verifica-login.php';
 
 // VERIFICA SE O TRILHO OU TREM ESCOLHIDO ESTÁ CADASTRADO
 function referenciaExiste($conexao, $categoria, $id) {
@@ -65,8 +65,11 @@ if (!$sensor) {
     exit;
 }
 
-$trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos ORDER BY nome_trilho");
-$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens ORDER BY nome_trem");
+$id_trilho_atual = (int) $sensor['id_trilho'];
+$id_trem_atual = (int) $sensor['id_trem'];
+
+$trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' OR id_trilho = $id_trilho_atual ORDER BY nome_trilho");
+$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' OR id_trem = $id_trem_atual ORDER BY nome_trem");
 
 $ehTrem = $sensor['categoria_sensor'] == 'TREM';
 ?>
@@ -84,30 +87,7 @@ $ehTrem = $sensor['categoria_sensor'] == 'TREM';
 
 <body>
 
-    <header class="container-fluid p-2" style="background-color: #1b3f53; color: #ffffff;">
-        <div id="header" class="hstack gap-3 px-2">
-
-            <div class="d-flex" id="logo">
-                <img src="../../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo">
-                <div class="nome-sistema">
-                    <h2 class="mb-0 text-white">FerroMonitor</h2>
-                    <p>SISTEMA FERROVIÁRIO</p>
-                </div>
-            </div>
-
-            <nav class="navbar navbar-expand-lg navbar-dark">
-                <ul class="navbar-nav">
-                    <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="tela-cadastro-sensores.php">Sensores</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
-                    <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
-                </ul>
-            </nav>
-
-                <button class="btn-sair" onclick="window.location.href='../../infra/logout.php'">Sair</button>
-    </header>
+    <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="container px-4 mt-4">
 
