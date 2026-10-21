@@ -6,7 +6,9 @@ CREATE TABLE trilhos (
     nome_trilho VARCHAR(100) NOT NULL,
     descricao_trilho VARCHAR(255) NOT NULL,
     km_trilho VARCHAR(20) NOT NULL,
-    status_trilho VARCHAR(20) NOT NULL
+    tempo_previsto_min INT NOT NULL DEFAULT 0,
+    status_trilho VARCHAR(20) NOT NULL,
+    data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE usuarios(

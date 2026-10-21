@@ -1,11 +1,10 @@
 <?php
 
 include __DIR__ . '/../../infra/verifica-login.php';
-include '../../infra/conexao.php';
+include __DIR__ . '/../../infra/valida-trem.php';
 
-if (!isset($conexao) || $conexao === false) {
-    die("Erro: conexão com o banco de dados não estabelecida.");
-}
+$erros = [];
+$novo = ['nome_trem' => '', 'modelo_trem' => '', 'capacidade_trem' => '', 'id_trilho' => 0, 'id_usuario' => 0, 'status_trem' => 'ATIVO'];
 
 
 //    INATIVAR TREM
@@ -14,25 +13,28 @@ if ($admin && isset($_POST['inativar'])) {
 
     $id_trem = (int) $_POST['id_trem'];
 
-    $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'");
-    mysqli_stmt_bind_param($stmt, "i", $id_trem);
-    mysqli_stmt_execute($stmt);
-    $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    try {
+        $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'");
+        mysqli_stmt_bind_param($stmt, "i", $id_trem);
+        mysqli_stmt_execute($stmt);
+        $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-    if ($sensores['total'] > 0) {
-        header("Location: tela-trens.php?bloqueado=" . $sensores['total']);
-        exit;
+        if ($sensores['total'] > 0) {
+            header("Location: tela-trens.php?bloqueado=" . $sensores['total']);
+            exit;
+        }
+
+        $stmt = mysqli_prepare($conexao, "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?");
+        mysqli_stmt_bind_param($stmt, "i", $id_trem);
+
+        if (mysqli_stmt_execute($stmt)) {
+            header("Location: tela-trens.php");
+            exit;
+        }
+    } catch (Exception $e) {
     }
 
-    $stmt = mysqli_prepare($conexao, "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?");
-    mysqli_stmt_bind_param($stmt, "i", $id_trem);
-
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao inativar trem: " . mysqli_stmt_error($stmt));
-    }
-
-    header("Location: tela-trens.php");
-    exit;
+    $erros[] = "Não foi possível inativar o trem. Tente novamente.";
 }
 
 
@@ -40,22 +42,22 @@ if ($admin && isset($_POST['inativar'])) {
 
 if ($admin && isset($_POST['cadastrar'])) {
 
-    $nome = $_POST['nome'];
-    $modelo = $_POST['modelo'];
-    $capacidade = (int) $_POST['capacidade'];
-    $id_trilho = (int) $_POST['id_trilho'];
-    $id_usuario = (int) $_POST['id_usuario'];
-    $status = $_POST['status'];
+    [$novo, $erros] = validarTrem($conexao);
 
-    $stmt = mysqli_prepare($conexao, "INSERT INTO trens (nome_trem, modelo_trem, capacidade_trem, id_trilho, id_usuario, status_trem) VALUES (?, ?, ?, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, "ssiiis", $nome, $modelo, $capacidade, $id_trilho, $id_usuario, $status);
+    if (!$erros) {
+        try {
+            $stmt = mysqli_prepare($conexao, "INSERT INTO trens (nome_trem, modelo_trem, capacidade_trem, id_trilho, id_usuario, status_trem) VALUES (?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "ssiiis", $novo['nome_trem'], $novo['modelo_trem'], $novo['capacidade_trem'], $novo['id_trilho'], $novo['id_usuario'], $novo['status_trem']);
 
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao cadastrar trem: " . mysqli_stmt_error($stmt));
+            if (mysqli_stmt_execute($stmt)) {
+                header("Location: tela-trens.php");
+                exit;
+            }
+        } catch (Exception $e) {
+        }
+
+        $erros[] = "Não foi possível cadastrar o trem. Tente novamente.";
     }
-
-    header("Location: tela-trens.php");
-    exit;
 }
 
 
@@ -68,19 +70,20 @@ $where = [
     'inativos' => "WHERE trens.status_trem = 'INATIVO'"
 ][$filtro] ?? "";
 
-$resultado = mysqli_query($conexao, "SELECT trens.*, trilhos.nome_trilho, usuarios.nome_usuario
-    FROM trens
-    LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
-    LEFT JOIN usuarios ON usuarios.id_usuario = trens.id_usuario
-    $where
-    ORDER BY trens.id_trem DESC");
+try {
+    $trens = mysqli_fetch_all(mysqli_query($conexao, "SELECT trens.*, trilhos.nome_trilho, usuarios.nome_usuario
+        FROM trens
+        LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
+        LEFT JOIN usuarios ON usuarios.id_usuario = trens.id_usuario
+        $where
+        ORDER BY trens.id_trem DESC"), MYSQLI_ASSOC);
 
-$resultadoTrilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
+    $trilhos = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho"), MYSQLI_ASSOC);
 
-$resultadoUsuarios = mysqli_query($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' ORDER BY nome_usuario");
-
-if (!$resultado || !$resultadoTrilhos || !$resultadoUsuarios) {
-    die("Erro ao buscar dados: " . mysqli_error($conexao));
+    $usuarios = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' ORDER BY nome_usuario"), MYSQLI_ASSOC);
+} catch (Throwable $e) {
+    $trens = $trilhos = $usuarios = [];
+    $erros[] = "Não foi possível carregar os trens. Tente novamente.";
 }
 
 $cores = [
@@ -147,11 +150,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
         </div>
 
+        <?php if ($erros) { ?>
+            <div class="alert alert-danger">
+                <?php foreach ($erros as $erro) { ?>
+                    <div><?php echo $erro; ?></div>
+                <?php } ?>
+            </div>
+        <?php } ?>
+
         <!-- FORMULÁRIO -->
 
         <?php if ($admin) { ?>
 
-        <div class="collapse mb-4" id="collapseCadastroTrem">
+        <div class="collapse mb-4 <?php if ($erros && isset($_POST['cadastrar'])) echo 'show'; ?>" id="collapseCadastroTrem">
 
             <div class="card border-0">
 
@@ -165,29 +176,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         <div class="col-md-6">
                             <label for="nomeTrem" class="form-label">NOME DO TREM</label>
-                            <input type="text" name="nome" id="nomeTrem" class="form-control" placeholder="Ex: Trem 01" required>
+                            <input type="text" name="nome" id="nomeTrem" class="form-control" placeholder="Ex: Trem 01" value="<?php echo htmlspecialchars($novo['nome_trem']); ?>" required>
                         </div>
 
                         <div class="col-md-6">
                             <label for="modeloTrem" class="form-label">MODELO</label>
                             <select name="modelo" id="modeloTrem" class="form-select" required>
                                 <option value="">Selecione o modelo</option>
-                                <option value="De passageiros">De passageiros</option>
-                                <option value="De carga">De carga</option>
+                                <?php foreach (['De passageiros', 'De carga'] as $opcao) { ?>
+                                    <option value="<?php echo $opcao; ?>" <?php if ($novo['modelo_trem'] === $opcao) echo 'selected'; ?>><?php echo $opcao; ?></option>
+                                <?php } ?>
                             </select>
                         </div>
 
                         <div class="col-md-6">
                             <label for="capacidadeTrem" id="labelCapacidade" class="form-label">CAPACIDADE</label>
-                            <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" placeholder="Selecione o modelo primeiro" min="0" required>
+                            <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" placeholder="Selecione o modelo primeiro" value="<?php echo htmlspecialchars($novo['capacidade_trem']); ?>" min="1" required>
                         </div>
 
                         <div class="col-md-6">
                             <label for="trilhoTrem" class="form-label">TRILHO ATUAL</label>
                             <select name="id_trilho" id="trilhoTrem" class="form-select" required>
                                 <option value="">Selecione o trilho</option>
-                                <?php while ($trilho = mysqli_fetch_assoc($resultadoTrilhos)) { ?>
-                                    <option value="<?php echo $trilho['id_trilho']; ?>"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
+                                <?php foreach ($trilhos as $trilho) { ?>
+                                    <option value="<?php echo $trilho['id_trilho']; ?>" <?php if ($novo['id_trilho'] == $trilho['id_trilho']) echo 'selected'; ?>><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -196,8 +208,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             <label for="responsavelTrem" class="form-label">RESPONSÁVEL</label>
                             <select name="id_usuario" id="responsavelTrem" class="form-select" required>
                                 <option value="">Selecione o responsável</option>
-                                <?php while ($usuario = mysqli_fetch_assoc($resultadoUsuarios)) { ?>
-                                    <option value="<?php echo $usuario['id_usuario']; ?>"><?php echo htmlspecialchars($usuario['nome_usuario']); ?></option>
+                                <?php foreach ($usuarios as $usuario) { ?>
+                                    <option value="<?php echo $usuario['id_usuario']; ?>" <?php if ($novo['id_usuario'] == $usuario['id_usuario']) echo 'selected'; ?>><?php echo htmlspecialchars($usuario['nome_usuario']); ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -205,9 +217,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="col-md-6">
                             <label for="statusTrem" class="form-label">STATUS</label>
                             <select name="status" id="statusTrem" class="form-select" required>
-                                <option value="ATIVO">Ativo</option>
-                                <option value="MANUTENCAO">Manutenção</option>
-                                <option value="INATIVO">Inativo</option>
+                                <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                                    <option value="<?php echo $valor; ?>" <?php if ($novo['status_trem'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                                <?php } ?>
                             </select>
                         </div>
 
@@ -259,7 +271,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     <tbody style="font-size: 0.85rem;">
 
-                        <?php while ($trem = mysqli_fetch_assoc($resultado)) { ?>
+                        <?php foreach ($trens as $trem) { ?>
 
                             <tr>
                                 <td class="text-primary-emphasis fw-bold"><?php echo $trem['id_trem']; ?></td>
@@ -295,7 +307,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         <?php } ?>
 
-                        <?php if (mysqli_num_rows($resultado) == 0) { ?>
+                        <?php if (!$trens) { ?>
                             <tr>
                                 <td colspan="8" class="text-center text-muted py-4">Nenhum trem cadastrado.</td>
                             </tr>

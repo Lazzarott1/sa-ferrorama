@@ -1,59 +1,9 @@
 <?php
 include __DIR__ . '/../../infra/verifica-admin.php';
-include '../../infra/conexao.php';
+include __DIR__ . '/../../infra/valida-sensor.php';
 
-// VERIFICA SE O TRILHO OU TREM ESCOLHIDO ESTÁ CADASTRADO
-function referenciaExiste($conexao, $categoria, $id) {
-    if ($categoria == 'TREM') {
-        $sql = "SELECT 1 FROM trens WHERE id_trem = ?";
-    } elseif ($categoria == 'TRILHO') {
-        $sql = "SELECT 1 FROM trilhos WHERE id_trilho = ?";
-    } else {
-        return false;
-    }
-
-    $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id);
-    mysqli_stmt_execute($stmt);
-
-    return mysqli_fetch_row(mysqli_stmt_get_result($stmt)) !== null;
-}
-
-if (!isset($_GET['id']) && !isset($_POST['id_sensor'])) {
-    header("Location: tela-cadastro-sensores.php");
-    exit;
-}
-
-// SALVAR ALTERAÇÕES
-if (isset($_POST['editar'])) {
-    $id_sensor = (int) $_POST['id_sensor'];
-    $nome = $_POST['nome'];
-    $categoria = $_POST['categoria'];
-    $tipo = $_POST['tipo'];
-    $vinculo = (int) ($_POST['trilho'] ?? 0);
-    $status = $_POST['status'];
-
-    if (!referenciaExiste($conexao, $categoria, $vinculo)) {
-        header("Location: editar-sensor.php?id=" . $id_sensor . "&erro=1");
-        exit;
-    }
-
-    $id_trem = $categoria == 'TREM' ? $vinculo : null;
-    $id_trilho = $categoria == 'TRILHO' ? $vinculo : null;
-
-    $sql = "UPDATE sensores
-            SET nome_sensor = ?, categoria_sensor = ?, tipo_sensor = ?, id_trem = ?, id_trilho = ?, status_sensor = ?
-            WHERE id_sensor = ?";
-    $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, "sssiisi", $nome, $categoria, $tipo, $id_trem, $id_trilho, $status, $id_sensor);
-    mysqli_stmt_execute($stmt);
-
-    header("Location: tela-cadastro-sensores.php");
-    exit;
-}
-
-// BUSCAR O SENSOR PARA PREENCHER O FORMULÁRIO
-$id_sensor = (int) $_GET['id'];
+$erros = [];
+$id_sensor = (int) ($_GET['id'] ?? 0);
 
 $stmt = mysqli_prepare($conexao, "SELECT * FROM sensores WHERE id_sensor = ?");
 mysqli_stmt_bind_param($stmt, "i", $id_sensor);
@@ -67,6 +17,27 @@ if (!$sensor) {
 
 $id_trilho_atual = (int) $sensor['id_trilho'];
 $id_trem_atual = (int) $sensor['id_trem'];
+
+// SALVAR ALTERAÇÕES
+if (isset($_POST['editar'])) {
+    [$dados, $erros] = validarSensor($conexao, $id_trem_atual, $id_trilho_atual);
+
+    if (!$erros) {
+        try {
+            $sql = "UPDATE sensores
+                    SET nome_sensor = ?, categoria_sensor = ?, tipo_sensor = ?, id_trem = ?, id_trilho = ?, status_sensor = ?
+                    WHERE id_sensor = ?";
+            $stmt = mysqli_prepare($conexao, $sql);
+            mysqli_stmt_bind_param($stmt, "sssiisi", $dados['nome_sensor'], $dados['categoria_sensor'], $dados['tipo_sensor'], $dados['id_trem'], $dados['id_trilho'], $dados['status_sensor'], $id_sensor);
+            mysqli_stmt_execute($stmt);
+
+            header("Location: tela-cadastro-sensores.php");
+            exit;
+        } catch (Exception $e) {
+            $erros[] = "Não foi possível salvar o sensor. Tente novamente.";
+        }
+    }
+}
 
 $trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' OR id_trilho = $id_trilho_atual ORDER BY nome_trilho");
 $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' OR id_trem = $id_trem_atual ORDER BY nome_trem");
@@ -104,13 +75,15 @@ $ehTrem = $sensor['categoria_sensor'] == 'TREM';
             <span class="spancadastrosensor">EDITAR SENSOR #<?php echo $sensor['id_sensor']; ?></span>
         </div>
 
-        <?php if (isset($_GET['erro'])) { ?>
-            <div class="alert alert-danger mt-3">Selecione um trilho ou trem cadastrado no sistema.</div>
+        <?php if ($erros) { ?>
+            <div class="alert alert-danger mt-3">
+                <?php foreach ($erros as $erro) { ?>
+                    <div><?php echo $erro; ?></div>
+                <?php } ?>
+            </div>
         <?php } ?>
 
         <form method="POST" class="p-4 bg-white border mb-4">
-            <input type="hidden" name="id_sensor" value="<?php echo $sensor['id_sensor']; ?>">
-
             <div class="row g-4">
                 <div class="col-md-6">
                     <label class="form-label">NOME DO SENSOR</label>

@@ -1,52 +1,13 @@
 <?php
 
 include __DIR__ . '/../../infra/verifica-admin.php';
-include '../../infra/conexao.php';
-
-if (!isset($conexao) || $conexao === false) {
-    die("Erro: conexão com o banco de dados não estabelecida.");
-}
+include __DIR__ . '/../../infra/valida-trem.php';
 
 $id_trem = (int) ($_POST['id_trem'] ?? $_GET['id'] ?? 0);
+$erros = [];
 
 
-//    ATUALIZAR TREM
-
-if (isset($_POST['editar'])) {
-
-    $nome = $_POST['nome'];
-    $modelo = $_POST['modelo'];
-    $capacidade = (int) $_POST['capacidade'];
-    $id_trilho = (int) $_POST['id_trilho'];
-    $id_usuario = (int) $_POST['id_usuario'];
-    $status = $_POST['status'];
-
-    if ($status == 'INATIVO') {
-
-        $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'");
-        mysqli_stmt_bind_param($stmt, "i", $id_trem);
-        mysqli_stmt_execute($stmt);
-        $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-        if ($sensores['total'] > 0) {
-            header("Location: tela-editar-trens.php?id=" . $id_trem . "&bloqueado=" . $sensores['total']);
-            exit;
-        }
-    }
-
-    $stmt = mysqli_prepare($conexao, "UPDATE trens SET nome_trem = ?, modelo_trem = ?, capacidade_trem = ?, id_trilho = ?, id_usuario = ?, status_trem = ? WHERE id_trem = ?");
-    mysqli_stmt_bind_param($stmt, "ssiiisi", $nome, $modelo, $capacidade, $id_trilho, $id_usuario, $status, $id_trem);
-
-    if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao atualizar trem: " . mysqli_stmt_error($stmt));
-    }
-
-    header("Location: tela-trens.php");
-    exit;
-}
-
-
-//    BUSCAR DADOS
+//    BUSCAR TREM
 
 $stmt = mysqli_prepare($conexao, "SELECT * FROM trens WHERE id_trem = ?");
 mysqli_stmt_bind_param($stmt, "i", $id_trem);
@@ -58,13 +19,55 @@ if (!$trem) {
     exit;
 }
 
+$trilho_atual = (int) $trem['id_trilho'];
+$usuario_atual = (int) $trem['id_usuario'];
+
+
+//    ATUALIZAR TREM
+
+if (isset($_POST['editar'])) {
+
+    [$dados, $erros] = validarTrem($conexao, $trilho_atual, $usuario_atual);
+    $trem = array_merge($trem, $dados);
+
+    if (!$erros && $trem['status_trem'] == 'INATIVO') {
+
+        $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'");
+        mysqli_stmt_bind_param($stmt, "i", $id_trem);
+        mysqli_stmt_execute($stmt);
+        $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+        if ($sensores['total'] > 0) {
+            $erros[] = "Este trem tem " . $sensores['total'] . " sensor(es) ativo(s). Inative ou altere os sensores antes de inativar o trem.";
+        }
+    }
+
+    if (!$erros) {
+        try {
+            $stmt = mysqli_prepare($conexao, "UPDATE trens SET nome_trem = ?, modelo_trem = ?, capacidade_trem = ?, id_trilho = ?, id_usuario = ?, status_trem = ? WHERE id_trem = ?");
+            mysqli_stmt_bind_param($stmt, "ssiiisi", $trem['nome_trem'], $trem['modelo_trem'], $trem['capacidade_trem'], $trem['id_trilho'], $trem['id_usuario'], $trem['status_trem'], $id_trem);
+
+            if (mysqli_stmt_execute($stmt)) {
+                header("Location: tela-trens.php");
+                exit;
+            }
+        } catch (Exception $e) {
+        }
+
+        $erros[] = "Não foi possível salvar o trem. Tente novamente.";
+    }
+}
+
+
+//    BUSCAR OPÇÕES
+
 $stmt = mysqli_prepare($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' OR id_trilho = ? ORDER BY nome_trilho");
-mysqli_stmt_bind_param($stmt, "i", $trem['id_trilho']);
+mysqli_stmt_bind_param($stmt, "i", $trilho_atual);
 mysqli_stmt_execute($stmt);
 $resultadoTrilhos = mysqli_stmt_get_result($stmt);
 
 $stmt = mysqli_prepare($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' OR id_usuario = ? ORDER BY nome_usuario");
-mysqli_stmt_bind_param($stmt, "i", $trem['id_usuario']);
+mysqli_stmt_bind_param($stmt, "i", $usuario_atual);
 mysqli_stmt_execute($stmt);
 $resultadoUsuarios = mysqli_stmt_get_result($stmt);
 
@@ -115,9 +118,11 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         </div>
 
-        <?php if (isset($_GET['bloqueado'])) { ?>
+        <?php if ($erros) { ?>
             <div class="alert alert-danger">
-                Este trem tem <?php echo (int) $_GET['bloqueado']; ?> sensor(es) ativo(s). Inative ou altere os sensores antes de inativar o trem.
+                <?php foreach ($erros as $erro) { ?>
+                    <div><?php echo $erro; ?></div>
+                <?php } ?>
             </div>
         <?php } ?>
 
@@ -152,7 +157,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     <div class="col-md-6">
                         <label for="capacidadeTrem" id="labelCapacidade" class="form-label">CAPACIDADE</label>
-                        <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" value="<?php echo (int) $trem['capacidade_trem']; ?>" min="1" required>
+                        <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" value="<?php echo htmlspecialchars($trem['capacidade_trem']); ?>" min="1" required>
                     </div>
 
                     <div class="col-md-6">

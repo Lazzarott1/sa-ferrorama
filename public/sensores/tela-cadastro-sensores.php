@@ -1,60 +1,43 @@
 <?php
 include __DIR__ . '/../../infra/verifica-login.php';
-include '../../infra/conexao.php';
+include __DIR__ . '/../../infra/valida-sensor.php';
 
-// VERIFICA SE O TRILHO OU TREM ESCOLHIDO ESTÁ CADASTRADO
-function referenciaExiste($conexao, $categoria, $id) {
-    if ($categoria == 'TREM') {
-        $sql = "SELECT 1 FROM trens WHERE id_trem = ?";
-    } elseif ($categoria == 'TRILHO') {
-        $sql = "SELECT 1 FROM trilhos WHERE id_trilho = ?";
-    } else {
-        return false;
-    }
-
-    $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id);
-    mysqli_stmt_execute($stmt);
-
-    return mysqli_fetch_row(mysqli_stmt_get_result($stmt)) !== null;
-}
+$erros = [];
 
 // INATIVAR SENSOR
 if ($admin && isset($_POST['inativar'])) {
     $id_sensor = (int) $_POST['id_sensor'];
 
-    $stmt = mysqli_prepare($conexao, "UPDATE sensores SET status_sensor = 'INATIVO' WHERE id_sensor = ?");
-    mysqli_stmt_bind_param($stmt, "i", $id_sensor);
-    mysqli_stmt_execute($stmt);
+    try {
+        $stmt = mysqli_prepare($conexao, "UPDATE sensores SET status_sensor = 'INATIVO' WHERE id_sensor = ?");
+        mysqli_stmt_bind_param($stmt, "i", $id_sensor);
+        mysqli_stmt_execute($stmt);
 
-    header("Location: tela-cadastro-sensores.php");
-    exit;
+        header("Location: tela-cadastro-sensores.php");
+        exit;
+    } catch (Exception $e) {
+        $erros[] = "Não foi possível inativar o sensor. Tente novamente.";
+    }
 }
 
 // CADASTRAR SENSOR
 if ($admin && isset($_POST['cadastrar'])) {
-    $nome = $_POST['nome'];
-    $categoria = $_POST['categoria'];
-    $tipo = $_POST['tipo'];
-    $vinculo = (int) ($_POST['trilho'] ?? 0);
-    $status = $_POST['status'];
+    [$novo, $erros] = validarSensor($conexao);
 
-    if (!referenciaExiste($conexao, $categoria, $vinculo)) {
-        header("Location: tela-cadastro-sensores.php?erro=1");
-        exit;
+    if (!$erros) {
+        try {
+            $sql = "INSERT INTO sensores (nome_sensor, categoria_sensor, tipo_sensor, id_trem, id_trilho, status_sensor)
+                    VALUES (?, ?, ?, ?, ?, ?)";
+            $stmt = mysqli_prepare($conexao, $sql);
+            mysqli_stmt_bind_param($stmt, "sssiis", $novo['nome_sensor'], $novo['categoria_sensor'], $novo['tipo_sensor'], $novo['id_trem'], $novo['id_trilho'], $novo['status_sensor']);
+            mysqli_stmt_execute($stmt);
+
+            header("Location: tela-cadastro-sensores.php");
+            exit;
+        } catch (Exception $e) {
+            $erros[] = "Não foi possível cadastrar o sensor. Tente novamente.";
+        }
     }
-
-    $id_trem = $categoria == 'TREM' ? $vinculo : null;
-    $id_trilho = $categoria == 'TRILHO' ? $vinculo : null;
-
-    $sql = "INSERT INTO sensores (nome_sensor, categoria_sensor, tipo_sensor, id_trem, id_trilho, status_sensor)
-            VALUES (?, ?, ?, ?, ?, ?)";
-    $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, "sssiis", $nome, $categoria, $tipo, $id_trem, $id_trilho, $status);
-    mysqli_stmt_execute($stmt);
-
-    header("Location: tela-cadastro-sensores.php");
-    exit;
 }
 
 // BUSCAR SENSORES
@@ -111,12 +94,16 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
             <?php } ?>
         </div>
 
-        <?php if (isset($_GET['erro'])) { ?>
-            <div class="alert alert-danger">Selecione um trilho ou trem cadastrado no sistema.</div>
+        <?php if ($erros) { ?>
+            <div class="alert alert-danger">
+                <?php foreach ($erros as $erro) { ?>
+                    <div><?php echo $erro; ?></div>
+                <?php } ?>
+            </div>
         <?php } ?>
 
         <?php if ($admin) { ?>
-        <div class="collapse mb-4" id="formSensor">
+        <div class="collapse mb-4 <?php if ($erros && isset($_POST['cadastrar'])) echo 'show'; ?>" id="formSensor">
             <div class="cardcadastro p-3">
                 <span class="spancadastrosensor">CADASTRAR NOVO SENSOR</span>
             </div>
@@ -125,7 +112,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                 <div class="row g-4">
                     <div class="col-md-6">
                         <label class="form-label">NOME DO SENSOR</label>
-                        <input type="text" name="nome" class="form-control" placeholder="Ex: Sensor 01" required>
+                        <input type="text" name="nome" class="form-control" placeholder="Ex: Sensor 01" value="<?php echo htmlspecialchars($_POST['nome'] ?? ''); ?>" required>
                     </div>
 
                     <div class="col-md-6">
