@@ -1,5 +1,5 @@
 <?php
-// Só entra quem fez login
+
 include __DIR__ . '/../infra/verifica-login.php';
 
 $nome_usuario = $_SESSION['usuario'];
@@ -40,45 +40,14 @@ $data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . da
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <div class="d-flex">
                             <ul class="navbar-nav">
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" aria-current="page"
-                                            href="tela-geral-home.php">Home</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="sensores/tela-cadastro-sensores.php">Sensores</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="trens/tela-trens.php">Trens</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="trilhos/tela-cadastro-trilhos.php">Trilhos</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="monitoramento/tela-monitoramento.php">Monitoramento</a>
-                                    </li>
-                                </div>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="relatorios/tela-relatorios.php">Relatórios</a>
-                                    </li>
-                                </div>
-                                <?php if (($_SESSION['perfil'] ?? '') === 'ADMINISTRADOR') { ?>
-                                <div>
-                                    <li class="nav-item">
-                                        <a class="nav-link text-white" href="usuarios/tela-cadastro-user.php">Usuários</a>
-                                    </li>
-                                </div>
+                                <li class="nav-item"><a class="nav-link text-white" href="tela-geral-home.php">Home</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="trens/tela-trens.php">Trens</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                                <li class="nav-item"><a class="nav-link text-white" href="relatorios/relatorios.php">Relatórios</a></li>
+                                <?php if ($admin) { ?>
+                                    <li class="nav-item"><a class="nav-link text-white" href="usuarios/tela-cadastro-user.php">Usuários</a></li>
                                 <?php } ?>
-
                             </ul>
                         </div>
 
@@ -100,7 +69,7 @@ $data_hoje = 'Dia ' . date('d') . ' de ' . $meses[(int) date('n')] . ' de ' . da
 
             <?php if (isset($_GET['acesso'])) { ?>
                 <div class="alert alert-warning rounded-1" style="border-left: 4px solid #daa301;">
-                    Você não tem permissão para acessar a tela de usuários.
+                    Você não tem permissão para acessar essa tela.
                 </div>
             <?php } ?>
         </div>
