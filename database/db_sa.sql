@@ -25,8 +25,10 @@ CREATE TABLE trens (
     modelo_trem VARCHAR(30) NOT NULL,
     capacidade_trem INT NOT NULL,
     id_trilho INT NULL,
+    id_usuario INT NULL,
     status_trem VARCHAR(20) NOT NULL,
-    FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
+    FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
 );
 
 CREATE TABLE sensores (

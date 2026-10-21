@@ -14,33 +14,22 @@ if ($admin && isset($_POST['inativar'])) {
 
     $id_trem = (int) $_POST['id_trem'];
 
-    $sql = "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'";
-    $stmt = mysqli_prepare($conexao, $sql);
+    $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'");
     mysqli_stmt_bind_param($stmt, "i", $id_trem);
     mysqli_stmt_execute($stmt);
     $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    mysqli_stmt_close($stmt);
 
     if ($sensores['total'] > 0) {
         header("Location: tela-trens.php?bloqueado=" . $sensores['total']);
         exit;
     }
 
-    $sql = "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?";
-
-    $stmt = mysqli_prepare($conexao, $sql);
-
-    if (!$stmt) {
-        die("Erro ao preparar inativação: " . mysqli_error($conexao));
-    }
-
+    $stmt = mysqli_prepare($conexao, "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?");
     mysqli_stmt_bind_param($stmt, "i", $id_trem);
 
     if (!mysqli_stmt_execute($stmt)) {
         die("Erro ao inativar trem: " . mysqli_stmt_error($stmt));
     }
-
-    mysqli_stmt_close($stmt);
 
     header("Location: tela-trens.php");
     exit;
@@ -55,82 +44,49 @@ if ($admin && isset($_POST['cadastrar'])) {
     $modelo = $_POST['modelo'];
     $capacidade = (int) $_POST['capacidade'];
     $id_trilho = (int) $_POST['id_trilho'];
+    $id_usuario = (int) $_POST['id_usuario'];
     $status = $_POST['status'];
 
-    $sql = "INSERT INTO trens
-            (
-                nome_trem,
-                modelo_trem,
-                capacidade_trem,
-                id_trilho,
-                status_trem
-            )
-            VALUES (?, ?, ?, ?, ?)";
-
-    $stmt = mysqli_prepare($conexao, $sql);
-
-    if (!$stmt) {
-        die("Erro ao preparar cadastro: " . mysqli_error($conexao));
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ssiis",
-        $nome,
-        $modelo,
-        $capacidade,
-        $id_trilho,
-        $status
-    );
+    $stmt = mysqli_prepare($conexao, "INSERT INTO trens (nome_trem, modelo_trem, capacidade_trem, id_trilho, id_usuario, status_trem) VALUES (?, ?, ?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, "ssiiis", $nome, $modelo, $capacidade, $id_trilho, $id_usuario, $status);
 
     if (!mysqli_stmt_execute($stmt)) {
         die("Erro ao cadastrar trem: " . mysqli_stmt_error($stmt));
     }
-
-    mysqli_stmt_close($stmt);
 
     header("Location: tela-trens.php");
     exit;
 }
 
 
-//    BUSCAR TRENS
+//    BUSCAR DADOS
 
 $filtro = $_GET['filtro'] ?? 'ativos';
 
-$where = "";
+$where = [
+    'ativos' => "WHERE trens.status_trem <> 'INATIVO'",
+    'inativos' => "WHERE trens.status_trem = 'INATIVO'"
+][$filtro] ?? "";
 
-if ($filtro == 'ativos') {
-    $where = "WHERE trens.status_trem <> 'INATIVO'";
-} elseif ($filtro == 'inativos') {
-    $where = "WHERE trens.status_trem = 'INATIVO'";
+$resultado = mysqli_query($conexao, "SELECT trens.*, trilhos.nome_trilho, usuarios.nome_usuario
+    FROM trens
+    LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
+    LEFT JOIN usuarios ON usuarios.id_usuario = trens.id_usuario
+    $where
+    ORDER BY trens.id_trem DESC");
+
+$resultadoTrilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
+
+$resultadoUsuarios = mysqli_query($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' ORDER BY nome_usuario");
+
+if (!$resultado || !$resultadoTrilhos || !$resultadoUsuarios) {
+    die("Erro ao buscar dados: " . mysqli_error($conexao));
 }
 
-$sql = "SELECT trens.*, trilhos.nome_trilho
-        FROM trens
-        LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
-        $where
-        ORDER BY trens.id_trem DESC";
-
-$resultado = mysqli_query($conexao, $sql);
-
-if (!$resultado) {
-    die("Erro ao buscar trens: " . mysqli_error($conexao));
-}
-
-
-//    BUSCAR TRILHOS
-
-$sql = "SELECT id_trilho, nome_trilho
-        FROM trilhos
-        WHERE status_trilho <> 'INATIVO'
-        ORDER BY nome_trilho";
-
-$resultadoTrilhos = mysqli_query($conexao, $sql);
-
-if (!$resultadoTrilhos) {
-    die("Erro ao buscar trilhos: " . mysqli_error($conexao));
-}
+$cores = [
+    'ATIVO' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+    'MANUTENCAO' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle'
+];
 
 ?>
 
@@ -138,20 +94,11 @@ if (!$resultadoTrilhos) {
 <html lang="pt-br">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trens</title>
-
-    <link rel="stylesheet"
-        href="../../assets/img/style/style.css">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
+    <link rel="stylesheet" href="../../assets/img/style/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <script>
@@ -166,20 +113,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     modelo.addEventListener("change", function () {
-
-        if (this.value === "De carga") {
-            label.textContent = "CAPACIDADE (KG)";
-            input.placeholder = "Ex: 50000";
-        }
-        else if (this.value === "De passageiros") {
-            label.textContent = "CAPACIDADE (PASSAGEIROS)";
-            input.placeholder = "Ex: 300";
-        }
-        else {
-            label.textContent = "CAPACIDADE";
-            input.placeholder = "Selecione o modelo primeiro";
-        }
-
+        const tipos = {
+            "De carga": ["CAPACIDADE (KG)", "Ex: 50000"],
+            "De passageiros": ["CAPACIDADE (PASSAGEIROS)", "Ex: 300"]
+        };
+        [label.textContent, input.placeholder] = tipos[this.value] || ["CAPACIDADE", "Selecione o modelo primeiro"];
     });
 
 });
@@ -187,254 +125,97 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <body>
 
-
-         <!-- HEADER -->
-
     <?php include __DIR__ . '/../navbar.php'; ?>
 
-
-         <!-- CONTEÚDO PRINCIPAL -->
-
     <main class="container-fluid px-4 mt-4">
-
 
         <!-- TÍTULO -->
 
         <div class="d-flex justify-content-between align-items-end mb-4">
 
             <div>
-
-                <h3 class="titulo-trens">
-                    Trens
-                </h3>
-
-                <p class="subtitulo-trens">
-                    Gerencie os trens cadastrados na malha ferroviária
-                </p>
-
+                <h3 class="titulo-trens">Trens</h3>
+                <p class="subtitulo-trens">Gerencie os trens cadastrados na malha ferroviária</p>
             </div>
 
-
-            <!-- BOTÃO NOVO TREM -->
-
             <?php if ($admin) { ?>
-
-            <button type="button"
-                class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapseCadastroTrem"
-                aria-expanded="false"
-                aria-controls="collapseCadastroTrem">
-
-                <span class="botaonovotrem">
-                    +
-                </span>
-
-                NOVO TREM
-
-            </button>
-
+                <button type="button" class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrem" aria-expanded="false" aria-controls="collapseCadastroTrem">
+                    <span class="botaonovotrem">+</span>
+                    NOVO TREM
+                </button>
             <?php } ?>
 
         </div>
 
-
-             <!-- FORMULÁRIO -->
+        <!-- FORMULÁRIO -->
 
         <?php if ($admin) { ?>
 
-        <div class="collapse mb-4"
-            id="collapseCadastroTrem">
+        <div class="collapse mb-4" id="collapseCadastroTrem">
 
             <div class="card border-0">
 
-
-                <!-- CABEÇALHO DO FORM -->
-
                 <div class="cardcadastro p-3">
-
-                    <span class="spancadastrotrem">
-                        CADASTRAR NOVO TREM
-                    </span>
-
+                    <span class="spancadastrotrem">CADASTRAR NOVO TREM</span>
                 </div>
 
-
-                <form method="POST"
-                    class="p-4 bg-white"
-                    style="border: 1px solid #BCCCDC; border-top: none;">
-
+                <form method="POST" class="p-4 bg-white" style="border: 1px solid #BCCCDC; border-top: none;">
 
                     <div class="row g-4">
 
-
-                        <!-- NOME -->
-
                         <div class="col-md-6">
-
-                            <label for="nomeTrem"
-                                class="form-label">
-
-                                NOME DO TREM
-
-                            </label>
-
-                            <input type="text"
-                                name="nome"
-                                id="nomeTrem"
-                                class="form-control"
-                                placeholder="Ex: Trem 01"
-                                required>
-
+                            <label for="nomeTrem" class="form-label">NOME DO TREM</label>
+                            <input type="text" name="nome" id="nomeTrem" class="form-control" placeholder="Ex: Trem 01" required>
                         </div>
 
-
-                        <!-- MODELO -->
-
                         <div class="col-md-6">
-
-                            <label for="modeloTrem"
-                                class="form-label">
-
-                                MODELO
-
-                            </label>
-
-                            <select name="modelo"
-                                id="modeloTrem"
-                                class="form-select"
-                                required>
-
-                                <option value="">
-                                    Selecione o modelo
-                                </option>
-
-                                <option value="De passageiros">
-                                    De passageiros
-                                </option>
-
-                                <option value="De carga">
-                                    De carga
-                                </option>
-
+                            <label for="modeloTrem" class="form-label">MODELO</label>
+                            <select name="modelo" id="modeloTrem" class="form-select" required>
+                                <option value="">Selecione o modelo</option>
+                                <option value="De passageiros">De passageiros</option>
+                                <option value="De carga">De carga</option>
                             </select>
-
                         </div>
 
-
-                        <!-- CAPACIDADE -->
-
                         <div class="col-md-6">
-
-                            <label for="capacidadeTrem"
-                                id="labelCapacidade"
-                                class="form-label">
-
-                                CAPACIDADE
-
-                            </label>
-
-                            <input type="number"
-                                name="capacidade"
-                                id="capacidadeTrem"
-                                class="form-control"
-                                placeholder="Selecione o modelo primeiro"
-                                min="0"
-                                required>
-
+                            <label for="capacidadeTrem" id="labelCapacidade" class="form-label">CAPACIDADE</label>
+                            <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" placeholder="Selecione o modelo primeiro" min="0" required>
                         </div>
 
-
-                        <!-- TRILHO -->
-
                         <div class="col-md-6">
-
-                            <label for="trilhoTrem"
-                                class="form-label">
-
-                                TRILHO ATUAL
-
-                            </label>
-
-                            <select name="id_trilho"
-                                id="trilhoTrem"
-                                class="form-select"
-                                required>
-
-                                <option value="">
-                                    Selecione o trilho
-                                </option>
-
+                            <label for="trilhoTrem" class="form-label">TRILHO ATUAL</label>
+                            <select name="id_trilho" id="trilhoTrem" class="form-select" required>
+                                <option value="">Selecione o trilho</option>
                                 <?php while ($trilho = mysqli_fetch_assoc($resultadoTrilhos)) { ?>
-
-                                    <option value="<?php echo $trilho['id_trilho']; ?>">
-                                        <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
-                                    </option>
-
+                                    <option value="<?php echo $trilho['id_trilho']; ?>"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
                                 <?php } ?>
-
                             </select>
-
                         </div>
 
-
-                        <!-- STATUS -->
+                        <div class="col-md-6">
+                            <label for="responsavelTrem" class="form-label">RESPONSÁVEL</label>
+                            <select name="id_usuario" id="responsavelTrem" class="form-select" required>
+                                <option value="">Selecione o responsável</option>
+                                <?php while ($usuario = mysqli_fetch_assoc($resultadoUsuarios)) { ?>
+                                    <option value="<?php echo $usuario['id_usuario']; ?>"><?php echo htmlspecialchars($usuario['nome_usuario']); ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
 
                         <div class="col-md-6">
-
-                            <label for="statusTrem"
-                                class="form-label">
-
-                                STATUS
-
-                            </label>
-
-                            <select name="status"
-                                id="statusTrem"
-                                class="form-select"
-                                required>
-
-                                <option value="ATIVO">
-                                    Ativo
-                                </option>
-
-                                <option value="MANUTENCAO">
-                                    Manutenção
-                                </option>
-
-                                <option value="INATIVO">
-                                    Inativo
-                                </option>
-
+                            <label for="statusTrem" class="form-label">STATUS</label>
+                            <select name="status" id="statusTrem" class="form-select" required>
+                                <option value="ATIVO">Ativo</option>
+                                <option value="MANUTENCAO">Manutenção</option>
+                                <option value="INATIVO">Inativo</option>
                             </select>
-
                         </div>
 
                     </div>
 
-
-                    <!-- BOTÕES -->
-
                     <div class="mt-4 d-flex gap-2">
-
-                        <button type="submit"
-                            name="cadastrar"
-                            class="btn btn-primary">
-
-                            CADASTRAR
-
-                        </button>
-
-
-                        <button type="button"
-                            class="btn btn-secondary"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#collapseCadastroTrem">
-
-                            CANCELAR
-
-                        </button>
-
+                        <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
+                        <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrem">CANCELAR</button>
                     </div>
 
                 </form>
@@ -445,258 +226,79 @@ document.addEventListener("DOMContentLoaded", function () {
 
         <?php } ?>
 
+        <!-- TABELA -->
 
-             <!-- TABELA -->
+        <div class="d-flex flex-column align-items-center gap-5 w-100" style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
 
-        <div class="d-flex flex-column align-items-center gap-5 w-100"
-            style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
+            <div class="card shadow-sm border-1 p-0" style="width: 1000px; border-radius: 4px;">
 
-
-            <div class="card shadow-sm border-1 p-0"
-                style="width: 1000px; border-radius: 4px;">
-
-
-                <!-- TÍTULO DA TABELA -->
-
-                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center"
-                    style="font-size: 0.7rem;">
+                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
 
                     TRENS CADASTRADOS
 
                     <form method="GET">
                         <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>Ativos</option>
-                            <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>Inativos</option>
-                            <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>Todos</option>
+                            <?php foreach (['ativos' => 'Ativos', 'inativos' => 'Inativos', 'todos' => 'Todos'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                            <?php } ?>
                         </select>
                     </form>
 
                 </div>
 
-
-                <!-- TABELA -->
-
                 <table class="table table-bordered table-hover mb-0 align-middle">
 
                     <thead class="table-light">
-
-                        <tr class="text-secondary"
-                            style="font-size: 0.75rem;">
-
-                            <th class="fw-semibold">
-                                ID
-                            </th>
-
-                            <th class="fw-semibold">
-                                NOME
-                            </th>
-
-                            <th class="fw-semibold">
-                                MODELO
-                            </th>
-
-                            <th class="fw-semibold">
-                                CAPACIDADE
-                            </th>
-
-                            <th class="fw-semibold">
-                                TRILHO
-                            </th>
-
-                            <th class="fw-semibold">
-                                STATUS
-                            </th>
-
-                            <th class="fw-semibold text-center">
-                                AÇÕES
-                            </th>
-
+                        <tr class="text-secondary" style="font-size: 0.75rem;">
+                            <?php foreach (['ID', 'NOME', 'MODELO', 'CAPACIDADE', 'TRILHO', 'RESPONSÁVEL', 'STATUS'] as $coluna) { ?>
+                                <th class="fw-semibold"><?php echo $coluna; ?></th>
+                            <?php } ?>
+                            <th class="fw-semibold text-center">AÇÕES</th>
                         </tr>
-
                     </thead>
-
 
                     <tbody style="font-size: 0.85rem;">
 
-
-                        <?php if (mysqli_num_rows($resultado) > 0) { ?>
-
-
-                            <?php while ($trem = mysqli_fetch_assoc($resultado)) { ?>
-
-                                <tr>
-
-
-                                    <!-- ID -->
-
-                                    <td class="text-primary-emphasis fw-bold">
-
-                                        <?php
-                                        echo $trem['id_trem'];
-                                        ?>
-
-                                    </td>
-
-
-                                    <!-- NOME -->
-
-                                    <td class="text-secondary">
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $trem['nome_trem']
-                                        );
-                                        ?>
-
-                                    </td>
-
-
-                                    <!-- MODELO -->
-
-                                    <td class="text-body-tertiary">
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $trem['modelo_trem']
-                                        );
-                                        ?>
-
-                                    </td>
-
-
-                                    <!-- CAPACIDADE -->
-
-                                    <td class="text-center">
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $trem['capacidade_trem']
-                                        );
-                                        ?>
-
-                                    </td>
-
-
-                                    <!-- TRILHO -->
-
-                                    <td class="text-body-tertiary">
-
-                                        <?php
-                                        echo htmlspecialchars(
-                                            $trem['nome_trilho'] ?? 'Sem trilho'
-                                        );
-                                        ?>
-
-                                    </td>
-
-
-                                    <!-- STATUS -->
-
-                                    <td>
-
-                                        <?php
-
-                                        $status = $trem['status_trem'];
-
-                                        if ($status == 'ATIVO') {
-
-                                            $classeStatus =
-                                                'bg-success-subtle text-success-emphasis border-success-subtle';
-
-                                        } elseif ($status == 'MANUTENCAO') {
-
-                                            $classeStatus =
-                                                'bg-warning-subtle text-warning-emphasis border-warning-subtle';
-
-                                        } else {
-
-                                            $classeStatus =
-                                                'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle';
-
-                                        }
-
-                                        ?>
-
-                                        <span class="badge border rounded-1
-                                            <?php echo $classeStatus; ?>">
-
-                                            <?php
-                                            echo htmlspecialchars($status);
-                                            ?>
-
-                                        </span>
-
-                                    </td>
-
-
-                                    <!-- AÇÕES -->
-
-                                    <td class="text-center">
-
-                                        <?php if ($admin) { ?>
-
-                                        <!-- EDITAR -->
-
-                                        <a href="tela-editar-trens.php?id=<?php echo $trem['id_trem']; ?>"
-                                            class="btn btn-sm btn-outline-primary me-1">
-
-                                            EDITAR
-
-                                        </a>
-
-
-                                        <!-- INATIVAR -->
-
-                                        <?php if ($trem['status_trem'] != 'INATIVO') { ?>
-
-                                            <form method="POST"
-                                                style="display: inline;"
-                                                onsubmit="return confirm('Tem certeza que deseja inativar este trem?');">
-
-                                                <input type="hidden"
-                                                    name="id_trem"
-                                                    value="<?php echo $trem['id_trem']; ?>">
-
-                                                <button type="submit"
-                                                    name="inativar"
-                                                    class="btn btn-sm btn-outline-danger">
-
-                                                    INATIVAR
-
-                                                </button>
-
-                                            </form>
-
-                                        <?php } ?>
-
-                                        <?php } else { ?>
-                                            -
-                                        <?php } ?>
-
-                                    </td>
-
-                                </tr>
-
-                            <?php } ?>
-
-
-                        <?php } else { ?>
-
-
-                            <!-- NENHUM TREM -->
+                        <?php while ($trem = mysqli_fetch_assoc($resultado)) { ?>
 
                             <tr>
+                                <td class="text-primary-emphasis fw-bold"><?php echo $trem['id_trem']; ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars($trem['nome_trem']); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['modelo_trem']); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($trem['capacidade_trem']); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['nome_trilho'] ?? 'Sem trilho'); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['nome_usuario'] ?? 'Sem responsável'); ?></td>
+                                <td>
+                                    <span class="badge border rounded-1 <?php echo $cores[$trem['status_trem']] ?? 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle'; ?>">
+                                        <?php echo htmlspecialchars($trem['status_trem']); ?>
+                                    </span>
+                                </td>
+                                <td class="text-center">
 
-                                <td colspan="7"
-                                    class="text-center text-muted py-4">
+                                    <?php if ($admin) { ?>
 
-                                    Nenhum trem cadastrado.
+                                        <a href="tela-editar-trens.php?id=<?php echo $trem['id_trem']; ?>" class="btn btn-sm btn-outline-primary me-1">EDITAR</a>
+
+                                        <?php if ($trem['status_trem'] != 'INATIVO') { ?>
+                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja inativar este trem?');">
+                                                <input type="hidden" name="id_trem" value="<?php echo $trem['id_trem']; ?>">
+                                                <button type="submit" name="inativar" class="btn btn-sm btn-outline-danger">INATIVAR</button>
+                                            </form>
+                                        <?php } ?>
+
+                                    <?php } else { ?>
+                                        -
+                                    <?php } ?>
 
                                 </td>
-
                             </tr>
 
+                        <?php } ?>
 
+                        <?php if (mysqli_num_rows($resultado) == 0) { ?>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">Nenhum trem cadastrado.</td>
+                            </tr>
                         <?php } ?>
 
                     </tbody>
@@ -708,7 +310,6 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
 
     </main>
-
 
     <!-- AVISO -->
 
@@ -729,9 +330,6 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         </div>
     </div>
-
-
-    <!-- BOOTSTRAP -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
