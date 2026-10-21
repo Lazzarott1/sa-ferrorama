@@ -41,6 +41,12 @@ if (isset($_POST['editar'])) {
     mysqli_stmt_bind_param($stmt, "sssisi", $_POST['nome'], $_POST['descricao'], $_POST['km'], $tempo, $_POST['status'], $id_trilho);
     mysqli_stmt_execute($stmt) or die("Erro ao atualizar trilho: " . mysqli_stmt_error($stmt));
 
+    $id_trem = (int) $_POST['id_trem'];
+
+    $stmt = mysqli_prepare($conexao, "UPDATE trens SET id_trilho = IF(id_trem = ?, ?, NULL) WHERE id_trem = ? OR (id_trilho = ? AND status_trem <> 'INATIVO')");
+    mysqli_stmt_bind_param($stmt, "iiii", $id_trem, $id_trilho, $id_trem, $id_trilho);
+    mysqli_stmt_execute($stmt) or die("Erro ao vincular trem: " . mysqli_stmt_error($stmt));
+
     header("Location: tela-cadastro-trilhos.php");
     exit;
 }
@@ -58,6 +64,8 @@ if (!$trilho) {
     header("Location: tela-cadastro-trilhos.php");
     exit;
 }
+
+$trens = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_trem, nome_trem, id_trilho FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem"), MYSQLI_ASSOC);
 
 ?>
 
@@ -137,12 +145,22 @@ if (!$trilho) {
                             </select>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="tremTrilho" class="form-label">TREM VINCULADO</label>
+                            <select name="id_trem" id="tremTrilho" class="form-select">
+                                <option value="">Nenhum trem</option>
+                                <?php foreach ($trens as $trem) { ?>
+                                    <option value="<?php echo $trem['id_trem']; ?>" <?php if ($trem['id_trilho'] == $trilho['id_trilho']) echo 'selected'; ?>><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
                             <label for="tempoTrilho" class="form-label">TEMPO PREVISTO (MIN)</label>
                             <input type="number" name="tempo" id="tempoTrilho" class="form-control" min="1" value="<?php echo (int) $trilho['tempo_previsto_min']; ?>" placeholder="Ex: 15" required>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
                             <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($trilho['data_criacao'])); ?>" disabled>
                         </div>
