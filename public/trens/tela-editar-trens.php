@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-login.php';
+include __DIR__ . '/../../infra/verifica-admin.php';
 include '../../infra/conexao.php';
 
 if (!isset($conexao) || $conexao === false) {
@@ -24,23 +24,25 @@ $id_trem = isset($_POST['id_trem'])
 
 if (isset($_POST['editar'])) {
 
-    $nome = trim($_POST['nome'] ?? '');
-    $modelo = $_POST['modelo'] ?? '';
-    $capacidade = (int) ($_POST['capacidade'] ?? 0);
-    $id_trilho = (int) ($_POST['id_trilho'] ?? 0);
-    $status = $_POST['status'] ?? '';
+    $nome = $_POST['nome'];
+    $modelo = $_POST['modelo'];
+    $capacidade = (int) $_POST['capacidade'];
+    $id_trilho = (int) $_POST['id_trilho'];
+    $status = $_POST['status'];
 
-    $modelosValidos = ['De passageiros', 'De carga'];
-    $statusValidos = ['ATIVO', 'MANUTENCAO', 'INATIVO'];
+    if ($status == 'INATIVO') {
 
-    if (
-        $nome === '' ||
-        !in_array($modelo, $modelosValidos, true) ||
-        $capacidade <= 0 ||
-        $id_trilho <= 0 ||
-        !in_array($status, $statusValidos, true)
-    ) {
-        die("Erro: preencha todos os campos corretamente.");
+        $sql = "SELECT COUNT(*) AS total FROM sensores WHERE id_trem = ? AND status_sensor <> 'INATIVO'";
+        $stmt = mysqli_prepare($conexao, $sql);
+        mysqli_stmt_bind_param($stmt, "i", $id_trem);
+        mysqli_stmt_execute($stmt);
+        $sensores = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        mysqli_stmt_close($stmt);
+
+        if ($sensores['total'] > 0) {
+            header("Location: tela-editar-trens.php?id=" . $id_trem . "&bloqueado=" . $sensores['total']);
+            exit;
+        }
     }
 
     $sql = "UPDATE trens
@@ -108,13 +110,17 @@ $trem = mysqli_fetch_assoc($resultado);
 mysqli_stmt_close($stmt);
 
 
-//    BUSCAR TRILHOS PARA A LISTA DO FORMULÁRIO
+//    BUSCAR TRILHOS
 
-$sql = "SELECT id_trilho, nome_trilho, status_trilho
+$sql = "SELECT id_trilho, nome_trilho
         FROM trilhos
+        WHERE status_trilho <> 'INATIVO' OR id_trilho = ?
         ORDER BY nome_trilho";
 
-$resultadoTrilhos = mysqli_query($conexao, $sql);
+$stmt = mysqli_prepare($conexao, $sql);
+mysqli_stmt_bind_param($stmt, "i", $trem['id_trilho']);
+mysqli_stmt_execute($stmt);
+$resultadoTrilhos = mysqli_stmt_get_result($stmt);
 
 if (!$resultadoTrilhos) {
     die("Erro ao buscar trilhos: " . mysqli_error($conexao));
@@ -219,63 +225,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         id="navbarNav">
 
                         <ul class="navbar-nav">
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-geral-home.php">
-                                    Home
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="#">
-                                    Dashboard
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../sensores/tela-cadastro-sensores.php">
-                                    Sensores
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="tela-trens.php">
-                                    Trens
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../trilhos/tela-cadastro-trilhos.php">
-                                    Trilhos
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../monitoramento/tela-monitoramento.php">
-                                    Monitoramento
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../relatorios/relatorios.php">
-                                    Relatórios
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../usuarios/tela-cadastro-user.php">
-                                    Usuários
-                                </a>
-                            </li>
-
+                            <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                            <?php if ($admin) { ?>
+                                <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
+                            <?php } ?>
                         </ul>
 
                     </div>
@@ -318,6 +275,15 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
         </div>
+
+
+        <?php if (isset($_GET['bloqueado'])) { ?>
+
+            <div class="alert alert-danger">
+                Este trem tem <?php echo (int) $_GET['bloqueado']; ?> sensor(es) ativo(s). Inative ou altere os sensores antes de inativar o trem.
+            </div>
+
+        <?php } ?>
 
 
              <!-- FORMULÁRIO -->
@@ -450,13 +416,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 <option value="<?php echo $trilho['id_trilho']; ?>"
                                     <?php if ((int) $trem['id_trilho'] === (int) $trilho['id_trilho']) echo 'selected'; ?>>
-                                    <?php
-                                    echo htmlspecialchars($trilho['nome_trilho']);
-
-                                    if ($trilho['status_trilho'] !== 'ATIVO') {
-                                        echo ' (' . htmlspecialchars($trilho['status_trilho']) . ')';
-                                    }
-                                    ?>
+                                    <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
                                 </option>
 
                             <?php } ?>
