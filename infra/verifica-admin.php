@@ -1,22 +1,13 @@
 <?php
 
 include __DIR__ . '/verifica-login.php';
-include __DIR__ . '/conexao.php';
 
-$stmt = mysqli_prepare($conexao, "SELECT perfil, status_usuario FROM usuarios WHERE id_usuario = ?");
-mysqli_stmt_bind_param($stmt, "i", $_SESSION['id_usuario']);
-mysqli_stmt_execute($stmt);
-$usuario_logado = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-mysqli_stmt_close($stmt);
+if (!$admin) {
+    $pasta_public = realpath(__DIR__ . '/../public');
+    $pasta_pagina = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
 
-if (!$usuario_logado || $usuario_logado['status_usuario'] !== 'ATIVO') {
-    header("Location: ../../infra/logout.php");
-    exit();
-}
+    $tela_home = ($pasta_pagina === $pasta_public) ? 'tela-geral-home.php' : '../tela-geral-home.php';
 
-$_SESSION['perfil'] = $usuario_logado['perfil'];
-
-if ($_SESSION['perfil'] !== 'ADMINISTRADOR') {
-    header("Location: ../tela-geral-home.php?acesso=negado");
+    header("Location: " . $tela_home . "?acesso=negado");
     exit();
 }
