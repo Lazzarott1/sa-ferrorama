@@ -56,8 +56,8 @@ if ($resTipos) {
     }
 }
 
-$trens = $conexao->query("SELECT id_trem, nome_trem FROM trens ORDER BY nome_trem");
-$trilhos = $conexao->query("SELECT id_trilho, nome_trilho FROM trilhos ORDER BY nome_trilho");
+$trens = $conexao->query("SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem");
+$trilhos = $conexao->query("SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
 
 function badgeStatus(string $status): string {
     switch (strtoupper($status)) {
@@ -168,65 +168,14 @@ function badgeStatus(string $status): string {
                         id="navbarNav">
 
                         <ul class="navbar-nav">
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-geral-home.php">
-                                    Home
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="#">
-                                    Dashboard
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../sensores/tela-cadastro-sensores.php">
-                                    Sensores
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../trens/tela-trens.php">
-                                    Trens
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../trilhos/tela-cadastro-trilhos.php">
-                                    Trilhos
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="#">
-                                    Monitoramento
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="relatorios.php">
-                                    Relatórios
-                                </a>
-                            </li>
-
-                            <?php if (($_SESSION['perfil'] ?? '') === 'ADMINISTRADOR') { ?>
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../usuarios/tela-cadastro-user.php">
-                                    Usuários
-                                </a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                            <?php if ($admin) { ?>
+                                <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
                             <?php } ?>
-
                         </ul>
 
                     </div>
