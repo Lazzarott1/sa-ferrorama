@@ -8,20 +8,20 @@ if (!isset($conexao) || $conexao === false) {
 }
 
 
-//    EXCLUIR TRILHO
+//    INATIVAR TRILHO
 
-if (isset($_POST['excluir'])) {
+if ($admin && isset($_POST['inativar'])) {
 
     $id_trilho = (int) $_POST['id_trilho'];
 
 
-    // VERIFICA ASSOCIAÇÕES (trens e sensores ligados ao trilho)
+    // VERIFICA ASSOCIAÇÕES (trens e sensores ativos ligados ao trilho)
 
     $sql = "SELECT
                 (SELECT COUNT(*) FROM trens
-                    WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
+                    WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS total_trens,
                 (SELECT COUNT(*) FROM sensores
-                    WHERE sensores.id_trilho = trilhos.id_trilho) AS total_sensores
+                    WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO') AS total_sensores
             FROM trilhos
             WHERE id_trilho = ?";
 
@@ -47,18 +47,18 @@ if (isset($_POST['excluir'])) {
     }
 
 
-    $sql = "DELETE FROM trilhos WHERE id_trilho = ?";
+    $sql = "UPDATE trilhos SET status_trilho = 'INATIVO' WHERE id_trilho = ?";
 
     $stmt = mysqli_prepare($conexao, $sql);
 
     if (!$stmt) {
-        die("Erro ao preparar exclusão: " . mysqli_error($conexao));
+        die("Erro ao preparar inativação: " . mysqli_error($conexao));
     }
 
     mysqli_stmt_bind_param($stmt, "i", $id_trilho);
 
     if (!mysqli_stmt_execute($stmt)) {
-        die("Erro ao excluir trilho: " . mysqli_stmt_error($stmt));
+        die("Erro ao inativar trilho: " . mysqli_stmt_error($stmt));
     }
 
     mysqli_stmt_close($stmt);
@@ -70,7 +70,7 @@ if (isset($_POST['excluir'])) {
 
 //    CADASTRAR TRILHO
 
-if (isset($_POST['cadastrar'])) {
+if ($admin && isset($_POST['cadastrar'])) {
 
     $nome = $_POST['nome'];
     $descricao = $_POST['descricao'];
@@ -114,12 +114,23 @@ if (isset($_POST['cadastrar'])) {
 
 //    BUSCAR TRILHOS
 
+$filtro = $_GET['filtro'] ?? 'ativos';
+
+$where = "";
+
+if ($filtro == 'ativos') {
+    $where = "WHERE status_trilho <> 'INATIVO'";
+} elseif ($filtro == 'inativos') {
+    $where = "WHERE status_trilho = 'INATIVO'";
+}
+
 $sql = "SELECT trilhos.*,
             (SELECT COUNT(*) FROM trens
-                WHERE trens.id_trilho = trilhos.id_trilho) AS total_trens,
+                WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS total_trens,
             (SELECT COUNT(*) FROM sensores
-                WHERE sensores.id_trilho = trilhos.id_trilho) AS total_sensores
+                WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO') AS total_sensores
         FROM trilhos
+        $where
         ORDER BY id_trilho DESC";
 
 $resultado = mysqli_query($conexao, $sql);
@@ -129,7 +140,7 @@ if (!$resultado) {
 }
 
 
-//    TRILHO BLOQUEADO (exclusão recusada no servidor)
+//    TRILHO BLOQUEADO (inativação recusada no servidor)
 
 $trilhoBloqueado = null;
 
@@ -216,63 +227,14 @@ if (isset($_GET['bloqueado'])) {
                         id="navbarNav">
 
                         <ul class="navbar-nav">
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-geral-home.php">
-                                    Home
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-dashboard.php">
-                                    Dashboard
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../sensores/tela-cadastro-sensores.php">
-                                    Sensores
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../trens/tela-trens.php">
-                                    Trens
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="tela-cadastro-trilhos.php">
-                                    Trilhos
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-monitoramento.php">
-                                    Monitoramento
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-relatorios.php">
-                                    Relatórios
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link text-white"
-                                    href="../tela-cadastro-user.php">
-                                    Usuários
-                                </a>
-                            </li>
-
+                            <li class="nav-item"><a class="nav-link text-white" href="../tela-geral-home.php">Home</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trens/tela-trens.php">Trens</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="../relatorios/relatorios.php">Relatórios</a></li>
+                            <?php if ($admin) { ?>
+                                <li class="nav-item"><a class="nav-link text-white" href="../usuarios/tela-cadastro-user.php">Usuários</a></li>
+                            <?php } ?>
                         </ul>
 
                     </div>
@@ -317,6 +279,8 @@ if (isset($_GET['bloqueado'])) {
 
             <!-- BOTÃO NOVO TRILHO -->
 
+            <?php if ($admin) { ?>
+
             <button type="button"
                 class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2"
                 data-bs-toggle="collapse"
@@ -332,10 +296,14 @@ if (isset($_GET['bloqueado'])) {
 
             </button>
 
+            <?php } ?>
+
         </div>
 
 
              <!-- FORMULÁRIO -->
+
+        <?php if ($admin) { ?>
 
         <div class="collapse mb-4"
             id="collapseCadastroTrilho">
@@ -445,7 +413,7 @@ if (isset($_GET['bloqueado'])) {
                                     Ativo
                                 </option>
 
-                                <option value="MANUTENÇÃO">
+                                <option value="MANUTENCAO">
                                     Manutenção
                                 </option>
 
@@ -489,6 +457,8 @@ if (isset($_GET['bloqueado'])) {
 
         </div>
 
+        <?php } ?>
+
 
              <!-- TABELA -->
 
@@ -502,10 +472,18 @@ if (isset($_GET['bloqueado'])) {
 
                 <!-- TÍTULO DA TABELA -->
 
-                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
+                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center"
                     style="font-size: 0.7rem;">
 
                     TRILHOS CADASTRADOS
+
+                    <form method="GET">
+                        <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>Ativos</option>
+                            <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>Inativos</option>
+                            <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>Todos</option>
+                        </select>
+                    </form>
 
                 </div>
 
@@ -621,7 +599,7 @@ if (isset($_GET['bloqueado'])) {
                                             $classeStatus =
                                                 'bg-success-subtle text-success-emphasis border-success-subtle';
 
-                                        } elseif ($status == 'MANUTENÇÃO') {
+                                        } elseif ($status == 'MANUTENCAO') {
 
                                             $classeStatus =
                                                 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
@@ -651,6 +629,7 @@ if (isset($_GET['bloqueado'])) {
 
                                     <td class="text-center">
 
+                                        <?php if ($admin) { ?>
 
                                         <!-- EDITAR -->
 
@@ -662,11 +641,11 @@ if (isset($_GET['bloqueado'])) {
                                         </a>
 
 
-                                        <!-- EXCLUIR -->
+                                        <!-- INATIVAR -->
 
-                                        <?php if ($trilho['total_trens'] > 0 || $trilho['total_sensores'] > 0) { ?>
+                                        <?php if ($trilho['status_trilho'] != 'INATIVO' && ($trilho['total_trens'] > 0 || $trilho['total_sensores'] > 0)) { ?>
 
-                                            <!-- Trilho com associações: abre o alerta em vez de excluir -->
+                                            <!-- Trilho com associações: abre o alerta em vez de inativar -->
 
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
@@ -676,30 +655,34 @@ if (isset($_GET['bloqueado'])) {
                                                 data-trens="<?php echo (int) $trilho['total_trens']; ?>"
                                                 data-sensores="<?php echo (int) $trilho['total_sensores']; ?>">
 
-                                                X
+                                                INATIVAR
 
                                             </button>
 
-                                        <?php } else { ?>
+                                        <?php } elseif ($trilho['status_trilho'] != 'INATIVO') { ?>
 
                                         <form method="POST"
                                             style="display: inline;"
-                                            onsubmit="return confirm('Tem certeza que deseja excluir este trilho?');">
+                                            onsubmit="return confirm('Tem certeza que deseja inativar este trilho?');">
 
                                             <input type="hidden"
                                                 name="id_trilho"
                                                 value="<?php echo $trilho['id_trilho']; ?>">
 
                                             <button type="submit"
-                                                name="excluir"
+                                                name="inativar"
                                                 class="btn btn-sm btn-outline-danger">
 
-                                                X
+                                                INATIVAR
 
                                             </button>
 
                                         </form>
 
+                                        <?php } ?>
+
+                                        <?php } else { ?>
+                                            -
                                         <?php } ?>
 
                                     </td>
@@ -761,7 +744,7 @@ if (isset($_GET['bloqueado'])) {
                         id="tituloModalTrilhoAssociado">
 
 
-                        ATENÇÃO: EXCLUSÃO NÃO PERMITIDA
+                        ATENÇÃO: INATIVAÇÃO NÃO PERMITIDA
 
                     </h6>
 
@@ -792,7 +775,7 @@ if (isset($_GET['bloqueado'])) {
                             <br>
 
                             <span style="font-size: 0.9rem;">
-                                Remova ou altere os trens e sensores vinculados a ele antes de excluí-lo.
+                                Inative ou altere os trens e sensores ativos vinculados a ele antes de inativá-lo.
                             </span>
 
                         </div>
@@ -901,7 +884,7 @@ if (isset($_GET['bloqueado'])) {
 
         <?php if ($trilhoBloqueado) { ?>
 
-        // Exclusão recusada pelo servidor: abre o alerta ao carregar a página
+        // Inativação recusada pelo servidor: abre o alerta ao carregar a página
 
         new bootstrap.Modal(modalTrilhoAssociado).show();
 
