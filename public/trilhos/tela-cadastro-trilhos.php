@@ -1,7 +1,7 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-login.php';
-include __DIR__ . '/../../infra/valida-trilho.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
 
 $erros = [];
 $novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'tempo_previsto_min' => '', 'id_trem' => 0, 'status_trilho' => 'ATIVO'];

@@ -1,7 +1,7 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-admin.php';
-include __DIR__ . '/../../infra/valida-trem.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-trem.php';
 
 $id_trem = (int) ($_POST['id_trem'] ?? $_GET['id'] ?? 0);
 $erros = [];

@@ -1,6 +1,6 @@
 <?php
-include __DIR__ . '/../../infra/verifica-admin.php';
-include __DIR__ . '/../../infra/valida-sensor.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-sensores.php';
 
 $erros = [];
 $id_sensor = (int) ($_GET['id'] ?? 0);

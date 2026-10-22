@@ -1,7 +1,7 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-admin.php';
-include __DIR__ . '/../../infra/valida-trilho.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
 
 $id_trilho = (int) ($_POST['id_trilho'] ?? $_GET['id'] ?? 0);
 $erros = [];

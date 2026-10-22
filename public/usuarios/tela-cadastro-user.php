@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
 
 include __DIR__ . '/../../infra/conexao.php';
 

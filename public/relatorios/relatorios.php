@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-login.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
 
 function buscar($conexao, $sql, $params = []) {
     $stmt = $conexao->prepare($sql);
