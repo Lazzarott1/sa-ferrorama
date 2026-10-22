@@ -4,7 +4,7 @@ include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
 
 $erros = [];
-$novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'tempo_previsto_min' => '', 'id_trem' => 0, 'status_trilho' => 'ATIVO'];
+$novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'status_trilho' => 'ATIVO'];
 
 $associacoes = "(SELECT COUNT(*) FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS total_trens,
     (SELECT COUNT(*) FROM sensores WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO') AS total_sensores";
@@ -45,24 +45,17 @@ if ($admin && isset($_POST['inativar'])) {
 
 if ($admin && isset($_POST['cadastrar'])) {
 
-    [$novo, $erros] = validarTrilho($conexao, false);
+    [$novo, $erros] = validarTrilho();
 
     if (!$erros) {
         try {
-            $stmt = mysqli_prepare($conexao, "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, tempo_previsto_min, status_trilho) VALUES (?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "sssis", $novo['nome_trilho'], $novo['descricao_trilho'], $novo['km_trilho'], $novo['tempo_previsto_min'], $novo['status_trilho']);
-            mysqli_stmt_execute($stmt);
+            $stmt = mysqli_prepare($conexao, "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, status_trilho) VALUES (?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "ssss", $novo['nome_trilho'], $novo['descricao_trilho'], $novo['km_trilho'], $novo['status_trilho']);
 
-            $id_trilho = mysqli_insert_id($conexao);
-
-            if ($novo['id_trem']) {
-                $stmt = mysqli_prepare($conexao, "UPDATE trens SET id_trilho = ? WHERE id_trem = ?");
-                mysqli_stmt_bind_param($stmt, "ii", $id_trilho, $novo['id_trem']);
-                mysqli_stmt_execute($stmt);
+            if (mysqli_stmt_execute($stmt)) {
+                header("Location: tela-cadastro-trilhos.php");
+                exit;
             }
-
-            header("Location: tela-cadastro-trilhos.php");
-            exit;
         } catch (Exception $e) {
         }
 
@@ -84,10 +77,8 @@ try {
     $trilhos = mysqli_fetch_all(mysqli_query($conexao, "SELECT trilhos.*, $associacoes,
         (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS nomes_trens
         FROM trilhos $where ORDER BY id_trilho DESC"), MYSQLI_ASSOC);
-
-    $trens = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem"), MYSQLI_ASSOC);
 } catch (Throwable $e) {
-    $trilhos = $trens = [];
+    $trilhos = [];
     $erros[] = "Não foi possível carregar os trilhos. Tente novamente.";
 }
 
@@ -175,12 +166,12 @@ $cores = [
                             <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" placeholder="Ex: 12.5" value="<?php echo htmlspecialchars($novo['km_trilho']); ?>" required>
                         </div>
 
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
                             <input type="text" name="descricao" id="descricaoTrilho" class="form-control" placeholder="Ex: Trecho entre os pátios A e B" value="<?php echo htmlspecialchars($novo['descricao_trilho']); ?>" required>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="statusTrilho" class="form-label">STATUS</label>
                             <select name="status" id="statusTrilho" class="form-select" required>
                                 <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
@@ -189,22 +180,7 @@ $cores = [
                             </select>
                         </div>
 
-                        <div class="col-md-4">
-                            <label for="tremTrilho" class="form-label">TREM VINCULADO</label>
-                            <select name="id_trem" id="tremTrilho" class="form-select">
-                                <option value="">Nenhum trem</option>
-                                <?php foreach ($trens as $trem) { ?>
-                                    <option value="<?php echo $trem['id_trem']; ?>" <?php if ($novo['id_trem'] == $trem['id_trem']) echo 'selected'; ?>><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
-                                <?php } ?>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="tempoTrilho" class="form-label">TEMPO PREVISTO (MIN)</label>
-                            <input type="number" name="tempo" id="tempoTrilho" class="form-control" min="1" placeholder="Ex: 15" value="<?php echo htmlspecialchars($novo['tempo_previsto_min']); ?>" required>
-                        </div>
-
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
                             <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y'); ?>" disabled>
                         </div>
@@ -248,7 +224,7 @@ $cores = [
 
                     <thead class="table-light">
                         <tr class="text-secondary" style="font-size: 0.75rem;">
-                            <?php foreach (['ID', 'NOME', 'DESCRIÇÃO', 'KM', 'TEMPO', 'TRENS', 'CRIADO EM', 'STATUS'] as $coluna) { ?>
+                            <?php foreach (['ID', 'NOME', 'DESCRIÇÃO', 'KM', 'TRENS', 'CRIADO EM', 'STATUS'] as $coluna) { ?>
                                 <th class="fw-semibold"><?php echo $coluna; ?></th>
                             <?php } ?>
                             <th class="fw-semibold text-center">AÇÕES</th>
@@ -264,7 +240,6 @@ $cores = [
                                 <td class="text-secondary"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['descricao_trilho']); ?></td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['km_trilho']); ?> km</td>
-                                <td class="text-body-tertiary"><?php echo (int) $trilho['tempo_previsto_min']; ?> min</td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['nomes_trens'] ?? 'Sem trem'); ?></td>
                                 <td class="text-body-tertiary"><?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?></td>
                                 <td>
