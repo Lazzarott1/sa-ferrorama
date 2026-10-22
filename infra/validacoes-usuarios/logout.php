@@ -21,6 +21,6 @@ session_destroy();
 
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 
-header("Location: ../public/tela-login.php");
+header("Location: ../../public/tela-login.php");
 exit();
 ?>

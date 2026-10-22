@@ -31,7 +31,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         </nav>
 
         <div>
-            <button class="btn-sair" onclick="window.location.href='<?php echo $caminho; ?>../infra/logout.php'">Sair</button>
+            <button class="btn-sair" onclick="window.location.href='<?php echo $caminho; ?>../infra/validacoes-usuarios/logout.php'">Sair</button>
         </div>
     </div>
 </header>
