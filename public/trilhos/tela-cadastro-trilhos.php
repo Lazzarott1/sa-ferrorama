@@ -45,7 +45,7 @@ if ($admin && isset($_POST['inativar'])) {
 
 if ($admin && isset($_POST['cadastrar'])) {
 
-    [$novo, $erros] = validarTrilho($conexao, true);
+    [$novo, $erros] = validarTrilho($conexao, false);
 
     if (!$erros) {
         try {
@@ -55,13 +55,14 @@ if ($admin && isset($_POST['cadastrar'])) {
 
             $id_trilho = mysqli_insert_id($conexao);
 
-            $stmt = mysqli_prepare($conexao, "UPDATE trens SET id_trilho = ? WHERE id_trem = ?");
-            mysqli_stmt_bind_param($stmt, "ii", $id_trilho, $novo['id_trem']);
-
-            if (mysqli_stmt_execute($stmt)) {
-                header("Location: tela-cadastro-trilhos.php");
-                exit;
+            if ($novo['id_trem']) {
+                $stmt = mysqli_prepare($conexao, "UPDATE trens SET id_trilho = ? WHERE id_trem = ?");
+                mysqli_stmt_bind_param($stmt, "ii", $id_trilho, $novo['id_trem']);
+                mysqli_stmt_execute($stmt);
             }
+
+            header("Location: tela-cadastro-trilhos.php");
+            exit;
         } catch (Exception $e) {
         }
 
@@ -152,7 +153,7 @@ $cores = [
 
         <?php if ($admin) { ?>
 
-        <div class="collapse mb-4 <?php if ($erros && isset($_POST['cadastrar'])) echo 'show'; ?>" id="collapseCadastroTrilho">
+        <div class="collapse mb-4 <?php if (($erros && isset($_POST['cadastrar'])) || isset($_GET['novo'])) echo 'show'; ?>" id="collapseCadastroTrilho">
 
             <div class="card border-0">
 
@@ -190,8 +191,8 @@ $cores = [
 
                         <div class="col-md-4">
                             <label for="tremTrilho" class="form-label">TREM VINCULADO</label>
-                            <select name="id_trem" id="tremTrilho" class="form-select" required>
-                                <option value="">Selecione o trem</option>
+                            <select name="id_trem" id="tremTrilho" class="form-select">
+                                <option value="">Nenhum trem</option>
                                 <?php foreach ($trens as $trem) { ?>
                                     <option value="<?php echo $trem['id_trem']; ?>" <?php if ($novo['id_trem'] == $trem['id_trem']) echo 'selected'; ?>><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
                                 <?php } ?>
