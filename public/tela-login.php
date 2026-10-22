@@ -1,68 +1,50 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 session_start();
 
 include '../infra/conexao.php';
 
-$erro = "";
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $ehAjax = isset($_POST['ajax']) && $_POST['ajax'] == '1';
-
     $usuario = trim($_POST['nome_usuario'] ?? '');
-    $senha = trim($_POST['senha'] ?? '');
+    $senha = $_POST['senha'] ?? '';
 
-    $sql = "SELECT id_usuario, nome_usuario, senha, perfil, status_usuario FROM usuarios WHERE nome_usuario = ?";
-    $stmt = mysqli_prepare($conexao, $sql);
-
-    if ($stmt === false) {
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => false, 'mensagem' => 'Erro ao preparar a consulta: ' . mysqli_error($conexao)]);
-            exit();
-        }
-        die('Erro ao preparar a consulta: ' . mysqli_error($conexao));
-    }
-
+    $stmt = mysqli_prepare($conexao, "SELECT id_usuario, nome_usuario, senha, perfil, status_usuario FROM usuarios WHERE nome_usuario = ?");
     mysqli_stmt_bind_param($stmt, 's', $usuario);
     mysqli_stmt_execute($stmt);
-    $resultado = mysqli_stmt_get_result($stmt);
-    $dados = mysqli_fetch_assoc($resultado);
-
+    $dados = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     mysqli_stmt_close($stmt);
 
-    if ($dados && password_verify($senha, $dados['senha']) && $dados['status_usuario'] !== 'ATIVO') {
-        $erro = "Usuário inativo. Fale com o administrador.";
+    $sem_hash = $dados && !password_get_info($dados['senha'])['algo'];
 
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
-            exit();
-        }
-    } elseif ($dados && password_verify($senha, $dados['senha'])) {
+    if ($sem_hash && $senha === $dados['senha']) {
+        // senha gravada direto no banco sem hash: converte no primeiro login
+        $hash = password_hash($senha, PASSWORD_DEFAULT);
+        $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET senha = ? WHERE id_usuario = ?");
+        mysqli_stmt_bind_param($stmt, 'si', $hash, $dados['id_usuario']);
+        mysqli_stmt_execute($stmt);
+        $dados['senha'] = $hash;
+    }
+
+    $erro = '';
+    if (!$dados || !password_verify($senha, $dados['senha'])) {
+        $erro = "Usuário ou senha incorretos.";
+    } elseif ($dados['status_usuario'] !== 'ATIVO') {
+        $erro = "Usuário inativo. Fale com o administrador.";
+    } else {
         $_SESSION['id_usuario'] = $dados['id_usuario'];
         $_SESSION['usuario'] = $dados['nome_usuario'];
         $_SESSION['perfil'] = $dados['perfil'];
+    }
 
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => true, 'mensagem' => 'Login realizado com sucesso!']);
-            exit();
-        }
+    if (isset($_POST['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['sucesso' => $erro === '', 'mensagem' => $erro ?: 'Login realizado com sucesso!']);
+        exit();
+    }
 
+    if ($erro === '') {
         header("Location: tela-geral-home.php");
         exit();
-    } else {
-        $erro = "Usuário ou senha incorretos.";
-
-        if ($ehAjax) {
-            header('Content-Type: application/json');
-            echo json_encode(['sucesso' => false, 'mensagem' => $erro]);
-            exit();
-        }
     }
 }
 
@@ -77,209 +59,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 
+
     <style>
-        /* ---------- IDENTIDADE VISUAL ---------- */
-        :root {
-            --azul: #1b3f53;
-            --azul-escuro: #12303f;
-            --amarelo: #daa301;
-            --branco: #ffffff;
-        }
+        :root { --azul: #1b3f53; --azul-escuro: #12303f; --amarelo: #daa301; --branco: #ffffff; }
+        body { font-family: Arial, Tahoma, sans-serif; min-height: 100vh; background: radial-gradient(circle at center, #245166 0%, var(--azul) 55%, var(--azul-escuro) 100%); }
+        body.intro { overflow: hidden; }
+        .trilho { position: fixed; left: 0; right: 0; bottom: 40px; z-index: 0; height: 14px; border-top: 3px solid rgba(218, 163, 1, 0.5); border-bottom: 3px solid rgba(218, 163, 1, 0.5); background: repeating-linear-gradient(90deg, transparent 0 26px, rgba(218, 163, 1, 0.25) 26px 34px); }
+        .card-login { position: relative; z-index: 1; width: 420px; max-width: calc(100vw - 32px); background-color: var(--branco); border: none; border-top: 5px solid var(--amarelo); border-radius: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease; }
+        .marca { display: flex; flex-direction: column; align-items: center; text-align: center; transform-origin: center center; }
+        .marca-logo { width: 76px; height: 76px; border-radius: 14px; box-shadow: 0 6px 18px rgba(218, 163, 1, 0.45); }
+        .marca-nome { margin: 12px 0 0; font-size: 1.9rem; font-weight: 700; color: var(--azul); transition: color 0.6s ease; }
+        .marca-nome span { color: var(--amarelo); }
+        .marca-sub { margin: 2px 0 0; font-size: 0.72rem; letter-spacing: 3px; color: #6c7a86; transition: color 0.6s ease; }
+        .marca-linha { width: 60px; height: 3px; margin-top: 12px; border-radius: 2px; background-color: var(--amarelo); }
+        .form-area { transition: opacity 0.6s ease, transform 0.6s ease; }
+        .form-label { font-size: 0.8rem; font-weight: 600; color: #5b6770; }
+        .form-control:focus { border-color: var(--amarelo); box-shadow: 0 0 0 0.2rem rgba(218, 163, 1, 0.25); }
+        .btn-entrar { background-color: var(--amarelo); color: var(--azul); font-weight: 700; letter-spacing: 1px; border: none; transition: transform 0.2s ease, filter 0.2s ease; }
+        .btn-entrar:hover { background-color: var(--amarelo); color: var(--azul); filter: brightness(1.08); transform: translateY(-2px); }
+        .aviso-suporte { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid #e3e6e8; text-align: center; font-size: 0.8rem; color: #6c7a86; }
 
-        body {
-            font-family: Arial, Tahoma, sans-serif;
-            min-height: 100vh;
-            background: radial-gradient(circle at center, #245166 0%, var(--azul) 55%, var(--azul-escuro) 100%);
-        }
+        .intro .card-login { background-color: transparent; border-color: transparent; box-shadow: none; }
+        .intro .form-area { opacity: 0; transform: translateY(20px); pointer-events: none; }
+        .intro .marca-nome { color: var(--branco); }
+        .intro .marca-sub { color: rgba(255, 255, 255, 0.75); }
+        .intro .marca-logo { animation: logo-entra 0.9s cubic-bezier(.2, .9, .3, 1.3) both; }
+        .intro .marca-nome, .intro .marca-sub { animation: texto-sobe 0.6s ease 0.6s both; }
+        .intro .marca-linha { animation: linha-cresce 0.6s ease 1.1s both; }
 
-        body.intro {
-            overflow: hidden;
-        }
+        @keyframes logo-entra { from { opacity: 0; transform: scale(0.4) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+        @keyframes texto-sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes linha-cresce { from { width: 0; } to { width: 60px; } }
 
-        /* Trilho decorativo no rodapé */
-        .trilho {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 40px;
-            z-index: 0;
-            height: 14px;
-            border-top: 3px solid rgba(218, 163, 1, 0.5);
-            border-bottom: 3px solid rgba(218, 163, 1, 0.5);
-            background: repeating-linear-gradient(90deg,
-                    transparent 0 26px,
-                    rgba(218, 163, 1, 0.25) 26px 34px);
-        }
-
-        /* ---------- CARD DE LOGIN ---------- */
-        .card-login {
-            position: relative;
-            z-index: 1;
-            width: 420px;
-            max-width: calc(100vw - 32px);
-            background-color: var(--branco);
-            border: none;
-            border-top: 5px solid var(--amarelo);
-            border-radius: 10px;
-            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
-            transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
-        }
-
-        /* ---------- LOGO + NOME ---------- */
-        .marca {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            transform-origin: center center;
-        }
-
-        .marca-logo {
-            width: 76px;
-            height: 76px;
-            border-radius: 14px;
-            box-shadow: 0 6px 18px rgba(218, 163, 1, 0.45);
-        }
-
-        .marca-nome {
-            margin: 12px 0 0;
-            font-size: 1.9rem;
-            font-weight: 700;
-            color: var(--azul);
-            transition: color 0.6s ease;
-        }
-
-        .marca-nome span {
-            color: var(--amarelo);
-        }
-
-        .marca-sub {
-            margin: 2px 0 0;
-            font-size: 0.72rem;
-            letter-spacing: 3px;
-            color: #6c7a86;
-            transition: color 0.6s ease;
-        }
-
-        .marca-linha {
-            width: 60px;
-            height: 3px;
-            margin-top: 12px;
-            border-radius: 2px;
-            background-color: var(--amarelo);
-        }
-
-        /* ---------- FORMULÁRIO ---------- */
-        .form-area {
-            transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .form-label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #5b6770;
-        }
-
-        .form-control:focus {
-            border-color: var(--amarelo);
-            box-shadow: 0 0 0 0.2rem rgba(218, 163, 1, 0.25);
-        }
-
-        .btn-entrar {
-            background-color: var(--amarelo);
-            color: var(--azul);
-            font-weight: 700;
-            letter-spacing: 1px;
-            border: none;
-            transition: transform 0.2s ease, filter 0.2s ease;
-        }
-
-        .btn-entrar:hover {
-            background-color: var(--amarelo);
-            color: var(--azul);
-            filter: brightness(1.08);
-            transform: translateY(-2px);
-        }
-
-        /* ---------- ESTADO INICIAL DA ANIMAÇÃO ---------- */
-        /* Enquanto a tela tem a classe "intro", o card fica invisível
-           e só a logo aparece, grande, no meio da tela. */
-        .intro .card-login {
-            background-color: transparent;
-            border-color: transparent;
-            box-shadow: none;
-        }
-
-        .intro .form-area {
-            opacity: 0;
-            transform: translateY(20px);
-            pointer-events: none;
-        }
-
-        .intro .marca-nome {
-            color: var(--branco);
-        }
-
-        .intro .marca-sub {
-            color: rgba(255, 255, 255, 0.75);
-        }
-
-        /* Etapa 1: logo surge */
-        .intro .marca-logo {
-            animation: logo-entra 0.9s cubic-bezier(.2, .9, .3, 1.3) both;
-        }
-
-        /* Etapa 2: nome sobe */
-        .intro .marca-nome,
-        .intro .marca-sub {
-            animation: texto-sobe 0.6s ease 0.6s both;
-        }
-
-        /* Etapa 3: linha amarela cresce como um trilho */
-        .intro .marca-linha {
-            animation: linha-cresce 0.6s ease 1.1s both;
-        }
-
-        @keyframes logo-entra {
-            from {
-                opacity: 0;
-                transform: scale(0.4) rotate(-8deg);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) rotate(0);
-            }
-        }
-
-        @keyframes texto-sobe {
-            from {
-                opacity: 0;
-                transform: translateY(14px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes linha-cresce {
-            from {
-                width: 0;
-            }
-
-            to {
-                width: 60px;
-            }
-        }
-
-        /* Quem prefere menos movimento (configuração do sistema) vê a tela direto */
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation: none !important;
-                transition: none !important;
-            }
+            *, *::before, *::after { animation: none !important; transition: none !important; }
         }
     </style>
 </head>
@@ -317,6 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <div id="mensagem" class="mt-3"></div>
+
+                <p class="aviso-suporte">Precisa de ajuda? Fale com o administrador do sistema.</p>
 
             </div>
 
