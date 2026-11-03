@@ -1,6 +1,6 @@
 <?php
-include __DIR__ . '/../../infra/verifica-login.php';
-include __DIR__ . '/../../infra/valida-sensor.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-sensores.php';
 
 $erros = [];
 

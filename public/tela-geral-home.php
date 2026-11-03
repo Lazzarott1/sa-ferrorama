@@ -1,6 +1,6 @@
 <?php
 // Só entra quem fez login
-include __DIR__ . '/../infra/verifica-login.php';
+include __DIR__ . '/../infra/validacoes-usuarios/verifica-login.php';
 
 $nome_usuario = $_SESSION['usuario'];
 

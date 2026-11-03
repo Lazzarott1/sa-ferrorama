@@ -1,7 +1,7 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-login.php';
-include __DIR__ . '/../../infra/valida-trem.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-trem.php';
 
 $erros = [];
 $novo = ['nome_trem' => '', 'modelo_trem' => '', 'capacidade_trem' => '', 'id_trilho' => 0, 'id_usuario' => 0, 'status_trem' => 'ATIVO'];

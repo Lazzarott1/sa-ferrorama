@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . '/../../infra/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
 include __DIR__ . '/../../infra/conexao.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
