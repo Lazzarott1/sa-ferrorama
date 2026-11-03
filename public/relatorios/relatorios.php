@@ -42,29 +42,23 @@ $conexao->query("UPDATE relatorios SET status_relatorio = 'PRONTO' WHERE status_
 $rel = buscar($conexao, "SELECT r.*, t.nome_trem, tr.nome_trilho FROM relatorios r LEFT JOIN trens t ON t.id_trem = r.id_trem LEFT JOIN trilhos tr ON tr.id_trilho = r.id_trilho WHERE r.id_relatorio = ?", [(int) ($_GET['ver'] ?? 0)])[0] ?? null;
 
 if ($rel) {
-    $trem = $rel['id_trem'];
-    $trilho = $rel['id_trilho'];
+    $trem = (int) $rel['id_trem'];
+    $trilho = (int) $rel['id_trilho'];
     $dado = $rel['tipo_dado'] ?? '';
     $falhas = $dado === 'Falhas';
 
-    $sql = "SELECT t.nome_trem AS Nome, t.modelo_trem AS Modelo, t.capacidade_trem AS Capacidade, tr.nome_trilho AS Trilho, t.status_trem AS Status FROM trens t LEFT JOIN trilhos tr ON tr.id_trilho = t.id_trilho WHERE t.status_trem <> 'INATIVO'";
-    $p = [];
-    if ($trem)   { $sql .= " AND t.id_trem = ?";   $p[] = $trem; }
-    if ($trilho) { $sql .= " AND t.id_trilho = ?"; $p[] = $trilho; }
-    if ($falhas) $sql .= " AND t.status_trem = 'MANUTENCAO'";
-    $secoes['Trens'] = buscar($conexao, "$sql ORDER BY Nome", $p);
+    if (!$trilho && $trem) $trilho = (int) buscar($conexao, "SELECT id_trilho FROM trens WHERE id_trem = ?", [$trem])[0]['id_trilho'];
+    $filtrado = $trem || $rel['id_trilho'];
+    $doTrem = $trem ? "t.id_trem = $trem" : ($trilho ? "t.id_trilho = $trilho" : "1");
+    $doTrilho = $filtrado ? "tr.id_trilho = $trilho" : "1";
 
-    $sql = "SELECT nome_trilho AS Nome, descricao_trilho AS Descrição, km_trilho AS KM, status_trilho AS Status FROM trilhos WHERE status_trilho <> 'INATIVO'";
-    $p = [];
-    if ($trilho) { $sql .= " AND id_trilho = ?"; $p[] = $trilho; }
-    if ($trem)   { $sql .= " AND id_trilho = (SELECT id_trilho FROM trens WHERE id_trem = ?)"; $p[] = $trem; }
-    if ($falhas) $sql .= " AND status_trilho = 'MANUTENCAO'";
-    $secoes['Trilhos'] = buscar($conexao, "$sql ORDER BY Nome", $p);
+    $secoes['Trens'] = buscar($conexao, "SELECT t.nome_trem AS Nome, t.modelo_trem AS Modelo, t.capacidade_trem AS Capacidade, tr.nome_trilho AS Trilho, t.status_trem AS Status FROM trens t LEFT JOIN trilhos tr ON tr.id_trilho = t.id_trilho WHERE t.status_trem <> 'INATIVO' AND $doTrem" . ($falhas ? " AND t.status_trem = 'MANUTENCAO'" : "") . " ORDER BY Nome");
+
+    $secoes['Trilhos'] = buscar($conexao, "SELECT nome_trilho AS Nome, descricao_trilho AS Descrição, km_trilho AS KM, status_trilho AS Status FROM trilhos tr WHERE status_trilho <> 'INATIVO' AND $doTrilho" . ($falhas ? " AND status_trilho = 'MANUTENCAO'" : "") . " ORDER BY Nome");
 
     $sql = "SELECT s.nome_sensor AS Nome, s.categoria_sensor AS Categoria, s.tipo_sensor AS Tipo, COALESCE(t.nome_trem, tr.nome_trilho) AS Local, s.status_sensor AS Status FROM sensores s LEFT JOIN trens t ON t.id_trem = s.id_trem LEFT JOIN trilhos tr ON tr.id_trilho = s.id_trilho WHERE s.status_sensor <> 'INATIVO'";
+    if ($filtrado) $sql .= " AND (($doTrem) OR s.id_trilho = $trilho)";
     $p = [];
-    if ($trem)   { $sql .= " AND s.id_trem = ?"; $p[] = $trem; }
-    if ($trilho) { $sql .= " AND (s.id_trilho = ? OR t.id_trilho = ?)"; array_push($p, $trilho, $trilho); }
     if ($falhas) $sql .= " AND s.status_sensor = 'ALERTA'";
     elseif ($dado !== '') { $sql .= " AND s.tipo_sensor = ?"; $p[] = $dado; }
     $secoes['Sensores'] = buscar($conexao, "$sql ORDER BY Nome", $p);

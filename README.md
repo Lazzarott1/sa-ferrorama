@@ -1,25 +1,64 @@
-# SA Ferrorama
+# FerroMonitor
 
-### Proposta do Sistema
+Projeto da Situação de Aprendizagem **Ferroramas**, feito por:
 
-O FerroMonitor é um sistema desenvolvido para gerenciar ferrovias de forma inteligente e moderna. Ele utiliza sensores instalados nos trens e nos trilhos para coletar informações continuamente. Esses dados são enviados a um computador central, onde são organizados para que os gestores possam acompanhar em tempo real tudo o que acontece na malha ferroviária.
+- Caio Marques
+- Lucas Lazzarotti
+- Luis Pedro Mathias
+- Matheus Guesser
 
-### Objetivos do Projeto
+## O que é
 
-O principal objetivo deste projeto é oferecer uma ferramenta que apoie a tomada de decisões com base em dados reais. O sistema concentra-se em três frentes: melhorar a velocidade e o uso de energia, antecipar a necessidade de manutenção dos equipamentos e aumentar a segurança das operações. Para isso, registra velocidade, localização e possíveis defeitos, transformando essas informações em gráficos e relatórios de fácil compreensão.
+O FerroMonitor é um sistema web para gerenciar uma ferrovia. A ideia é que os trens e os trilhos tenham sensores, e que a equipe que cuida da ferrovia consiga cadastrar e acompanhar tudo isso em um só lugar.
 
-### Equipe
+O sistema faz o gerenciamento dos cadastros (usuários, trens, trilhos e sensores) e já tem login com controle de acesso. A leitura dos sensores em tempo real e a geração dos relatórios ainda são planos para as próximas etapas.
 
-O projeto é desenvolvido por uma equipe formada por quatro integrantes: Caio Marques, Lucas Lazzarotti, Luis Pedro Mathias e Matheus Guesser.
+## Funcionalidades
 
-### Funcionalidades Previstas
+- **Login** com nome de usuário e senha. As senhas ficam salvas com hash no banco (`password_hash`), nunca em texto puro.
+- **Dois perfis**:
+- **Administrador**: pode cadastrar, editar e inativar tudo, e é o único que vê a tela de usuários.
+- **Operador**: só consulta as informações.
+- **Usuários**: cadastro, edição e inativação (só o administrador).
+- **Trens**: cadastro, listagem, edição e inativação. Cada trem tem um usuário responsável e pode ficar ligado a um trilho.
+- **Trilhos**: cadastro, listagem, edição e inativação. No nosso sistema, os trilhos fazem o papel das rotas: cada um tem nome, descrição, distância em km e data de criação.
+- **Sensores**: cada sensor fica ligado a um trem ou a um trilho.
+- **Logout**: pelo botão "Sair", que encerra a sessão.
+- **Relatórios**: geração e visualização de relatórios contendo dados sobre trens, trilhos e sensores.
 
-O funcionamento do sistema começa pelo recebimento e processamento das informações enviadas pelos sensores instalados nos trens e trilhos. Para uso administrativo, o software conta com uma tela de login segura, responsável por identificar o usuário e liberar o acesso às páginas de gestão. As ferramentas de gerenciamento permitem cadastrar, listar e excluir sensores e locomotivas, além de acompanhar em um mapa a localização e a velocidade de cada trem em tempo real. O sistema também foi projetado para evitar perda de dados: caso a conexão com a internet seja interrompida, os sensores armazenam as informações localmente e as sincronizam automaticamente com o banco de dados assim que a conexão for restabelecida.
+Uma decisão nossa: **nada é apagado do banco**. Em vez de excluir, o registro fica como "inativo" e pode ser visto pelo filtro Ativos / Inativos / Todos. Se você tentar inativar um trilho ou trem que ainda tem coisas ligadas nele, o sistema avisa antes.
 
-### Especificações Técnicas
+As permissões são conferidas no PHP de cada página. Então, mesmo que um operador digite o endereço de uma página de administrador, ele é mandado de volta para a Home.
 
-A qualidade e a confiabilidade do FerroMonitor são garantidas por requisitos não funcionais rigorosos, como latência máxima de 500ms no processamento de dados e disponibilidade de 99,9%. A interface foi projetada para ser responsiva e compatível com os principais navegadores do mercado, priorizando a acessibilidade por meio das diretrizes WCAG e do uso de alto contraste em alertas críticos. Além disso, a arquitetura modular do sistema permite escalabilidade para milhares de sensores, garantindo a integridade dos dados e a segurança das sessões dos usuários.
+## Como rodar
 
-### Tecnologias Utilizadas
+Usamos o **XAMPP** (Apache + MySQL).
 
-Além do HTML, o projeto emprega diversas linguagens e tecnologias para garantir seu pleno funcionamento, entre elas JavaScript, PHP, CSS e Bootstrap para o desenvolvimento da interface; MySQL, gerenciado via phpMyAdmin, para o armazenamento dos dados; e XAMPP como ambiente de desenvolvimento local. A operação CRUD (Create, Read, Update, Delete) estrutura as ações de cadastro e manipulação de dados, enquanto Scrum e Kanban orientam a organização e o acompanhamento do trabalho da equipe.
+1. Coloque a pasta do projeto dentro de `C:\xampp\htdocs\`.
+2. Abra o XAMPP e ligue o **Apache** e o **MySQL**.
+3. No phpMyAdmin (`http://localhost/phpmyadmin`), importe o arquivo `database/db_sa.sql`. Ele cria o banco `sa_teste` com as tabelas e os usuários de teste.
+4. Acesse `http://localhost/sa-ferrorama/` no navegador. Ele já abre a tela de login.
+
+Se o seu MySQL tiver senha, ajuste em `infra/conexao.php`.
+
+### Usuários de teste
+
+| Usuário  | Senha       | Perfil        |
+|----------|-------------|---------------|
+| admin    | admin123    | Administrador |
+| operador | operador123 | Operador      |
+
+## Como o projeto está organizado
+
+```
+database/   script do banco
+doc/        pesquisas e anotações da equipe
+infra/      conexão com o banco, validações e controle de login/acesso
+public/     as telas do sistema (uma pasta por assunto)
+script/     JavaScript das telas
+assets/     CSS e imagens
+```
+
+## Tecnologias
+
+PHP, MySQL, HTML, CSS, JavaScript e Bootstrap 5. Para organizar o trabalho usamos Scrum e um quadro Kanban no GitHub Projects.

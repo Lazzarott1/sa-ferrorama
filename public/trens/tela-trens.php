@@ -202,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <option value="<?php echo $trilho['id_trilho']; ?>" <?php if ($novo['id_trilho'] == $trilho['id_trilho']) echo 'selected'; ?>><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
                                 <?php } ?>
                             </select>
+                            <div class="form-text"><?php echo $trilhos ? 'O trem precisa de um trilho.' : 'Nenhum trilho ativo cadastrado.'; ?> <a href="../trilhos/tela-cadastro-trilhos.php?novo=1">Cadastrar trilho</a></div>
                         </div>
 
                         <div class="col-md-6">
