@@ -4,7 +4,7 @@ include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
 
 $erros = [];
-$novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'status_trilho' => 'ATIVO'];
+$novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'status_trilho' => 'ATIVO', 'cep' => '', 'logradouro' => '', 'bairro' => '', 'cidade' => '', 'uf' => ''];
 
 $associacoes = "(SELECT COUNT(*) FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS total_trens,
     (SELECT COUNT(*) FROM sensores WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO') AS total_sensores";
@@ -49,8 +49,8 @@ if ($admin && isset($_POST['cadastrar'])) {
 
     if (!$erros) {
         try {
-            $stmt = mysqli_prepare($conexao, "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, status_trilho) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "ssss", $novo['nome_trilho'], $novo['descricao_trilho'], $novo['km_trilho'], $novo['status_trilho']);
+            $stmt = mysqli_prepare($conexao, "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, status_trilho, cep, logradouro, bairro, cidade, uf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "sssssssss", $novo['nome_trilho'], $novo['descricao_trilho'], $novo['km_trilho'], $novo['status_trilho'], $novo['cep'], $novo['logradouro'], $novo['bairro'], $novo['cidade'], $novo['uf']);
 
             if (mysqli_stmt_execute($stmt)) {
                 header("Location: tela-cadastro-trilhos.php");
@@ -185,6 +185,8 @@ $cores = [
                             <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y'); ?>" disabled>
                         </div>
 
+                        <?php $endereco = $novo; include __DIR__ . '/campos-cep.php'; ?>
+
                     </div>
 
                     <div class="mt-4 d-flex gap-2">
@@ -224,7 +226,7 @@ $cores = [
 
                     <thead class="table-light">
                         <tr class="text-secondary" style="font-size: 0.75rem;">
-                            <?php foreach (['ID', 'NOME', 'DESCRIÇÃO', 'KM', 'TRENS', 'CRIADO EM', 'STATUS'] as $coluna) { ?>
+                            <?php foreach (['ID', 'NOME', 'DESCRIÇÃO', 'KM', 'LOCAL', 'TRENS', 'CRIADO EM', 'STATUS'] as $coluna) { ?>
                                 <th class="fw-semibold"><?php echo $coluna; ?></th>
                             <?php } ?>
                             <th class="fw-semibold text-center">AÇÕES</th>
@@ -240,6 +242,7 @@ $cores = [
                                 <td class="text-secondary"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['descricao_trilho']); ?></td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['km_trilho']); ?> km</td>
+                                <td class="text-body-tertiary"><?php echo $trilho['cidade'] ? htmlspecialchars($trilho['cidade'] . '/' . $trilho['uf']) : '-'; ?></td>
                                 <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['nomes_trens'] ?? 'Sem trem'); ?></td>
                                 <td class="text-body-tertiary"><?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?></td>
                                 <td>

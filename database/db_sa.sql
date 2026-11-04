@@ -7,6 +7,11 @@ CREATE TABLE trilhos (
     descricao_trilho VARCHAR(255) NOT NULL,
     km_trilho VARCHAR(20) NOT NULL,
     tempo_previsto_min INT NOT NULL DEFAULT 0,
+    cep VARCHAR(8) NOT NULL DEFAULT '',
+    logradouro VARCHAR(150) NOT NULL DEFAULT '',
+    bairro VARCHAR(100) NOT NULL DEFAULT '',
+    cidade VARCHAR(100) NOT NULL DEFAULT '',
+    uf VARCHAR(2) NOT NULL DEFAULT '',
     status_trilho VARCHAR(20) NOT NULL,
     data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

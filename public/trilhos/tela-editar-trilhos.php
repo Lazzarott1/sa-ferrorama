@@ -43,8 +43,8 @@ if (isset($_POST['editar'])) {
 
     if (!$erros) {
         try {
-            $stmt = mysqli_prepare($conexao, "UPDATE trilhos SET nome_trilho = ?, descricao_trilho = ?, km_trilho = ?, status_trilho = ? WHERE id_trilho = ?");
-            mysqli_stmt_bind_param($stmt, "ssssi", $trilho['nome_trilho'], $trilho['descricao_trilho'], $trilho['km_trilho'], $trilho['status_trilho'], $id_trilho);
+            $stmt = mysqli_prepare($conexao, "UPDATE trilhos SET nome_trilho = ?, descricao_trilho = ?, km_trilho = ?, status_trilho = ?, cep = ?, logradouro = ?, bairro = ?, cidade = ?, uf = ? WHERE id_trilho = ?");
+            mysqli_stmt_bind_param($stmt, "sssssssssi", $trilho['nome_trilho'], $trilho['descricao_trilho'], $trilho['km_trilho'], $trilho['status_trilho'], $trilho['cep'], $trilho['logradouro'], $trilho['bairro'], $trilho['cidade'], $trilho['uf'], $id_trilho);
 
             if (mysqli_stmt_execute($stmt)) {
                 header("Location: tela-cadastro-trilhos.php");
@@ -141,6 +141,8 @@ if (isset($_POST['editar'])) {
                             <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
                             <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($trilho['data_criacao'])); ?>" disabled>
                         </div>
+
+                        <?php $endereco = $trilho; include __DIR__ . '/campos-cep.php'; ?>
 
                     </div>
 
