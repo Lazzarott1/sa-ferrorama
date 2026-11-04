@@ -2,6 +2,11 @@
 
 session_start();
 
+if (isset($_SESSION['id_usuario']) && !isset($_POST['ajax'])) {
+    header("Location: tela-geral-home.php");
+    exit();
+}
+
 include '../infra/conexao.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -77,6 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-control:focus { border-color: var(--amarelo); box-shadow: 0 0 0 0.2rem rgba(218, 163, 1, 0.25); }
         .btn-entrar { background-color: var(--amarelo); color: var(--azul); font-weight: 700; letter-spacing: 1px; border: none; transition: transform 0.2s ease, filter 0.2s ease; }
         .btn-entrar:hover { background-color: var(--amarelo); color: var(--azul); filter: brightness(1.08); transform: translateY(-2px); }
+        .voltar-site { position: fixed; top: 16px; left: 20px; z-index: 2; color: var(--branco); text-decoration: none; font-size: 0.9rem; }
+        .voltar-site:hover { color: var(--amarelo); }
         .aviso-suporte { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid #e3e6e8; text-align: center; font-size: 0.8rem; color: #6c7a86; }
 
         .intro .card-login { background-color: transparent; border-color: transparent; box-shadow: none; }
@@ -98,6 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body class="intro">
+
+    <a href="../index.html" class="voltar-site">&larr; Conhecer o FerroMonitor</a>
 
     <main class="d-flex justify-content-center align-items-center min-vh-100 py-4">
 
