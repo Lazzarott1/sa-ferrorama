@@ -26,10 +26,8 @@ if ($admin && isset($_POST['cadastrar'])) {
 
     if (!$erros) {
         try {
-            $sql = "INSERT INTO sensores (nome_sensor, categoria_sensor, tipo_sensor, id_trem, id_trilho, status_sensor)
-                    VALUES (?, ?, ?, ?, ?, ?)";
-            $stmt = mysqli_prepare($conexao, $sql);
-            mysqli_stmt_bind_param($stmt, "sssiis", $novo['nome_sensor'], $novo['categoria_sensor'], $novo['tipo_sensor'], $novo['id_trem'], $novo['id_trilho'], $novo['status_sensor']);
+            $stmt = mysqli_prepare($conexao, "INSERT INTO sensores (nome_sensor, tipo_sensor, id_trilho, status_sensor) VALUES (?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "ssis", $novo['nome_sensor'], $novo['tipo_sensor'], $novo['id_trilho'], $novo['status_sensor']);
             mysqli_stmt_execute($stmt);
 
             header("Location: tela-cadastro-sensores.php");
@@ -51,15 +49,13 @@ if ($filtro == 'ativos') {
     $where = "WHERE sensores.status_sensor = 'INATIVO'";
 }
 
-$resultado = mysqli_query($conexao, "SELECT sensores.*, trens.nome_trem, trilhos.nome_trilho
+$resultado = mysqli_query($conexao, "SELECT sensores.*, trilhos.nome_trilho
     FROM sensores
-    LEFT JOIN trens ON trens.id_trem = sensores.id_trem
     LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
     $where
     ORDER BY sensores.id_sensor DESC");
 
 $trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
-$trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem");
 ?>
 
 <!DOCTYPE html>
@@ -116,15 +112,6 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">CATEGORIA</label>
-                        <select name="categoria" id="categoria" class="form-select" required>
-                            <option value="">Selecione uma categoria</option>
-                            <option value="TREM">Trem</option>
-                            <option value="TRILHO">Trilho</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
                         <label class="form-label">TIPO</label>
                         <select name="tipo" class="form-select" required>
                             <option value="">Selecione o tipo</option>
@@ -135,23 +122,11 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label" id="label-trilho">TRILHO</label>
-
-                        <select id="select-vazio" class="form-select" disabled>
-                            <option>Selecione uma categoria primeiro</option>
-                        </select>
-
-                        <select name="trilho" id="select-trilho" class="form-select" style="display: none;" required disabled>
+                        <label class="form-label">TRILHO</label>
+                        <select name="trilho" class="form-select" required>
                             <option value="">Selecione um trilho</option>
                             <?php while ($trilho = mysqli_fetch_assoc($trilhos)) { ?>
                                 <option value="<?php echo $trilho['id_trilho']; ?>"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
-                            <?php } ?>
-                        </select>
-
-                        <select name="trilho" id="select-trem" class="form-select" style="display: none;" required disabled>
-                            <option value="">Selecione um trem</option>
-                            <?php while ($trem = mysqli_fetch_assoc($trens)) { ?>
-                                <option value="<?php echo $trem['id_trem']; ?>"><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
                             <?php } ?>
                         </select>
                     </div>
@@ -192,9 +167,8 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                     <tr style="font-size: 0.75rem;">
                         <th>ID</th>
                         <th>NOME</th>
-                        <th>CATEGORIA</th>
                         <th>TIPO</th>
-                        <th>TRILHO / TREM</th>
+                        <th>TRILHO</th>
                         <th>STATUS</th>
                         <th class="text-center">AÇÕES</th>
                     </tr>
@@ -203,7 +177,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                 <tbody style="font-size: 0.85rem;">
                     <?php if (mysqli_num_rows($resultado) == 0) { ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">Nenhum sensor cadastrado.</td>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum sensor cadastrado.</td>
                         </tr>
                     <?php } ?>
 
@@ -221,9 +195,8 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                         <tr>
                             <td class="fw-bold"><?php echo $sensor['id_sensor']; ?></td>
                             <td><?php echo htmlspecialchars($sensor['nome_sensor']); ?></td>
-                            <td><?php echo htmlspecialchars($sensor['categoria_sensor']); ?></td>
                             <td><?php echo htmlspecialchars($sensor['tipo_sensor']); ?></td>
-                            <td><?php echo htmlspecialchars($sensor['nome_trem'] ?? $sensor['nome_trilho'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($sensor['nome_trilho'] ?? '-'); ?></td>
                             <td><span class="badge <?php echo $cor; ?>"><?php echo htmlspecialchars($sensor['status_sensor']); ?></span></td>
                             <td class="text-center">
                                 <?php if ($admin) { ?>
@@ -234,7 +207,7 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
                                             data-bs-toggle="modal" data-bs-target="#modalSensorAssociado"
                                             data-id="<?php echo $sensor['id_sensor']; ?>"
                                             data-nome="<?php echo htmlspecialchars($sensor['nome_sensor']); ?>"
-                                            data-vinculo="<?php echo htmlspecialchars(($sensor['categoria_sensor'] == 'TREM' ? 'Trem: ' : 'Trilho: ') . ($sensor['nome_trem'] ?? $sensor['nome_trilho'] ?? '-')); ?>">INATIVAR</button>
+                                            data-vinculo="<?php echo htmlspecialchars('Trilho: ' . ($sensor['nome_trilho'] ?? '-')); ?>">INATIVAR</button>
                                     <?php } ?>
                                 <?php } else { ?>
                                     -
@@ -286,32 +259,6 @@ $trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE stat
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const categoria = document.getElementById('categoria');
-        const label = document.getElementById('label-trilho');
-        const selectVazio = document.getElementById('select-vazio');
-        const selectTrilho = document.getElementById('select-trilho');
-        const selectTrem = document.getElementById('select-trem');
-
-        function atualizarCampo() {
-            const ehTrem = categoria.value === 'TREM';
-            const ehTrilho = categoria.value === 'TRILHO';
-
-            label.textContent = ehTrem ? 'TREM' : 'TRILHO';
-
-            selectVazio.style.display = ehTrem || ehTrilho ? 'none' : '';
-
-            selectTrilho.style.display = ehTrilho ? '' : 'none';
-            selectTrilho.disabled = !ehTrilho;
-
-            selectTrem.style.display = ehTrem ? '' : 'none';
-            selectTrem.disabled = !ehTrem;
-        }
-
-        if (categoria) {
-            categoria.addEventListener('change', atualizarCampo);
-            atualizarCampo();
-        }
-
         const modalSensorAssociado = document.getElementById('modalSensorAssociado');
 
         modalSensorAssociado.addEventListener('show.bs.modal', function (evento) {
