@@ -30,7 +30,8 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
             </ul>
         </nav>
 
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="tag-perfil <?php echo $admin ? 'tag-admin' : 'tag-operador'; ?>"><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?> · <?php echo $admin ? 'Administrador' : 'Operador'; ?></span>
             <button class="btn-sair" onclick="window.location.href='<?php echo $caminho; ?>../infra/validacoes-usuarios/logout.php'">Sair</button>
         </div>
     </div>
