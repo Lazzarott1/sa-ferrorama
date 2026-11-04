@@ -90,11 +90,6 @@ foreach ($trilhos as $linha) {
     }
 }
 
-$cores = [
-    'ATIVO' => 'bg-success-subtle text-success-emphasis border-success-subtle',
-    'MANUTENCAO' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle'
-];
-
 ?>
 
 <!DOCTYPE html>
@@ -112,228 +107,136 @@ $cores = [
 
     <?php include __DIR__ . '/../navbar.php'; ?>
 
-    <main class="container-fluid px-4 mt-4">
+    <main class="pagina">
 
-        <!-- TÍTULO -->
-
-        <div class="d-flex justify-content-between align-items-end mb-4">
-
+        <div class="cabecalho">
             <div>
-                <h3 class="titulo-trilhos">Trilhos</h3>
-                <p class="subtitulo-trilhos">Gerencie os trilhos cadastrados na malha ferroviária</p>
+                <h3>Trilhos</h3>
+                <p>Gerencie os trilhos cadastrados na malha ferroviária</p>
             </div>
-
             <?php if ($admin) { ?>
-                <button type="button" class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrilho" aria-expanded="false" aria-controls="collapseCadastroTrilho">
-                    <span class="botaonovotrilho">+</span>
-                    NOVO TRILHO
-                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formTrilho">+ NOVO TRILHO</button>
             <?php } ?>
-
         </div>
 
         <?php if ($erros) { ?>
-            <div class="alert alert-danger">
-                <?php foreach ($erros as $erro) { ?>
-                    <div><?php echo $erro; ?></div>
-                <?php } ?>
-            </div>
+            <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
-
-        <!-- FORMULÁRIO -->
 
         <?php if ($admin) { ?>
-
-        <div class="collapse mb-4 <?php if (($erros && isset($_POST['cadastrar'])) || isset($_GET['novo'])) echo 'show'; ?>" id="collapseCadastroTrilho">
-
-            <div class="card border-0">
-
-                <div class="cardcadastro p-3">
-                    <span class="spancadastrotrilho">CADASTRAR NOVO TRILHO</span>
-                </div>
-
-                <form method="POST" class="p-4 bg-white" style="border: 1px solid #BCCCDC; border-top: none;">
-
-                    <div class="row g-4">
-
-                        <div class="col-md-6">
-                            <label for="nomeTrilho" class="form-label">NOME DO TRILHO</label>
-                            <input type="text" name="nome" id="nomeTrilho" class="form-control" placeholder="Ex: Trilho Norte 01" value="<?php echo htmlspecialchars($novo['nome_trilho']); ?>" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="kmTrilho" class="form-label">KM</label>
-                            <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" placeholder="Ex: 12.5" value="<?php echo htmlspecialchars($novo['km_trilho']); ?>" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
-                            <input type="text" name="descricao" id="descricaoTrilho" class="form-control" placeholder="Ex: Trecho entre os pátios A e B" value="<?php echo htmlspecialchars($novo['descricao_trilho']); ?>" required>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="statusTrilho" class="form-label">STATUS</label>
-                            <select name="status" id="statusTrilho" class="form-select" required>
-                                <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
-                                    <option value="<?php echo $valor; ?>" <?php if ($novo['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                                <?php } ?>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
-                            <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y'); ?>" disabled>
-                        </div>
-
-                        <?php $endereco = $novo; include __DIR__ . '/campos-cep.php'; ?>
-
+        <div class="caixa collapse <?php if (($erros && isset($_POST['cadastrar'])) || isset($_GET['novo'])) echo 'show'; ?>" id="formTrilho">
+            <div class="caixa-topo">CADASTRAR NOVO TRILHO</div>
+            <form method="POST" class="caixa-corpo">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nomeTrilho" class="form-label">NOME DO TRILHO</label>
+                        <input type="text" name="nome" id="nomeTrilho" class="form-control" placeholder="Ex: Trilho Norte 01" value="<?php echo htmlspecialchars($novo['nome_trilho']); ?>" required>
                     </div>
-
-                    <div class="mt-4 d-flex gap-2">
-                        <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
-                        <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrilho">CANCELAR</button>
+                    <div class="col-md-6">
+                        <label for="kmTrilho" class="form-label">KM</label>
+                        <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" placeholder="Ex: 12.5" value="<?php echo htmlspecialchars($novo['km_trilho']); ?>" required>
                     </div>
-
-                </form>
-
-            </div>
-
-        </div>
-
-        <?php } ?>
-
-        <!-- TABELA -->
-
-        <div class="d-flex flex-column align-items-center gap-5 w-100" style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
-
-            <div class="card shadow-sm border-1 p-0" style="width: 1200px; border-radius: 4px;">
-
-                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
-
-                    TRILHOS CADASTRADOS
-
-                    <form method="GET">
-                        <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <?php foreach (['ativos' => 'Ativos', 'inativos' => 'Inativos', 'todos' => 'Todos'] as $valor => $texto) { ?>
-                                <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                    <div class="col-md-6">
+                        <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
+                        <input type="text" name="descricao" id="descricaoTrilho" class="form-control" placeholder="Ex: Trecho entre os pátios A e B" value="<?php echo htmlspecialchars($novo['descricao_trilho']); ?>" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="statusTrilho" class="form-label">STATUS</label>
+                        <select name="status" id="statusTrilho" class="form-select" required>
+                            <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($novo['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
                             <?php } ?>
                         </select>
-                    </form>
-
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
+                        <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y'); ?>" disabled>
+                    </div>
+                    <?php $endereco = $novo; include __DIR__ . '/campos-cep.php'; ?>
                 </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
+                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formTrilho">CANCELAR</button>
+                </div>
+            </form>
+        </div>
+        <?php } ?>
 
-                <table class="table table-bordered table-hover mb-0 align-middle">
-
-                    <thead class="table-light">
-                        <tr class="text-secondary" style="font-size: 0.75rem;">
-                            <?php foreach (['ID', 'NOME', 'DESCRIÇÃO', 'KM', 'LOCAL', 'TRENS', 'CRIADO EM', 'STATUS'] as $coluna) { ?>
-                                <th class="fw-semibold"><?php echo $coluna; ?></th>
-                            <?php } ?>
-                            <th class="fw-semibold text-center">AÇÕES</th>
-                        </tr>
+        <div class="caixa">
+            <div class="caixa-topo">
+                TRILHOS CADASTRADOS
+                <form method="GET">
+                    <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <?php foreach (['ativos' => 'Ativos', 'inativos' => 'Inativos', 'todos' => 'Todos'] as $valor => $texto) { ?>
+                            <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                        <?php } ?>
+                    </select>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 tabela">
+                    <thead>
+                        <tr><th>ID</th><th>NOME</th><th>DESCRIÇÃO</th><th>KM</th><th>LOCAL</th><th>TRENS</th><th>CRIADO EM</th><th>STATUS</th><th class="text-center">AÇÕES</th></tr>
                     </thead>
-
-                    <tbody style="font-size: 0.85rem;">
-
+                    <tbody>
                         <?php foreach ($trilhos as $trilho) { ?>
-
                             <tr>
-                                <td class="text-primary-emphasis fw-bold"><?php echo $trilho['id_trilho']; ?></td>
-                                <td class="text-secondary"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></td>
-                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['descricao_trilho']); ?></td>
-                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['km_trilho']); ?> km</td>
-                                <td class="text-body-tertiary"><?php echo $trilho['cidade'] ? htmlspecialchars($trilho['cidade'] . '/' . $trilho['uf']) : '-'; ?></td>
-                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trilho['nomes_trens'] ?? 'Sem trem'); ?></td>
-                                <td class="text-body-tertiary"><?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?></td>
-                                <td>
-                                    <span class="badge border rounded-1 <?php echo $cores[$trilho['status_trilho']] ?? 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle'; ?>">
-                                        <?php echo htmlspecialchars($trilho['status_trilho']); ?>
-                                    </span>
-                                </td>
-                                <td class="text-center">
-
+                                <td><?php echo $trilho['id_trilho']; ?></td>
+                                <td><?php echo htmlspecialchars($trilho['nome_trilho']); ?></td>
+                                <td><?php echo htmlspecialchars($trilho['descricao_trilho']); ?></td>
+                                <td class="text-nowrap"><?php echo htmlspecialchars($trilho['km_trilho']); ?> km</td>
+                                <td><?php echo $trilho['cidade'] ? htmlspecialchars($trilho['cidade'] . '/' . $trilho['uf']) : '-'; ?></td>
+                                <td><?php echo htmlspecialchars($trilho['nomes_trens'] ?? 'Sem trem'); ?></td>
+                                <td><?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?></td>
+                                <td><span class="badge status status-<?php echo $trilho['status_trilho']; ?>"><?php echo htmlspecialchars($trilho['status_trilho']); ?></span></td>
+                                <td class="text-center text-nowrap">
                                     <?php if ($admin) { ?>
-
-                                        <a href="tela-editar-trilhos.php?id=<?php echo $trilho['id_trilho']; ?>" class="btn btn-sm btn-outline-primary me-1">EDITAR</a>
-
+                                        <a href="tela-editar-trilhos.php?id=<?php echo $trilho['id_trilho']; ?>" class="btn btn-sm btn-outline-primary">EDITAR</a>
                                         <?php if ($trilho['status_trilho'] != 'INATIVO' && ($trilho['total_trens'] > 0 || $trilho['total_sensores'] > 0)) { ?>
                                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalTrilhoAssociado" data-nome="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>" data-trens="<?php echo (int) $trilho['total_trens']; ?>" data-sensores="<?php echo (int) $trilho['total_sensores']; ?>">INATIVAR</button>
                                         <?php } elseif ($trilho['status_trilho'] != 'INATIVO') { ?>
-                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja inativar este trilho?');">
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja inativar este trilho?');">
                                                 <input type="hidden" name="id_trilho" value="<?php echo $trilho['id_trilho']; ?>">
                                                 <button type="submit" name="inativar" class="btn btn-sm btn-outline-danger">INATIVAR</button>
                                             </form>
                                         <?php } ?>
-
-                                    <?php } else { ?>
-                                        -
-                                    <?php } ?>
-
+                                    <?php } else { echo '-'; } ?>
                                 </td>
                             </tr>
-
                         <?php } ?>
-
                         <?php if (!$trilhos) { ?>
-                            <tr>
-                                <td colspan="9" class="text-center text-muted py-4">Nenhum trilho cadastrado.</td>
-                            </tr>
+                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhum trilho cadastrado.</td></tr>
                         <?php } ?>
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
     </main>
 
-    <!-- AVISO -->
-
-    <div class="modal fade" id="modalTrilhoAssociado" tabindex="-1" aria-labelledby="tituloModalTrilhoAssociado" aria-hidden="true">
+    <div class="modal fade" id="modalTrilhoAssociado" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-1 border-0">
-
-                <div class="modal-header rounded-top-1 text-white py-2" style="background-color: #1b3f53; border-bottom: 3px solid #daa301;">
-                    <h6 class="modal-title fw-bold mb-0" id="tituloModalTrilhoAssociado">ATENÇÃO: INATIVAÇÃO NÃO PERMITIDA</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            <div class="modal-content">
+                <div class="modal-header modal-topo py-2">
+                    <h6 class="modal-title fw-bold">INATIVAÇÃO NÃO PERMITIDA</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-
                 <div class="modal-body">
-
-                    <div class="alert alert-warning rounded-1 mb-3 py-2" role="alert" style="border-left: 4px solid #daa301;">
-                        <strong>O trilho <span id="modalNomeTrilho"><?php echo htmlspecialchars($trilhoBloqueado['nome_trilho'] ?? ''); ?></span> possui associações.</strong>
-                        <br>
-                        <span style="font-size: 0.9rem;">Inative ou altere os trens e sensores ativos vinculados a ele antes de inativá-lo.</span>
+                    <div class="alert alert-warning">
+                        <strong>O trilho <span id="modalNomeTrilho"><?php echo htmlspecialchars($trilhoBloqueado['nome_trilho'] ?? ''); ?></span> possui associações.</strong><br>
+                        Inative ou altere os trens e sensores ativos vinculados a ele antes de inativá-lo.
                     </div>
-
-                    <table class="table table-bordered table-sm mb-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr class="text-secondary">
-                                <th class="fw-semibold">ASSOCIAÇÃO</th>
-                                <th class="fw-semibold text-center" style="width: 110px;">QUANTIDADE</th>
-                            </tr>
-                        </thead>
+                    <table class="table table-sm mb-0 tabela">
+                        <thead><tr><th>ASSOCIAÇÃO</th><th class="text-center">QUANTIDADE</th></tr></thead>
                         <tbody>
-                            <tr>
-                                <td>Trens</td>
-                                <td class="text-center fw-bold" id="modalTotalTrens"><?php echo (int) ($trilhoBloqueado['total_trens'] ?? 0); ?></td>
-                            </tr>
-                            <tr>
-                                <td>Sensores</td>
-                                <td class="text-center fw-bold" id="modalTotalSensores"><?php echo (int) ($trilhoBloqueado['total_sensores'] ?? 0); ?></td>
-                            </tr>
+                            <tr><td>Trens</td><td class="text-center" id="modalTotalTrens"><?php echo (int) ($trilhoBloqueado['total_trens'] ?? 0); ?></td></tr>
+                            <tr><td>Sensores</td><td class="text-center" id="modalTotalSensores"><?php echo (int) ($trilhoBloqueado['total_sensores'] ?? 0); ?></td></tr>
                         </tbody>
                     </table>
-
                 </div>
-
                 <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-sm px-3 fw-bold" style="background-color: #daa301; color: #1b3f53;" data-bs-dismiss="modal">ENTENDI</button>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">ENTENDI</button>
                 </div>
-
             </div>
         </div>
     </div>
@@ -341,15 +244,13 @@ $cores = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const modalTrilhoAssociado = document.getElementById('modalTrilhoAssociado');
-
         modalTrilhoAssociado.addEventListener('show.bs.modal', function (evento) {
             const botao = evento.relatedTarget;
 
             if (botao) {
-                document.getElementById('modalNomeTrilho').textContent = botao.dataset.nome;
-                document.getElementById('modalTotalTrens').textContent = botao.dataset.trens;
-                document.getElementById('modalTotalSensores').textContent = botao.dataset.sensores;
+                modalNomeTrilho.textContent = botao.dataset.nome;
+                modalTotalTrens.textContent = botao.dataset.trens;
+                modalTotalSensores.textContent = botao.dataset.sensores;
             }
         });
 

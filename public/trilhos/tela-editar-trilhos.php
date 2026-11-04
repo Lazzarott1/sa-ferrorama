@@ -74,92 +74,58 @@ if (isset($_POST['editar'])) {
 
     <?php include __DIR__ . '/../navbar.php'; ?>
 
-    <main class="container-fluid px-4 mt-4">
+    <main class="pagina">
 
-        <!-- TÍTULO -->
-
-        <div class="d-flex justify-content-between align-items-end mb-4">
-
+        <div class="cabecalho">
             <div>
-                <h3 class="titulo-sensores">Editar Trilho</h3>
-                <p class="subtitulo-sensores">Atualize as informações do trilho selecionado</p>
+                <h3>Editar trilho</h3>
+                <p>Atualize as informações do trilho selecionado</p>
             </div>
-
-            <a href="tela-cadastro-trilhos.php" class="btn btn-secondary text-white px-3 py-2">VOLTAR</a>
-
         </div>
 
         <?php if ($erros) { ?>
-            <div class="alert alert-danger">
-                <?php foreach ($erros as $erro) { ?>
-                    <div><?php echo $erro; ?></div>
-                <?php } ?>
-            </div>
+            <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
 
-        <!-- FORMULÁRIO -->
-
-        <div class="d-flex flex-column align-items-center gap-5 w-100" style="padding-top: 20px; min-height: 60vh; background-color: #f8f9fa;">
-
-            <div class="card border-0" style="width: 1000px;">
-
-                <div class="cardcadastro p-3">
-                    <span class="spancadastrosensor">EDITAR TRILHO #<?php echo $trilho['id_trilho']; ?></span>
+        <div class="caixa">
+            <div class="caixa-topo">EDITAR TRILHO #<?php echo $trilho['id_trilho']; ?></div>
+            <form method="POST" class="caixa-corpo">
+                <input type="hidden" name="id_trilho" value="<?php echo $trilho['id_trilho']; ?>">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nomeTrilho" class="form-label">NOME DO TRILHO</label>
+                        <input type="text" name="nome" id="nomeTrilho" class="form-control" value="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>" placeholder="Ex: Trilho Norte 01" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="kmTrilho" class="form-label">KM</label>
+                        <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" value="<?php echo htmlspecialchars($trilho['km_trilho']); ?>" placeholder="Ex: 12.5" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
+                        <input type="text" name="descricao" id="descricaoTrilho" class="form-control" value="<?php echo htmlspecialchars($trilho['descricao_trilho']); ?>" placeholder="Ex: Trecho entre os pátios A e B" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="statusTrilho" class="form-label">STATUS</label>
+                        <select name="status" id="statusTrilho" class="form-select" required>
+                            <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($trilho['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
+                        <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($trilho['data_criacao'])); ?>" disabled>
+                    </div>
+                    <?php $endereco = $trilho; include __DIR__ . '/campos-cep.php'; ?>
                 </div>
-
-                <form method="POST" class="p-4 bg-white" style="border: 1px solid #BCCCDC; border-top: none;">
-
-                    <input type="hidden" name="id_trilho" value="<?php echo $trilho['id_trilho']; ?>">
-
-                    <div class="row g-4">
-
-                        <div class="col-md-6">
-                            <label for="nomeTrilho" class="form-label">NOME DO TRILHO</label>
-                            <input type="text" name="nome" id="nomeTrilho" class="form-control" value="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>" placeholder="Ex: Trilho Norte 01" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="kmTrilho" class="form-label">KM</label>
-                            <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" value="<?php echo htmlspecialchars($trilho['km_trilho']); ?>" placeholder="Ex: 12.5" required>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
-                            <input type="text" name="descricao" id="descricaoTrilho" class="form-control" value="<?php echo htmlspecialchars($trilho['descricao_trilho']); ?>" placeholder="Ex: Trecho entre os pátios A e B" required>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="statusTrilho" class="form-label">STATUS</label>
-                            <select name="status" id="statusTrilho" class="form-select" required>
-                                <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
-                                    <option value="<?php echo $valor; ?>" <?php if ($trilho['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                                <?php } ?>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
-                            <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($trilho['data_criacao'])); ?>" disabled>
-                        </div>
-
-                        <?php $endereco = $trilho; include __DIR__ . '/campos-cep.php'; ?>
-
-                    </div>
-
-                    <div class="mt-4 d-flex gap-2">
-                        <button type="submit" name="editar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
-                        <a href="tela-cadastro-trilhos.php" class="btn btn-secondary">CANCELAR</a>
-                    </div>
-
-                </form>
-
-            </div>
-
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" name="editar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+                    <a href="tela-cadastro-trilhos.php" class="btn btn-secondary">CANCELAR</a>
+                </div>
+            </form>
         </div>
 
     </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 
