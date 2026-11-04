@@ -166,3 +166,11 @@ body {
     --bs-btn-active-bg: #1b3f53;
     --bs-btn-active-border-color: #1b3f53;
 }
+
+@media (max-width: 991px) {
+    .hstack { flex-wrap: wrap; }
+    #header nav { order: 3; width: 100%; position: static; }
+    #header .navbar-nav { flex-direction: row; flex-wrap: wrap; }
+    #header .navbar { padding: 0; }
+    #logo img { max-height: 44px; }
+}
