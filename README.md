@@ -13,7 +13,7 @@ Sistema web de monitoramento ferroviário, desenvolvido na Situação de Aprendi
 
 ## O que é
 
-O FerroMonitor é um sistema web para gerenciar uma ferrovia. A ideia é que os trens e os trilhos tenham sensores, e que a equipe que cuida da ferrovia consiga cadastrar e acompanhar tudo isso em um só lugar.
+O FerroMonitor é um sistema web para gerenciar uma ferrovia. A ideia é que os trilhos tenham sensores, e que a equipe que cuida da ferrovia consiga cadastrar e acompanhar tudo isso em um só lugar.
 
 O objetivo final do projeto é receber dos sensores dados de velocidade, localização, temperatura, consumo de energia e falhas, mostrar tudo em dashboards e relatórios, e avisar a equipe quando houver falha ou algum limite for ultrapassado.
 
@@ -25,21 +25,20 @@ Hoje o sistema faz o gerenciamento dos cadastros (usuários, trens, trilhos e se
 - **Dois perfis**:
 - **Administrador**: pode cadastrar, editar e inativar tudo, e é o único que vê a tela de usuários.
 - **Operador**: consulta as informações e gera relatórios, mas não altera nenhum cadastro.
-- **Landing Page** (`index.html`): página de apresentação do FerroMonitor, com o problema, as funcionalidades, os sensores, os benefícios e o botão para acessar o sistema.
-- **Home**: mostra a saudação, o resumo da operação (trens, trilhos, sensores ativos e em alerta), o clima atual vindo da API Open-Meteo, os atalhos para as telas e o circuito da ferrovia com agulhas, cruzamentos e para-choque, mostrando em que trecho o trem está. O trem do mapa é uma simulação, não a posição real. O esquema do circuito foi adaptado do projeto [trem-visual-controle](https://github.com/icrcode/trem-visual-controle).
+- **Home**: mostra a saudação, a data e um mapa animado do traçado da ferrovia. O trem do mapa é só uma animação, não a posição real.
 - **Usuários**: cadastro, listagem, edição e inativação (só o administrador). É aqui também que o administrador define uma nova senha para quem esqueceu a sua.
 - **Trens**: cadastro, listagem, edição e inativação. Cada trem é de passageiros ou de carga, tem um usuário responsável e fica ligado a um trilho. A capacidade é informada em passageiros ou em kg, conforme o modelo.
-- **Trilhos**: cadastro, listagem, edição e inativação. No nosso sistema, os trilhos fazem o papel das rotas: cada um tem nome, descrição, distância em km, data de criação e o endereço da estação, preenchido pelo CEP com a API ViaCEP.
-- **Sensores**: cadastro, listagem, edição e inativação. Cada sensor é da categoria Trem ou Trilho, fica ligado a um trem ou a um trilho e mede velocidade, localização ou temperatura.
+- **Trilhos**: cadastro, listagem, edição e inativação. No nosso sistema, os trilhos fazem o papel das rotas: cada um tem nome, descrição, distância em km e data de criação.
+- **Sensores**: cadastro, listagem, edição e inativação. Cada sensor fica ligado a um trilho e mede velocidade, localização ou temperatura.
 - **Relatórios**: geração com título, período, trem, trilho e tipo de dado, além da lista dos relatórios já gerados com filtro por tipo. Como as leituras dos sensores ainda não são salvas, o relatório mostra a situação atual de trens, trilhos e sensores, e o período fica apenas registrado nele.
 - **Logout**: pelo botão "Sair", que encerra a sessão.
 
 ## Regras principais
 
 - **Nada é apagado do banco.** Em vez de excluir, o registro fica como "inativo" e pode ser visto pelo filtro Ativos / Inativos / Todos. Para reativar, basta editar o registro e mudar o status.
-- **A ordem de cadastro é trilho, trem e sensor**, porque todo trem precisa de um trilho e todo sensor precisa de um trilho ou de um trem.
-- **Um trilho com trens ou sensores ativos não pode ser inativado**, e um trem com sensores ativos também não. O sistema mostra o aviso com as ligações e bloqueia a ação.
-- **Antes de inativar um sensor**, o sistema mostra a qual trem ou trilho ele está ligado e pede confirmação.
+- **Todo trem precisa de um trilho e de um usuário responsável**, e todo sensor precisa de um trilho. A lista de usuários mostra os trens de cada um.
+- **Um trilho com trens ou sensores ativos não pode ser inativado**, e um usuário responsável por trens ativos também não. O sistema mostra o aviso com as ligações e bloqueia a ação.
+- **Antes de inativar um sensor**, o sistema mostra a qual trilho ele está ligado e pede confirmação.
 - **Um administrador não pode inativar a própria conta nem mudar o próprio perfil**, para o sistema nunca ficar sem administrador.
 - **Usuário inativo não entra no sistema.** Se ele estiver com a sessão aberta, é desconectado na próxima tela que abrir.
 
@@ -53,14 +52,8 @@ Usamos o **XAMPP** (Apache + MySQL) com PHP 8. Testamos com PHP 8.3 e MariaDB 10
 
 1. Coloque a pasta do projeto dentro de `C:\xampp\htdocs\`, com o nome `sa-ferrorama`.
 2. Abra o XAMPP e ligue o **Apache** e o **MySQL**.
-3. No phpMyAdmin (`http://localhost/phpmyadmin`), importe o arquivo `database/db_sa.sql`. Ele cria o banco `sa_teste` com as tabelas e os usuários de teste.
-4. Acesse `http://localhost/sa-ferrorama/` no navegador. Ele abre a Landing Page; o botão **Acessar o sistema** leva ao login.
-
-O clima da Home e a busca de CEP usam APIs da internet, então o computador precisa estar conectado. Se o seu banco é de antes da Etapa 10, rode no phpMyAdmin:
-
-```sql
-ALTER TABLE trilhos ADD cep VARCHAR(8) NOT NULL DEFAULT '', ADD logradouro VARCHAR(150) NOT NULL DEFAULT '', ADD bairro VARCHAR(100) NOT NULL DEFAULT '', ADD cidade VARCHAR(100) NOT NULL DEFAULT '', ADD uf VARCHAR(2) NOT NULL DEFAULT '';
-```
+3. No phpMyAdmin (`http://localhost/phpmyadmin`), importe o arquivo `database/db_sa.sql`. Ele cria o banco `sa_ferrorama` com as tabelas e os usuários de teste.
+4. Acesse `http://localhost/sa-ferrorama/` no navegador. Ele já abre a tela de login.
 
 Se o seu MySQL tiver senha, ajuste em `infra/conexao.php`.
 
@@ -73,37 +66,22 @@ Se o seu MySQL tiver senha, ajuste em `infra/conexao.php`.
 
 ### Primeiro uso
 
-O banco começa só com os dois usuários acima. Para testar o sistema, entre como `admin` e cadastre, nessa ordem, um trilho, um trem e um sensor.
+O banco começa só com os dois usuários acima. Para testar o sistema, entre como `admin` e cadastre um trilho, depois um trem (escolhendo o responsável) e um sensor no trilho.
 
 ### Se der problema
 
-- **A importação diz que o banco já existe:** apague o banco `sa_teste` antigo no phpMyAdmin e importe de novo. Isso apaga os dados que estavam nele.
+- **A importação diz que o banco já existe:** apague o banco `sa_ferrorama` antigo no phpMyAdmin e importe de novo. Isso apaga os dados que estavam nele.
 - **As telas aparecem sem estilo:** o Bootstrap é carregado pela internet, então o computador precisa estar conectado.
-- **O clima mostra "Não foi possível carregar" ou o CEP não é encontrado:** confira a internet e clique no botão de atualizar. Sem conexão, o endereço do trilho pode ser digitado à mão.
 - **Erro na conexão com o banco:** confira se o MySQL está ligado no XAMPP e se os dados de `infra/conexao.php` estão certos.
-
-## APIs externas
-
-| API | Para que usamos | Onde | Documentação |
-|-----|-----------------|------|--------------|
-| **Open-Meteo** | Clima atual (temperatura, sensação, condição, umidade e vento) de Joinville - SC | Home (`script/clima.js`) | <https://open-meteo.com/en/docs> |
-| **ViaCEP** | Consultar o CEP da estação e preencher logradouro, bairro, cidade e UF | Cadastro e edição de trilhos (`script/cep.js`) | <https://viacep.com.br/> |
-
-As duas são gratuitas, não pedem cadastro nem chave de acesso e liberam CORS, então o JavaScript da página consulta direto pelo `fetch`. Os erros tratados (CEP inválido, CEP não encontrado, falta de internet e demora acima de 8 segundos) estão em [`doc/apis-externas.md`](doc/apis-externas.md).
-
-## Uso de Inteligência Artificial
-
-Usamos o Claude (Anthropic) para ajudar no desenvolvimento. O relatório com os pedidos feitos, o que foi gerado, o que a equipe mudou e os testes está em [`doc/relatorio-uso-ia.md`](doc/relatorio-uso-ia.md). Os commits com código da IA têm a linha `Co-authored-by: Claude <noreply@anthropic.com>`.
 
 ## Banco de dados
 
-O banco `sa_teste` tem cinco tabelas:
+O banco `sa_ferrorama` tem cinco tabelas:
 
 ```mermaid
 erDiagram
     TRILHOS ||--o{ TRENS : "recebe"
     USUARIOS ||--o{ TRENS : "é responsável por"
-    TRENS ||--o{ SENSORES : "tem"
     TRILHOS ||--o{ SENSORES : "tem"
     TRENS ||--o{ RELATORIOS : "filtra"
     TRILHOS ||--o{ RELATORIOS : "filtra"
@@ -112,9 +90,9 @@ erDiagram
 | Tabela       | O que guarda                                                      | Status                         |
 |--------------|-------------------------------------------------------------------|--------------------------------|
 | `usuarios`   | Nome de usuário, e-mail, senha com hash, perfil e data de cadastro | Ativo, Inativo                 |
-| `trilhos`    | Nome, descrição, distância em km, data de criação e endereço (CEP) | Ativo, Manutenção, Inativo     |
+| `trilhos`    | Nome, descrição, distância em km e data de criação                | Ativo, Manutenção, Inativo     |
 | `trens`      | Nome, modelo, capacidade, trilho e usuário responsável            | Ativo, Manutenção, Inativo     |
-| `sensores`   | Nome, categoria, tipo e o trem ou trilho ligado a ele             | Ativo, Alerta, Inativo         |
+| `sensores`   | Nome, tipo e o trilho ligado a ele                                | Ativo, Alerta, Inativo         |
 | `relatorios` | Título, tipo, período, filtros e data de geração                  | Processando, Pronto, Erro      |
 
 ## Como o projeto está organizado
@@ -131,16 +109,16 @@ public/     as telas do sistema
   tela-geral-home.php     home
   navbar.php              menu superior
   relatorios/  sensores/  trens/  trilhos/  usuarios/
-script/     JavaScript das telas (clima.js e cep.js consultam as APIs; mapa.js anima o circuito da Home)
+script/     JavaScript das telas
 assets/     CSS e imagens
-index.html  landing page do projeto
+index.html  redireciona para a tela de login
 ```
 
 ## Sensores e ferrovia física
 
 Planejamos um protótipo para ligar o sistema à ferrovia montada pela turma, que tem uma linha principal, uma passagem de nível, um trecho elevado com ponte, dois desvios e um desvio morto. Esse protótipo ainda não está integrado ao sistema.
 
-- **Sensores:** com um trem, são 15 no total. Na via ficam 12 (10 ultrassônicos HC-SR04 e 2 chaves de fim de curso), e cada trem leva 3 (acelerômetro MPU-6050, sensor de corrente INA219 e termistor NTC 10k).
+- **Sensores:** são 15 no total, todos na via: 10 ultrassônicos HC-SR04, 2 chaves de fim de curso, acelerômetro MPU-6050, sensor de corrente INA219 e termistor NTC 10k.
 - **Atuadores:** com um trem, são 8. Na via ficam 7 (4 servos SG90 para desvios e cancelas, 1 buzzer com LED e 2 semáforos), e cada trem leva 1 driver de motor DRV8833.
 - **Controle:** um ESP32 na mesa cuida da via, com um módulo PCA9685 para os servos e os LEDs, e um ESP32-C3 dentro de cada trem controla o motor. O controle de velocidade fica no trem porque ele anda a pilha, sem energia pelo trilho.
 - **Alertas previstos:** velocidade acima de 40 cm/s, pilha abaixo de 2,2 V, motor acima de 50 °C ou inclinação acima de 30°.
