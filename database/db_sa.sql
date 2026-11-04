@@ -1,5 +1,5 @@
-CREATE DATABASE sa_teste;
-USE sa_teste;
+CREATE DATABASE sa_ferrorama;
+USE sa_ferrorama;
 
 CREATE TABLE trilhos (
     id_trilho INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,7 +62,7 @@ CREATE TABLE relatorios (
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho)
 );
 
-USE sa_teste;
+USE sa_ferrorama;
 
 INSERT INTO usuarios (nome_usuario, senha, email_usuario, perfil) VALUES
 ('admin',    '$2y$12$rMdLkQLkxCcq6Cbmazqc.O9mvluYpbGTNkiWy.M5fmqVeVA.S1zYi', 'admin@ferromonitor.com',    'ADMINISTRADOR'),
