@@ -48,6 +48,17 @@ if (isset($_POST['editar'])) {
         die("A senha deve ter pelo menos 8 caracteres.");
     }
 
+    if ($status_usuario === 'INATIVO') {
+        $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) FROM trens WHERE id_usuario = ? AND status_trem <> 'INATIVO'");
+        mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+        mysqli_stmt_execute($stmt);
+        $total_trens = mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];
+
+        if ($total_trens > 0) {
+            die("Este usuário é responsável por " . $total_trens . " trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.");
+        }
+    }
+
     if ($senha !== '') {
 
         // Senha preenchida: atualiza nome, e-mail e senha
@@ -123,6 +134,7 @@ mysqli_stmt_close($stmt);
 
 ?>
 
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
@@ -133,107 +145,64 @@ mysqli_stmt_close($stmt);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
+<body>
 
-<body class="bg-light">
     <?php include __DIR__ . '/../navbar.php'; ?>
 
-<main class="d-flex flex-column align-items-center gap-5 w-100"
-    style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
+    <main class="pagina">
 
-    <div class="card shadow-sm border-1 p-0" style="width: 600px; border-radius: 4px;">
-
-        <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
-            style="font-size: 0.7rem;">
-            (✎) EDITAR USUÁRIO
+        <div class="cabecalho">
+            <div>
+                <h3>Editar usuário</h3>
+                <p>Atualize as informações do usuário selecionado</p>
+            </div>
         </div>
 
-        <div class="p-4">
-
-            <form method="POST">
-
-                <input type="hidden" name="id_usuario"
-                    value="<?php echo $usuario['id_usuario']; ?>">
-
-                <div class="mb-3">
-                    <label for="email_usuario" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        EMAIL
-                    </label>
-
-                    <input type="email" id="email_usuario" name="email_usuario" class="form-control"
-                        value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="nome_usuario" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        NOME DE USUÁRIO
-                    </label>
-
-                    <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
-                        value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="senha" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        NOVA SENHA
-                    </label>
-
-                    <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Deixe em branco para manter a senha atual" minlength="8">
-                </div>
-
-                <div class="mb-3">
-                    <label for="perfil" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        PERFIL
-                    </label>
-
-                    <select id="perfil" name="perfil" class="form-select" <?php echo $proprio_usuario ? 'disabled' : ''; ?>>
-                        <option value="OPERADOR" <?php echo $usuario['perfil'] === 'OPERADOR' ? 'selected' : ''; ?>>Operador</option>
-                        <option value="ADMINISTRADOR" <?php echo $usuario['perfil'] === 'ADMINISTRADOR' ? 'selected' : ''; ?>>Administrador</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label for="status_usuario" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        STATUS
-                    </label>
-
-                    <select id="status_usuario" name="status_usuario" class="form-select" <?php echo $proprio_usuario ? 'disabled' : ''; ?>>
-                        <option value="ATIVO" <?php echo $usuario['status_usuario'] === 'ATIVO' ? 'selected' : ''; ?>>Ativo</option>
-                        <option value="INATIVO" <?php echo $usuario['status_usuario'] === 'INATIVO' ? 'selected' : ''; ?>>Inativo</option>
-                    </select>
-
+        <div class="caixa">
+            <div class="caixa-topo">EDITAR USUÁRIO #<?php echo $usuario['id_usuario']; ?></div>
+            <form method="POST" class="caixa-corpo">
+                <input type="hidden" name="id_usuario" value="<?php echo $usuario['id_usuario']; ?>">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nome_usuario" class="form-label">NOME DE USUÁRIO</label>
+                        <input type="text" id="nome_usuario" name="nome_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email_usuario" class="form-label">E-MAIL</label>
+                        <input type="email" id="email_usuario" name="email_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="senha" class="form-label">NOVA SENHA</label>
+                        <input type="password" id="senha" name="senha" class="form-control" placeholder="Deixe em branco para manter a senha atual" minlength="8">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="perfil" class="form-label">PERFIL</label>
+                        <select id="perfil" name="perfil" class="form-select" <?php if ($proprio_usuario) echo 'disabled'; ?>>
+                            <?php foreach (['OPERADOR' => 'Operador', 'ADMINISTRADOR' => 'Administrador'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($usuario['perfil'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status_usuario" class="form-label">STATUS</label>
+                        <select id="status_usuario" name="status_usuario" class="form-select" <?php if ($proprio_usuario) echo 'disabled'; ?>>
+                            <?php foreach (['ATIVO' => 'Ativo', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($usuario['status_usuario'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
                     <?php if ($proprio_usuario) { ?>
-                        <div class="form-text">Você não pode alterar o próprio perfil nem o próprio status.</div>
+                        <div class="col-12 form-text mt-1">Você não pode alterar o próprio perfil nem o próprio status.</div>
                     <?php } ?>
                 </div>
-
-                <div class="d-flex gap-2">
-
-                    <a href="tela-cadastro-user.php"
-                        class="btn btn-outline-secondary w-50 fw-semibold"
-                        style="border-radius: 4px; font-size: 0.85rem;">
-                        CANCELAR
-                    </a>
-
-                    <button type="submit" name="editar"
-                        class="btn btn-primary w-50 fw-semibold"
-                        style="background-color: #1b3f53; border: none; border-radius: 4px; font-size: 0.85rem;">
-                        SALVAR
-                    </button>
-
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" name="editar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+                    <a href="tela-cadastro-user.php" class="btn btn-secondary">CANCELAR</a>
                 </div>
-
             </form>
-
         </div>
-    </div>
 
-</main>
+    </main>
 
 </body>
 
