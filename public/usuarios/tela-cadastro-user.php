@@ -1,402 +1,321 @@
 <?php
 
-include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
+include __DIR__ . '/../../infra/validacoes-crud/valida-trem.php';
 
-include __DIR__ . '/../../infra/conexao.php';
+$erros = [];
+$novo = ['nome_trem' => '', 'modelo_trem' => '', 'capacidade_trem' => '', 'id_trilho' => 0, 'id_usuario' => 0, 'status_trem' => 'ATIVO'];
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-$perfis = ['ADMINISTRADOR', 'OPERADOR'];
+//    INATIVAR TREM
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nome_usuario = trim($_POST['nome_usuario'] ?? '');
-    $email_usuario = trim($_POST['email_usuario'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $perfil = $_POST['perfil'] ?? '';
+if ($admin && isset($_POST['inativar'])) {
 
-    if ($nome_usuario === '' || $email_usuario === '' || $senha === '' || !in_array($perfil, $perfis, true)) {
-        http_response_code(400);
-        echo "Preencha todos os campos corretamente.";
-        exit();
-    }
-
-    if (!filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo "Informe um e-mail válido.";
-        exit();
-    }
-
-    if (strlen($senha) < 8) {
-        http_response_code(400);
-        echo "A senha deve ter pelo menos 8 caracteres.";
-        exit();
-    }
-
-    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+    $id_trem = (int) $_POST['id_trem'];
 
     try {
-        $sql = "INSERT INTO usuarios (nome_usuario, email_usuario, senha, perfil) VALUES (?, ?, ?, ?)";
-        $stmt = mysqli_prepare($conexao, $sql);
-        mysqli_stmt_bind_param($stmt, 'ssss', $nome_usuario, $email_usuario, $senha_hash, $perfil);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        $stmt = mysqli_prepare($conexao, "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?");
+        mysqli_stmt_bind_param($stmt, "i", $id_trem);
 
-        echo "Usuário cadastrado com sucesso!";
-    } catch (mysqli_sql_exception $e) {
-        if ($e->getCode() === 1062) {
-            http_response_code(409);
-            echo "Esse nome de usuário já existe.";
-        } else {
-            http_response_code(500);
-            echo "Erro ao cadastrar usuário.";
+        if (mysqli_stmt_execute($stmt)) {
+            header("Location: tela-trens.php");
+            exit;
         }
+    } catch (Exception $e) {
     }
 
-    exit();
+    $erros[] = "Não foi possível inativar o trem. Tente novamente.";
 }
 
-if (empty($_SESSION['token'])) {
-    $_SESSION['token'] = bin2hex(random_bytes(32));
+
+//    CADASTRAR TREM
+
+if ($admin && isset($_POST['cadastrar'])) {
+
+    [$novo, $erros] = validarTrem($conexao);
+
+    if (!$erros) {
+        try {
+            $stmt = mysqli_prepare($conexao, "INSERT INTO trens (nome_trem, modelo_trem, capacidade_trem, id_trilho, id_usuario, status_trem) VALUES (?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "ssiiis", $novo['nome_trem'], $novo['modelo_trem'], $novo['capacidade_trem'], $novo['id_trilho'], $novo['id_usuario'], $novo['status_trem']);
+
+            if (mysqli_stmt_execute($stmt)) {
+                header("Location: tela-trens.php");
+                exit;
+            }
+        } catch (Exception $e) {
+        }
+
+        $erros[] = "Não foi possível cadastrar o trem. Tente novamente.";
+    }
 }
 
-$mensagens = [
-    'inativado'    => ['success', 'Usuário inativado com sucesso.'],
-    'editado'      => ['success', 'Usuário atualizado com sucesso.'],
-    'inexistente'  => ['warning', 'Usuário não encontrado ou já inativo.'],
-    'proprio'      => ['warning', 'Você não pode inativar a própria conta.'],
-    'invalido'     => ['danger', 'Solicitação inválida.'],
-    'erro'         => ['danger', 'Erro ao inativar usuário. Tente novamente.'],
-];
 
-$mensagem = $mensagens[$_GET['msg'] ?? ''] ?? null;
+//    BUSCAR DADOS
 
-$filtro_status = $_GET['status'] ?? '';
+$filtro = $_GET['filtro'] ?? 'ativos';
 
-if (!in_array($filtro_status, ['ATIVO', 'INATIVO'], true)) {
-    $filtro_status = '';
-}
-
-$usuarios = [];
-$erro_lista = false;
+$where = [
+    'ativos' => "WHERE trens.status_trem <> 'INATIVO'",
+    'inativos' => "WHERE trens.status_trem = 'INATIVO'"
+][$filtro] ?? "";
 
 try {
-    $sql_lista = "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario, data_cadastro
-                  FROM usuarios
-                  WHERE (? = '' OR status_usuario = ?)
-                  ORDER BY nome_usuario";
-    $stmt = mysqli_prepare($conexao, $sql_lista);
-    mysqli_stmt_bind_param($stmt, "ss", $filtro_status, $filtro_status);
-    mysqli_stmt_execute($stmt);
-    $usuarios = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
-    mysqli_stmt_close($stmt);
-} catch (mysqli_sql_exception $e) {
-    $erro_lista = true;
+    $trens = mysqli_fetch_all(mysqli_query($conexao, "SELECT trens.*, trilhos.nome_trilho, usuarios.nome_usuario
+        FROM trens
+        LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
+        LEFT JOIN usuarios ON usuarios.id_usuario = trens.id_usuario
+        $where
+        ORDER BY trens.id_trem DESC"), MYSQLI_ASSOC);
+
+    $trilhos = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho"), MYSQLI_ASSOC);
+
+    $usuarios = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' ORDER BY nome_usuario"), MYSQLI_ASSOC);
+} catch (Throwable $e) {
+    $trens = $trilhos = $usuarios = [];
+    $erros[] = "Não foi possível carregar os trens. Tente novamente.";
 }
+
+$cores = [
+    'ATIVO' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+    'MANUTENCAO' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle'
+];
+
 ?>
 
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usuários</title>
+    <title>Trens</title>
     <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-<body class="bg-light">
+    const modelo = document.getElementById("modeloTrem");
+    const label = document.getElementById("labelCapacidade");
+    const input = document.getElementById("capacidadeTrem");
+
+    if (!modelo) {
+        return;
+    }
+
+    modelo.addEventListener("change", function () {
+        const tipos = {
+            "De carga": ["CAPACIDADE (KG)", "Ex: 50000"],
+            "De passageiros": ["CAPACIDADE (PASSAGEIROS)", "Ex: 300"]
+        };
+        [label.textContent, input.placeholder] = tipos[this.value] || ["CAPACIDADE", "Selecione o modelo primeiro"];
+    });
+
+});
+</script>
+
+<body>
+
     <?php include __DIR__ . '/../navbar.php'; ?>
 
-<main class="d-flex flex-column align-items-center gap-5 w-100"
-    style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
+    <main class="container-fluid px-4 mt-4">
 
-    <div class="card shadow-sm border-1 p-0" style="width: 600px; border-radius: 4px;">
+        <!-- TÍTULO -->
 
-        <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
-            style="font-size: 0.7rem;">
-            (+) CADASTRO DE USUÁRIOS
-        </div>
+        <div class="d-flex justify-content-between align-items-end mb-4">
 
-        <div class="p-4">
+            <div>
+                <h3 class="titulo-trens">Trens</h3>
+                <p class="subtitulo-trens">Gerencie os trens cadastrados na malha ferroviária</p>
+            </div>
 
-            <form id="form-cadastro">
-
-                <div class="mb-3">
-                    <label for="nome_usuario" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        NOME DE USUÁRIO
-                    </label>
-
-                    <input type="text" id="nome_usuario" name="nome_usuario" class="form-control"
-                        placeholder="Usuário" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="email_usuario" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        EMAIL
-                    </label>
-
-                    <input type="email" id="email_usuario" name="email_usuario" class="form-control"
-                        placeholder="exemplo@123.com" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="senha" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        SENHA
-                    </label>
-
-                    <input type="password" id="senha" name="senha" class="form-control"
-                        placeholder="Senha (mínimo 8 caracteres)" minlength="8" required>
-                </div>
-
-                <div class="mb-3">
-                    <label for="perfil" class="form-label text-secondary fw-semibold"
-                        style="font-size: 0.8rem;">
-                        PERFIL
-                    </label>
-
-                    <select id="perfil" name="perfil" class="form-select" required>
-                        <option value="OPERADOR">Operador</option>
-                        <option value="ADMINISTRADOR">Administrador</option>
-                    </select>
-                </div>
-
-                <button type="submit"
-                    class="btn btn-primary w-100 fw-semibold"
-                    style="background-color: #1b3f53; border: none; border-radius: 4px; font-size: 0.85rem;">
-                    CADASTRAR
+            <?php if ($admin) { ?>
+                <button type="button" class="btn btn-primary text-white px-3 py-2 d-flex align-items-center gap-2" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrem" aria-expanded="false" aria-controls="collapseCadastroTrem">
+                    <span class="botaonovotrem">+</span>
+                    NOVO TREM
                 </button>
-
-            </form>
-
-            <div id="mensagem" class="mt-3"></div>
+            <?php } ?>
 
         </div>
-    </div>
 
-    <div class="card shadow-sm border-1 p-0" style="width: 900px; border-radius: 4px;">
-
-        <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold"
-            style="font-size: 0.7rem;">
-            (∞) USUÁRIOS CADASTRADOS
-        </div>
-
-        <form method="GET" class="d-flex align-items-center gap-2 p-2 border-bottom">
-            <label for="status" class="text-secondary fw-semibold mb-0" style="font-size: 0.75rem;">
-                FILTRAR POR STATUS
-            </label>
-
-            <select id="status" name="status" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-                <option value="" <?php echo $filtro_status === '' ? 'selected' : ''; ?>>Todos</option>
-                <option value="ATIVO" <?php echo $filtro_status === 'ATIVO' ? 'selected' : ''; ?>>Ativo</option>
-                <option value="INATIVO" <?php echo $filtro_status === 'INATIVO' ? 'selected' : ''; ?>>Inativo</option>
-            </select>
-        </form>
-
-        <?php if ($mensagem) { ?>
-            <div class="alert alert-<?php echo $mensagem[0]; ?> rounded-0 mb-0 py-2" style="font-size: 0.85rem;">
-                <?php echo $mensagem[1]; ?>
+        <?php if ($erros) { ?>
+            <div class="alert alert-danger">
+                <?php foreach ($erros as $erro) { ?>
+                    <div><?php echo $erro; ?></div>
+                <?php } ?>
             </div>
         <?php } ?>
 
-        <table class="table table-bordered table-hover mb-0 align-middle">
+        <!-- FORMULÁRIO -->
 
-            <thead class="table-light">
-                <tr class="text-secondary" style="font-size: 0.75rem;">
-                    <th class="fw-semibold">ID</th>
-                    <th class="fw-semibold">NOME DE USUÁRIO</th>
-                    <th class="fw-semibold">E-MAIL</th>
-                    <th class="fw-semibold">PERFIL</th>
-                    <th class="fw-semibold">STATUS</th>
-                    <th class="fw-semibold">DATA DE CADASTRO</th>
-                    <th class="fw-semibold text-center">AÇÕES</th>
-                </tr>
-            </thead>
+        <?php if ($admin) { ?>
 
-            <tbody style="font-size: 0.85rem;">
+        <div class="collapse mb-4 <?php if ($erros && isset($_POST['cadastrar'])) echo 'show'; ?>" id="collapseCadastroTrem">
 
-                <?php if ($erro_lista) { ?>
+            <div class="card border-0">
 
-                    <tr>
-                        <td colspan="7" class="text-center text-danger py-4">
-                            Não foi possível carregar os usuários. Tente novamente mais tarde.
-                        </td>
-                    </tr>
-
-                <?php } elseif (count($usuarios) > 0) { ?>
-
-                    <?php foreach ($usuarios as $usuario) { ?>
-
-                        <tr>
-
-                            <td class="text-primary-emphasis fw-bold">
-                                <?php echo (int) $usuario['id_usuario']; ?>
-                            </td>
-
-                            <td class="text-secondary">
-                                <?php echo htmlspecialchars($usuario['nome_usuario']); ?>
-                            </td>
-
-                            <td class="text-body-tertiary">
-                                <?php echo htmlspecialchars($usuario['email_usuario']); ?>
-                            </td>
-
-                            <td>
-                                <?php if ($usuario['perfil'] === 'ADMINISTRADOR') { ?>
-                                    <span class="badge rounded-1" style="background-color: #1b3f53;">ADMINISTRADOR</span>
-                                <?php } else { ?>
-                                    <span class="badge rounded-1" style="background-color: #daa301; color: #1b3f53;">OPERADOR</span>
-                                <?php } ?>
-                            </td>
-
-                            <td>
-                                <?php if ($usuario['status_usuario'] === 'ATIVO') { ?>
-                                    <span class="badge rounded-1 text-bg-success">ATIVO</span>
-                                <?php } else { ?>
-                                    <span class="badge rounded-1 text-bg-secondary">INATIVO</span>
-                                <?php } ?>
-                            </td>
-
-                            <td class="text-secondary">
-                                <?php echo date('d/m/Y H:i', strtotime($usuario['data_cadastro'])); ?>
-                            </td>
-
-                            <td class="text-center">
-
-                                <a href="tela-editar-user.php?id=<?php echo (int) $usuario['id_usuario']; ?>"
-                                    class="btn btn-sm btn-outline-primary me-1">
-                                    EDITAR
-                                </a>
-
-                                <?php if ((int) $usuario['id_usuario'] === (int) $_SESSION['id_usuario']) { ?>
-
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled
-                                        title="Você não pode inativar a própria conta">
-                                        INATIVAR
-                                    </button>
-
-                                <?php } elseif ($usuario['status_usuario'] === 'ATIVO') { ?>
-
-                                    <button type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalInativarUsuario"
-                                        data-id="<?php echo (int) $usuario['id_usuario']; ?>"
-                                        data-nome="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>">
-                                        INATIVAR
-                                    </button>
-
-                                <?php } ?>
-
-                            </td>
-                        </tr>
-
-                    <?php } ?>
-
-                <?php } else { ?>
-
-                    <tr>
-                        <td colspan="7" class="text-center text-secondary py-4">
-                            Nenhum usuário cadastrado.
-                        </td>
-                    </tr>
-
-                <?php } ?>
-
-            </tbody>
-
-        </table>
-    </div>
-
-</main>
-
-    <div class="modal fade" id="modalInativarUsuario" tabindex="-1"
-        aria-labelledby="tituloModalInativarUsuario" aria-hidden="true">
-
-        <div class="modal-dialog modal-dialog-centered">
-
-            <div class="modal-content rounded-1 border-0">
-
-                <div class="modal-header rounded-top-1 text-white py-2"
-                    style="background-color: #1b3f53; border-bottom: 3px solid #daa301;">
-
-                    <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2"
-                        id="tituloModalInativarUsuario">
-                        <span style="color: #daa301; font-size: 1.1rem; line-height: 1;">&#9888;</span>
-                        INATIVAR USUÁRIO
-                    </h6>
-
-                    <button type="button" class="btn-close btn-close-white"
-                        data-bs-dismiss="modal" aria-label="Fechar"></button>
-
+                <div class="cardcadastro p-3">
+                    <span class="spancadastrotrem">CADASTRAR NOVO TREM</span>
                 </div>
 
-                <div class="modal-body">
+                <form method="POST" class="p-4 bg-white" style="border: 1px solid #BCCCDC; border-top: none;">
 
-                    <div class="alert alert-warning rounded-1 d-flex gap-2 mb-0 py-2"
-                        role="alert" style="border-left: 4px solid #daa301;">
+                    <div class="row g-4">
 
-                        <span class="fw-bold" style="font-size: 1.2rem; line-height: 1.3;">&#9888;</span>
+                        <div class="col-md-6">
+                            <label for="nomeTrem" class="form-label">NOME DO TREM</label>
+                            <input type="text" name="nome" id="nomeTrem" class="form-control" placeholder="Ex: Trem 01" value="<?php echo htmlspecialchars($novo['nome_trem']); ?>" required>
+                        </div>
 
-                        <div>
-                            <strong>
-                                Tem certeza que deseja inativar o usuário
-                                <span id="modalNomeUsuario"></span>?
-                            </strong>
-                            <br>
-                            <span style="font-size: 0.9rem;">
-                                Ele não poderá mais entrar no sistema. Para reativar, use EDITAR.
-                            </span>
+                        <div class="col-md-6">
+                            <label for="modeloTrem" class="form-label">MODELO</label>
+                            <select name="modelo" id="modeloTrem" class="form-select" required>
+                                <option value="">Selecione o modelo</option>
+                                <?php foreach (['De passageiros', 'De carga'] as $opcao) { ?>
+                                    <option value="<?php echo $opcao; ?>" <?php if ($novo['modelo_trem'] === $opcao) echo 'selected'; ?>><?php echo $opcao; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="capacidadeTrem" id="labelCapacidade" class="form-label">CAPACIDADE</label>
+                            <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" placeholder="Selecione o modelo primeiro" value="<?php echo htmlspecialchars($novo['capacidade_trem']); ?>" min="1" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="trilhoTrem" class="form-label">TRILHO ATUAL</label>
+                            <select name="id_trilho" id="trilhoTrem" class="form-select" required>
+                                <option value="">Selecione o trilho</option>
+                                <?php foreach ($trilhos as $trilho) { ?>
+                                    <option value="<?php echo $trilho['id_trilho']; ?>" <?php if ($novo['id_trilho'] == $trilho['id_trilho']) echo 'selected'; ?>><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
+                                <?php } ?>
+                            </select>
+                            <div class="form-text"><?php echo $trilhos ? 'O trem precisa de um trilho.' : 'Nenhum trilho ativo cadastrado.'; ?> <a href="../trilhos/tela-cadastro-trilhos.php?novo=1">Cadastrar trilho</a></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="responsavelTrem" class="form-label">RESPONSÁVEL</label>
+                            <select name="id_usuario" id="responsavelTrem" class="form-select" required>
+                                <option value="">Selecione o responsável</option>
+                                <?php foreach ($usuarios as $usuario) { ?>
+                                    <option value="<?php echo $usuario['id_usuario']; ?>" <?php if ($novo['id_usuario'] == $usuario['id_usuario']) echo 'selected'; ?>><?php echo htmlspecialchars($usuario['nome_usuario']); ?></option>
+                                <?php } ?>
+                            </select>
+                            <div class="form-text"><?php echo $usuarios ? 'O trem precisa de um responsável.' : 'Nenhum usuário ativo cadastrado.'; ?> <a href="../usuarios/tela-cadastro-user.php">Cadastrar usuário</a></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="statusTrem" class="form-label">STATUS</label>
+                            <select name="status" id="statusTrem" class="form-select" required>
+                                <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                                    <option value="<?php echo $valor; ?>" <?php if ($novo['status_trem'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                                <?php } ?>
+                            </select>
                         </div>
 
                     </div>
 
-                </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
+                        <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#collapseCadastroTrem">CANCELAR</button>
+                    </div>
 
-                <div class="modal-footer py-2">
-
-                    <form method="POST" action="inativar-user.php" class="d-flex gap-2">
-
-                        <input type="hidden" name="id_usuario" id="modalIdUsuario">
-                        <input type="hidden" name="token" value="<?php echo $_SESSION['token']; ?>">
-
-                        <button type="button" class="btn btn-sm btn-outline-secondary px-3 fw-bold"
-                            data-bs-dismiss="modal">
-                            CANCELAR
-                        </button>
-
-                        <button type="submit" class="btn btn-sm btn-danger px-3 fw-bold">
-                            INATIVAR
-                        </button>
-
-                    </form>
-
-                </div>
+                </form>
 
             </div>
 
         </div>
 
-    </div>
+        <?php } ?>
+
+        <!-- TABELA -->
+
+        <div class="d-flex flex-column align-items-center gap-5 w-100" style="padding-top: 60px; min-height: 100vh; background-color: #f8f9fa;">
+
+            <div class="card shadow-sm border-1 p-0" style="width: 1000px; border-radius: 4px;">
+
+                <div class="bg-primary-subtle text-primary-emphasis p-2 border-bottom fw-bold d-flex justify-content-between align-items-center" style="font-size: 0.7rem;">
+
+                    TRENS CADASTRADOS
+
+                    <form method="GET">
+                        <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <?php foreach (['ativos' => 'Ativos', 'inativos' => 'Inativos', 'todos' => 'Todos'] as $valor => $texto) { ?>
+                                <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                            <?php } ?>
+                        </select>
+                    </form>
+
+                </div>
+
+                <table class="table table-bordered table-hover mb-0 align-middle">
+
+                    <thead class="table-light">
+                        <tr class="text-secondary" style="font-size: 0.75rem;">
+                            <?php foreach (['ID', 'NOME', 'MODELO', 'CAPACIDADE', 'TRILHO', 'RESPONSÁVEL', 'STATUS'] as $coluna) { ?>
+                                <th class="fw-semibold"><?php echo $coluna; ?></th>
+                            <?php } ?>
+                            <th class="fw-semibold text-center">AÇÕES</th>
+                        </tr>
+                    </thead>
+
+                    <tbody style="font-size: 0.85rem;">
+
+                        <?php foreach ($trens as $trem) { ?>
+
+                            <tr>
+                                <td class="text-primary-emphasis fw-bold"><?php echo $trem['id_trem']; ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars($trem['nome_trem']); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['modelo_trem']); ?></td>
+                                <td class="text-center"><?php echo htmlspecialchars($trem['capacidade_trem']); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['nome_trilho'] ?? 'Sem trilho'); ?></td>
+                                <td class="text-body-tertiary"><?php echo htmlspecialchars($trem['nome_usuario'] ?? 'Sem responsável'); ?></td>
+                                <td>
+                                    <span class="badge border rounded-1 <?php echo $cores[$trem['status_trem']] ?? 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle'; ?>">
+                                        <?php echo htmlspecialchars($trem['status_trem']); ?>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+
+                                    <?php if ($admin) { ?>
+
+                                        <a href="tela-editar-trens.php?id=<?php echo $trem['id_trem']; ?>" class="btn btn-sm btn-outline-primary me-1">EDITAR</a>
+
+                                        <?php if ($trem['status_trem'] != 'INATIVO') { ?>
+                                            <form method="POST" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja inativar este trem?');">
+                                                <input type="hidden" name="id_trem" value="<?php echo $trem['id_trem']; ?>">
+                                                <button type="submit" name="inativar" class="btn btn-sm btn-outline-danger">INATIVAR</button>
+                                            </form>
+                                        <?php } ?>
+
+                                    <?php } else { ?>
+                                        -
+                                    <?php } ?>
+
+                                </td>
+                            </tr>
+
+                        <?php } ?>
+
+                        <?php if (!$trens) { ?>
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">Nenhum trem cadastrado.</td>
+                            </tr>
+                        <?php } ?>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../script/validacao_cadastro_user.js"></script>
-
-    <script>
-        document.getElementById('modalInativarUsuario').addEventListener('show.bs.modal', function (evento) {
-            const botao = evento.relatedTarget;
-
-            document.getElementById('modalIdUsuario').value = botao.dataset.id;
-            document.getElementById('modalNomeUsuario').textContent = botao.dataset.nome;
-        });
-
-        <?php if ($mensagem) { ?>
-        history.replaceState(null, '', 'tela-cadastro-user.php<?php echo $filtro_status ? '?status=' . $filtro_status : ''; ?>');
-        <?php } ?>
-    </script>
 
 </body>
 

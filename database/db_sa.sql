@@ -41,12 +41,9 @@ CREATE TABLE trens (
 CREATE TABLE sensores (
     id_sensor        INT AUTO_INCREMENT PRIMARY KEY,
     nome_sensor      VARCHAR(100)    NOT NULL,
-    categoria_sensor VARCHAR(50)     NOT NULL,
     tipo_sensor      VARCHAR(50)     NOT NULL,
-    id_trem          INT             NULL,
     id_trilho        INT             NULL,
     status_sensor    VARCHAR(20)     NOT NULL,
-    FOREIGN KEY (id_trem) REFERENCES trens(id_trem) ON DELETE SET NULL,
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
 );
 
