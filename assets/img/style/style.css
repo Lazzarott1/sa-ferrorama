@@ -112,15 +112,39 @@
 
 
 .tag-perfil {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid rgba(218, 163, 1, 0.6);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
 }
 
-.tag-admin { background-color: #daa301; color: #1b3f53; }
-.tag-operador { background-color: #ffffff; color: #1b3f53; }
+.tag-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: #daa301;
+    color: #1b3f53;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tag-texto {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.tag-texto strong { font-size: 0.85rem; color: #ffffff; }
+.tag-texto small { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; color: #daa301; }
+
+.tag-operador { border-color: rgba(255, 255, 255, 0.35); }
+.tag-operador .tag-avatar { background-color: #ffffff; }
+.tag-operador .tag-texto small { color: #c9d6de; }
 
 
 html body { background-color: #f4f6f8; }

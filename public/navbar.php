@@ -30,8 +30,14 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
             </ul>
         </nav>
 
-        <div class="d-flex align-items-center gap-2">
-            <span class="tag-perfil <?php echo $admin ? 'tag-admin' : 'tag-operador'; ?>"><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?> · <?php echo $admin ? 'Administrador' : 'Operador'; ?></span>
+        <div class="d-flex align-items-center gap-3">
+            <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>">
+                <span class="tag-avatar"><?php echo strtoupper(substr($_SESSION['usuario'] ?? '?', 0, 1)); ?></span>
+                <div class="tag-texto">
+                    <strong><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?></strong>
+                    <small><?php echo $admin ? 'ADMINISTRADOR' : 'OPERADOR'; ?></small>
+                </div>
+            </div>
             <button class="btn-sair" onclick="window.location.href='<?php echo $caminho; ?>../infra/validacoes-usuarios/logout.php'">Sair</button>
         </div>
     </div>
