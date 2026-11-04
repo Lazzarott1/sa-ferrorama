@@ -1,11 +1,3 @@
-
-body {
-    --bs-primary-bg-subtle: #1b3f53;     
-    --bs-primary-text-emphasis: #1b3f53; 
-}
-
-
-
 .navbar {
     position: fixed;
     width: 100%;
@@ -84,18 +76,6 @@ body {
     border-radius: 5px;
 }
 
-.titulo-sensores {
-    color: #1b3f53;
-    margin-top: 50px;
-    margin-left: 50px;
-}
-
-.subtitulo-sensores {
-    color: #1b3f53;
-    margin-left: 50px;
-}
-
-
 .btn.btn-primary {
     --bs-btn-color: #ffffff;
     --bs-btn-bg: #1b3f53;
@@ -109,7 +89,6 @@ body {
     --bs-btn-focus-shadow-rgb: 218, 163, 1;
 }
 
-/* botão só com borda: "EDITAR" (borda amarela ao passar o mouse) */
 .btn.btn-outline-primary {
     --bs-btn-color: #1b3f53;
     --bs-btn-border-color: #1b3f53;
@@ -123,50 +102,6 @@ body {
 }
 
 
-.cardcadastro {
-    background-color: #1b3f53;
-    box-shadow: inset 0 -3px 0 #daa301; /* linha amarela embaixo */
-}
-
-.spancadastrosensor,
-.spancadastrotrem,
-.spancadastrotrilho {
-    color: #ffffff;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
-.bg-primary-subtle {
-    --bs-primary-text-emphasis: #ffffff;
-    box-shadow: inset 0 -3px 0 #daa301; 
-}
-
-
-
-.btn.btn-navbar {
-    --bs-btn-color: #ffffff;
-    --bs-btn-bg: #1b3f53;
-    --bs-btn-border-color: #1b3f53;
-    --bs-btn-hover-color: #ffffff;
-    --bs-btn-hover-bg: #143040;
-    --bs-btn-hover-border-color: #143040;
-    --bs-btn-active-color: #ffffff;
-    --bs-btn-active-bg: #0e2330;
-    --bs-btn-active-border-color: #0e2330;
-}
-
-.btn.btn-outline-navbar {
-    --bs-btn-color: #1b3f53;
-    --bs-btn-border-color: #1b3f53;
-    --bs-btn-hover-color: #ffffff;
-    --bs-btn-hover-bg: #1b3f53;
-    --bs-btn-hover-border-color: #1b3f53;
-    --bs-btn-active-color: #ffffff;
-    --bs-btn-active-bg: #1b3f53;
-    --bs-btn-active-border-color: #1b3f53;
-}
-
 @media (max-width: 991px) {
     .hstack { flex-wrap: wrap; }
     #header nav { order: 3; width: 100%; position: static; }
@@ -174,3 +109,46 @@ body {
     #header .navbar { padding: 0; }
     #logo img { max-height: 44px; }
 }
+
+
+.tag-perfil {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tag-admin { background-color: #daa301; color: #1b3f53; }
+.tag-operador { background-color: #ffffff; color: #1b3f53; }
+
+
+html body { background-color: #f4f6f8; }
+
+.pagina { max-width: 1200px; margin: 0 auto; padding: 32px 16px; }
+
+.cabecalho { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; border-left: 4px solid #daa301; padding-left: 16px; }
+.cabecalho h3 { color: #1b3f53; font-weight: 700; margin: 0; }
+.cabecalho p { color: #6c757d; margin: 0; }
+
+.caixa { background: #fff; border: 1px solid #dfe5ea; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+.caixa-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; padding: 8px 16px; background: #1b3f53; color: #fff; box-shadow: inset 0 -3px 0 #daa301; font-size: .75rem; font-weight: 700; letter-spacing: .5px; }
+.caixa-topo .form-select { width: auto; }
+.caixa-corpo { padding: 24px; }
+
+.form-label { color: #1b3f53; font-size: .75rem; font-weight: 600; letter-spacing: .3px; }
+.texto-azul { color: #1b3f53; }
+
+.tabela { font-size: .85rem; }
+.tabela thead th { background: #f8fafc; color: #6c757d; font-size: .72rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+.tabela tbody td:first-child { color: #1b3f53; font-weight: 700; }
+.tabela a { color: #1b3f53; }
+
+.badge.status { border: 1px solid #c4c8cb; border-radius: 4px; background: #e2e3e5; color: #41464b; }
+.badge.status-ATIVO, .badge.status-PRONTO { border-color: #a3cfbb; background: #d1e7dd; color: #0a3622; }
+.badge.status-MANUTENCAO, .badge.status-ALERTA { border-color: #ffe69c; background: #fff3cd; color: #664d03; }
+.badge.status-ERRO { border-color: #f1aeb5; background: #f8d7da; color: #58151c; }
+.badge.status-ADMINISTRADOR { border-color: #1b3f53; background: #1b3f53; color: #fff; }
+.badge.status-OPERADOR { border-color: #daa301; background: #daa301; color: #1b3f53; }
+
+.modal-topo { background: #1b3f53; color: #fff; border-bottom: 3px solid #daa301; }
