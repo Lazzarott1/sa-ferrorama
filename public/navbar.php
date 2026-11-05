@@ -20,6 +20,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #1b3f53;">
             <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>tela-geral-home.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>dashboard/tela-dashboard.php">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>sensores/tela-cadastro-sensores.php">Sensores</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trens/tela-trens.php">Trens</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
@@ -38,7 +39,23 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
                     <small><?php echo $admin ? 'ADMINISTRADOR' : 'OPERADOR'; ?></small>
                 </div>
             </div>
-            <button class="btn-sair" onclick="window.location.href='<?php echo $caminho; ?>../infra/validacoes-usuarios/logout.php'">Sair</button>
+            <button class="btn-sair" data-bs-toggle="modal" data-bs-target="#modalSair">Sair</button>
         </div>
     </div>
 </header>
+
+<div class="modal fade" id="modalSair" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header modal-topo py-2">
+                <h6 class="modal-title fw-bold">SAIR DO SISTEMA</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"><strong>Tem certeza que deseja sair?</strong></div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">CANCELAR</button>
+                <a href="<?php echo $caminho; ?>../infra/validacoes-usuarios/logout.php" class="btn btn-sm btn-danger">SAIR</a>
+            </div>
+        </div>
+    </div>
+</div>
