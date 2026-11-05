@@ -20,6 +20,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #1b3f53;">
             <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>tela-geral-home.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>dashboard/tela-dashboard.php">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>sensores/tela-cadastro-sensores.php">Sensores</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trens/tela-trens.php">Trens</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
