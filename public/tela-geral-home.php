@@ -54,9 +54,9 @@ if ($admin) {
 
         <div class="row g-3 mb-4">
 
-            <div class="col-lg-8">
+            <div class="col-lg-8 d-flex flex-column">
                 <p class="home-titulo mb-2">RESUMO DA OPERAÇÃO</p>
-                <div class="row g-3">
+                <div class="row g-3 flex-grow-1">
                     <?php foreach ([['trens', 'train-front', 'Trens em operação'], ['trilhos', 'signpost-split', 'Trilhos em uso'], ['sensores', 'broadcast', 'Sensores ativos'], ['alertas', 'exclamation-triangle', 'Sensores em alerta']] as [$chave, $icone, $texto]) { ?>
                         <div class="col-6 col-md-3">
                             <div class="cartao-resumo <?php if ($chave == 'alertas' && $resumo['alertas'] > 0) echo 'alerta'; ?>">
@@ -69,22 +69,20 @@ if ($admin) {
                 </div>
             </div>
 
-            <div class="col-lg-4">
+            <div class="col-lg-4 d-flex flex-column">
                 <p class="home-titulo mb-2">CLIMA NA FERROVIA</p>
-                <div class="cartao-clima" id="clima">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="temperatura" id="climaTemp">--</div>
-                            <div id="climaTexto">Consultando o clima...</div>
-                        </div>
+                <div class="cartao-clima flex-grow-1" id="clima">
+                    <div class="d-flex align-items-center gap-3">
                         <i class="bi bi-cloud icone" id="climaIcone"></i>
-                    </div>
-                    <div class="mt-2"><i class="bi bi-geo-alt"></i> Joinville - SC <small id="climaExtra"></small></div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <small id="climaHora"></small>
+                        <div class="temperatura" id="climaTemp">--</div>
+                        <div class="flex-grow-1 lh-sm">
+                            <div id="climaTexto">Consultando o clima...</div>
+                            <small><i class="bi bi-geo-alt"></i> Joinville - SC <span id="climaExtra"></span></small>
+                        </div>
                         <button class="btn btn-sm" onclick="carregarClima()" title="Atualizar"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <div class="alert alert-warning py-1 px-2 mt-2 mb-0 small d-none" id="climaAviso"></div>
+                    <small class="d-block mt-2" id="climaHora"></small>
+                    <small class="aviso d-none" id="climaAviso"></small>
                 </div>
             </div>
 
