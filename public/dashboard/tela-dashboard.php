@@ -68,40 +68,10 @@ if (isset($_GET['json'])) {
                 <h3>Dashboard</h3>
                 <p>Leituras dos sensores em tempo real · <span id="atualizado">Carregando...</span></p>
             </div>
-            <?php if ($admin) { ?>
-                <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formLeitura">+ NOVA LEITURA</button>
-            <?php } ?>
         </div>
 
         <?php if ($erros) { ?>
             <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
-        <?php } ?>
-
-        <?php if ($admin) { ?>
-        <div class="caixa collapse <?php if ($erros) echo 'show'; ?>" id="formLeitura">
-            <div class="caixa-topo">REGISTRAR NOVA LEITURA</div>
-            <form method="POST" class="caixa-corpo">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="sensorLeitura" class="form-label">SENSOR</label>
-                        <select name="sensor" id="sensorLeitura" class="form-select" required>
-                            <option value="">Selecione um sensor</option>
-                            <?php foreach ($sensores as $sensor) { ?>
-                                <option value="<?php echo $sensor['id_sensor']; ?>"><?php echo htmlspecialchars($sensor['nome_sensor'] . ' (' . $sensor['tipo_sensor'] . ')'); ?></option>
-                            <?php } ?>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="valorLeitura" class="form-label">VALOR</label>
-                        <input type="number" step="0.01" name="valor" id="valorLeitura" class="form-control" placeholder="Ex: 35.5" required>
-                    </div>
-                </div>
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" name="registrar" class="btn btn-primary">REGISTRAR</button>
-                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formLeitura">CANCELAR</button>
-                </div>
-            </form>
-        </div>
         <?php } ?>
 
         <div class="row g-3 mb-4 text-center" id="resumo"></div>
