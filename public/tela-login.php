@@ -147,8 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <div class="trilho"></div>
-
     <script>
         // ANIMAÇÃO DE ENTRADA
         // 1) A logo começa grande, no centro da tela.
