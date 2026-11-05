@@ -13,6 +13,7 @@ $resumo = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT
     (SELECT COUNT(*) FROM sensores WHERE status_sensor = 'ALERTA') AS alertas"));
 
 $atalhos = [
+    ['dashboard/tela-dashboard.php', 'speedometer2', 'Dashboard', 'Acompanhe todas as leituras enviadas pelos sensores.'],
     ['sensores/tela-cadastro-sensores.php', 'broadcast', 'Sensores', 'Cadastre e acompanhe os sensores dos trens e dos trilhos.'],
     ['trens/tela-trens.php', 'train-front', 'Trens', 'Veja os trens, seus trilhos e os responsáveis.'],
     ['trilhos/tela-cadastro-trilhos.php', 'signpost-split', 'Trilhos', 'Gerencie as rotas, a distância e a localização das estações.'],
