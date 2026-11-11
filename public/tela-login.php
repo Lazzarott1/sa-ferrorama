@@ -97,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @keyframes logo-entra { from { opacity: 0; transform: scale(0.4) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
         @keyframes texto-sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes linha-cresce { from { width: 0; } to { width: 60px; } }
+        #mensagem .alert { min-width: 260px; margin: 0; padding: 12px 18px; color: #ffe1e1; font-weight: 600; background: rgba(220, 53, 69, 0.22); border: 1px solid rgba(255, 120, 120, 0.4); border-left: 4px solid #ff5c5c; border-radius: 10px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); animation: aviso-entra 0.3s ease both; }
+
+        @keyframes aviso-entra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
