@@ -5,9 +5,8 @@ $host = 'localhost';
 $usuario = 'root';
 $senha = '';
 $banco = 'sa_ferrorama';
-$porta = 3307;
 
-$conexao = new mysqli($host, $usuario, $senha, $banco, $porta);
+$conexao = new mysqli($host, $usuario, $senha, $banco);
 
 if ($conexao->connect_error) {
     die('Erro na conexão: ' . $conexao->connect_error);
