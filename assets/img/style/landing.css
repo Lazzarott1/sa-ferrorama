@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+
 html { scroll-behavior: smooth; }
-body { color: #24323b; }
+body { color: #24323b; font-family: 'Barlow', Arial, sans-serif; }
+h1, h2, h3, h4, h5, h6, .marca { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; }
 
 .topo { background: #1b3f53; position: sticky; top: 0; z-index: 10; border-bottom: 3px solid #daa301; }
 .topo a { color: #fff; text-decoration: none; }
