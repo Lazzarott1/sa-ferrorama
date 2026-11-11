@@ -56,12 +56,12 @@ if ($rel) {
 
     $secoes['Trilhos'] = buscar($conexao, "SELECT nome_trilho AS Nome, descricao_trilho AS Descrição, km_trilho AS KM, status_trilho AS Status FROM trilhos tr WHERE status_trilho <> 'INATIVO' AND $doTrilho" . ($falhas ? " AND status_trilho = 'MANUTENCAO'" : "") . " ORDER BY Nome");
 
-    $sql = "SELECT s.nome_sensor AS Nome, s.tipo_sensor AS Tipo, tr.nome_trilho AS Trilho, s.status_sensor AS Status FROM sensores s LEFT JOIN trilhos tr ON tr.id_trilho = s.id_trilho WHERE s.status_sensor <> 'INATIVO'";
-    if ($filtrado) $sql .= " AND (s.id_trilho = $trilho OR s.id_trilho IN (SELECT id_trilho FROM trens t WHERE $doTrem))";
+    $f = $filtrado ? " AND (s.id_trilho = $trilho OR s.id_trilho IN (SELECT id_trilho FROM trens t WHERE $doTrem))" : "";
     $p = [];
-    if ($falhas) $sql .= " AND s.status_sensor = 'ALERTA'";
-    elseif ($dado !== '') { $sql .= " AND s.tipo_sensor = ?"; $p[] = $dado; }
-    $secoes['Sensores'] = buscar($conexao, "$sql ORDER BY Nome", $p);
+    if ($falhas) $f .= " AND s.status_sensor = 'ALERTA'";
+    elseif ($dado !== '') { $f .= " AND s.tipo_sensor = ?"; $p[] = $dado; }
+    $secoes['Sensores'] = buscar($conexao, "SELECT s.nome_sensor AS Nome, s.tipo_sensor AS Tipo, tr.nome_trilho AS Trilho, s.status_sensor AS Status FROM sensores s LEFT JOIN trilhos tr ON tr.id_trilho = s.id_trilho WHERE s.status_sensor <> 'INATIVO'$f ORDER BY Nome", $p);
+    $secoes['Leituras'] = buscar($conexao, "SELECT DATE_FORMAT(l.data_leitura, '%d/%m/%Y %H:%i') AS 'Data e hora', s.nome_sensor AS Sensor, s.tipo_sensor AS Tipo, tr.nome_trilho AS Trilho, l.valor AS Valor FROM leituras l JOIN sensores s ON s.id_sensor = l.id_sensor LEFT JOIN trilhos tr ON tr.id_trilho = s.id_trilho WHERE DATE(l.data_leitura) BETWEEN ? AND ?$f ORDER BY l.data_leitura DESC", array_merge([$rel['data_inicio'], $rel['data_fim']], $p));
 
     $totais = array_map('count', $secoes) + ['Alertas' => count(array_filter($secoes['Sensores'], fn($s) => $s['Status'] === 'ALERTA'))];
 }
@@ -162,7 +162,7 @@ $trilhos = buscar($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE st
                 <form method="get">
                     <select name="tipo" class="form-select form-select-sm" onchange="this.form.submit()">
                         <?php foreach (array_merge(['Todos'], $tiposDisponiveis) as $t) { ?>
-                            <option <?= $filtroTipo === $t ? 'selected' : '' ?>><?= htmlspecialchars($t) ?></option>
+                            <option value="<?= htmlspecialchars($t) ?>" <?= $filtroTipo === $t ? 'selected' : '' ?>><?= htmlspecialchars(mb_strtoupper($t)) ?></option>
                         <?php } ?>
                     </select>
                 </form>
@@ -211,7 +211,7 @@ $trilhos = buscar($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE st
                         </p>
                         <div class="row g-3 mb-4 text-center">
                             <?php foreach ($totais as $nome => $qtd) { ?>
-                                <div class="col-6 col-md-3">
+                                <div class="col-6 col-md">
                                     <div class="caixa py-2 mb-0">
                                         <div class="fs-3 fw-bold <?= $nome === 'Alertas' && $qtd ? 'text-danger' : 'texto-azul' ?>"><?= $qtd ?></div>
                                         <div class="form-label text-uppercase mb-0"><?= $nome ?></div>

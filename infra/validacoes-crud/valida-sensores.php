@@ -1,12 +1,11 @@
 <?php
 
-function validarSensor($conexao, $trem_atual = 0, $trilho_atual = 0)
+function validarSensor($conexao, $trilho_atual = 0)
 {
     $sensor = [
         'nome_sensor' => trim($_POST['nome'] ?? ''),
-        'categoria_sensor' => $_POST['categoria'] ?? '',
         'tipo_sensor' => $_POST['tipo'] ?? '',
-        'vinculo' => (int) ($_POST['trilho'] ?? 0),
+        'id_trilho' => (int) ($_POST['trilho'] ?? 0),
         'status_sensor' => $_POST['status'] ?? ''
     ];
 
@@ -26,25 +25,12 @@ function validarSensor($conexao, $trem_atual = 0, $trilho_atual = 0)
         $erros[] = "Selecione um status válido.";
     }
 
-    $ehTrem = $sensor['categoria_sensor'] == 'TREM';
-    $sensor['id_trem'] = $ehTrem ? $sensor['vinculo'] : null;
-    $sensor['id_trilho'] = $ehTrem ? null : $sensor['vinculo'];
-
-    if (!in_array($sensor['categoria_sensor'], ['TREM', 'TRILHO'], true)) {
-        $erros[] = "Selecione uma categoria válida.";
-        return [$sensor, $erros];
-    }
-
-    $item = $ehTrem ? 'trem' : 'trilho';
-    $tabela = $ehTrem ? 'trens' : 'trilhos';
-    $atual = $ehTrem ? $trem_atual : $trilho_atual;
-
-    $stmt = mysqli_prepare($conexao, "SELECT 1 FROM $tabela WHERE id_$item = ? AND (status_$item <> 'INATIVO' OR id_$item = ?)");
-    mysqli_stmt_bind_param($stmt, "ii", $sensor['vinculo'], $atual);
+    $stmt = mysqli_prepare($conexao, "SELECT 1 FROM trilhos WHERE id_trilho = ? AND (status_trilho <> 'INATIVO' OR id_trilho = ?)");
+    mysqli_stmt_bind_param($stmt, "ii", $sensor['id_trilho'], $trilho_atual);
     mysqli_stmt_execute($stmt);
 
     if (!mysqli_fetch_row(mysqli_stmt_get_result($stmt))) {
-        $erros[] = "Selecione um $item ativo.";
+        $erros[] = "Selecione um trilho ativo.";
     }
 
     return [$sensor, $erros];

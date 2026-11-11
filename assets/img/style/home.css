@@ -11,10 +11,10 @@
 .cartao-resumo.alerta i { color: var(--erro); }
 .cartao-resumo.alerta strong { color: var(--erro); }
 
-.cartao-clima { background: var(--azul); color: #fff; border-radius: 6px; padding: 16px 20px; box-shadow: inset 0 -4px 0 var(--ouro); display: flex; flex-direction: column; justify-content: center; }
-.cartao-clima .temperatura { font-family: var(--titulo); font-size: 2.6rem; font-weight: 700; line-height: 1; }
-.cartao-clima .icone { font-size: 2.4rem; color: var(--ouro); line-height: 1; }
-.cartao-clima .aviso { display: block; color: var(--ouro); }
+.cartao-clima { background: #1b3f53; color: #fff; border-radius: 8px; padding: 16px 20px; box-shadow: inset 0 -4px 0 #daa301; display: flex; flex-direction: column; justify-content: center; }
+.cartao-clima .temperatura { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.cartao-clima .icone { font-size: 2.4rem; color: #daa301; line-height: 1; }
+.cartao-clima .aviso { display: block; color: #daa301; }
 .cartao-clima small { color: #c9d6de; }
 .cartao-clima .btn { color: #fff; border-color: var(--ouro); }
 

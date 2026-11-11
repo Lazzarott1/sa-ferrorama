@@ -30,6 +30,14 @@ if ($id_usuario === (int) $_SESSION['id_usuario']) {
 }
 
 try {
+    $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) FROM trens WHERE id_usuario = ? AND status_trem <> 'INATIVO'");
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+
+    if (mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0] > 0) {
+        voltar('associado');
+    }
+
     $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET status_usuario = 'INATIVO' WHERE id_usuario = ? AND status_usuario = 'ATIVO'");
     mysqli_stmt_bind_param($stmt, "i", $id_usuario);
     mysqli_stmt_execute($stmt);

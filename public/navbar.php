@@ -11,21 +11,32 @@ if ($admin) $abas['usuarios/tela-cadastro-user.php'] = 'Usuários';
 
 ?>
 
-<header class="topo">
-    <div class="topo-linha">
-        <a href="<?php echo $caminho; ?>tela-geral-home.php" class="topo-logo">
-            <img src="<?php echo $caminho; ?>../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="">
-            <span><strong>FerroMonitor</strong><small>SISTEMA FERROVIÁRIO</small></span>
-        </a>
+<header class="container-fluid p-2 rounded-0 sticky-top" style="background-color: #1b3f53; color: #ffffff;">
+    <div id="header" class="hstack gap-3 px-2">
+        <div class="d-flex col" id="logo">
+            <img src="<?php echo $caminho; ?>../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo">
+            <div class="nome-sistema">
+                <h2 class="mb-0 text-white">FerroMonitor</h2>
+                <p class="mb-0">SISTEMA FERROVIÁRIO</p>
+            </div>
+        </div>
 
-        <nav class="abas" aria-label="Menu principal">
-            <?php foreach ($abas as $link => $nome) { ?>
-                <a href="<?php echo $caminho . $link; ?>" <?php if (str_starts_with($link, $pasta)) echo 'aria-current="page"'; ?>><?php echo $nome; ?></a>
-            <?php } ?>
+        <nav class="navbar navbar-expand-lg navbar-dark w-auto" style="background-color: #1b3f53;">
+            <ul class="navbar-nav justify-content-center">
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>tela-geral-home.php">Home</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>dashboard/tela-dashboard.php">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>sensores/tela-cadastro-sensores.php">Sensores</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trens/tela-trens.php">Trens</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
+                <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>relatorios/relatorios.php">Relatórios</a></li>
+                <?php if ($admin) { ?>
+                    <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>usuarios/tela-cadastro-user.php">Usuários</a></li>
+                <?php } ?>
+            </ul>
         </nav>
 
-        <div class="topo-usuario">
-            <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>" title="<?php echo $admin ? 'Administrador' : 'Operador'; ?>">
+        <div class="d-flex col justify-content-end align-items-center gap-3">
+            <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>">
                 <span class="tag-avatar"><?php echo strtoupper(substr($_SESSION['usuario'] ?? '?', 0, 1)); ?></span>
                 <div class="tag-texto">
                     <strong><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?></strong>
@@ -37,12 +48,12 @@ if ($admin) $abas['usuarios/tela-cadastro-user.php'] = 'Usuários';
     </div>
 </header>
 
-<div class="modal fade" id="modalSair" tabindex="-1" aria-labelledby="tituloSair">
+<div class="modal fade" id="modalSair" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header modal-topo py-2">
-                <h6 class="modal-title fw-bold" id="tituloSair">SAIR DO SISTEMA</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <h6 class="modal-title fw-bold">SAIR DO SISTEMA</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body"><strong>Tem certeza que deseja sair?</strong></div>
             <div class="modal-footer py-2">
