@@ -71,7 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div id="mensagem" class="position-fixed top-0 end-0 m-3 z-3"></div>
 
     <a href="../index.html" class="voltar-site">&larr; Conhecer o FerroMonitor</a>
-    <div class="trilho"></div>
 
     <main class="d-flex justify-content-center align-items-center min-vh-100 py-4">
 

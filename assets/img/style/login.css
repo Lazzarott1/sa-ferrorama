@@ -1,3 +1,4 @@
+:root { --azul: #1b3f53; --azul-escuro: #12303f; --amarelo: #daa301; --branco: #ffffff; }
 body { min-height: 100vh; background: radial-gradient(circle at center, #245166 0%, var(--azul) 55%, var(--azul-escuro) 100%); }
 body.intro { overflow: hidden; }
 .trilho { position: fixed; left: 0; right: 0; bottom: 40px; height: 16px; background: var(--trilho); }
