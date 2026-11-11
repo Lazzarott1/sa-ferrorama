@@ -1,12 +1,12 @@
 <?php
-
+ 
 $pasta_public = realpath(__DIR__);
 $pasta_pagina = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
-
+ 
 $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
-
+ 
 ?>
-
+ 
 <header class="container-fluid p-2 rounded-0 sticky-top" style="background-color: #1b3f53; color: #ffffff;">
     <div id="header" class="hstack gap-3 px-2">
         <div class="d-flex col" id="logo">
@@ -16,7 +16,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
                 <p class="mb-0">SISTEMA FERROVIÁRIO</p>
             </div>
         </div>
-
+ 
         <nav class="navbar navbar-expand-lg navbar-dark w-auto" style="background-color: #1b3f53;">
             <ul class="navbar-nav justify-content-center">
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>tela-geral-home.php">Home</a></li>
@@ -30,7 +30,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
                 <?php } ?>
             </ul>
         </nav>
-
+ 
         <div class="d-flex col justify-content-end align-items-center gap-3">
             <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>">
                 <span class="tag-avatar"><?php echo strtoupper(substr($_SESSION['usuario'] ?? '?', 0, 1)); ?></span>
@@ -43,7 +43,7 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         </div>
     </div>
 </header>
-
+ 
 <div class="modal fade" id="modalSair" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -59,3 +59,6 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         </div>
     </div>
 </div>
+ 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+ 
