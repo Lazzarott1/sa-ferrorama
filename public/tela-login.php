@@ -140,16 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </form>
 
-                <div id="mensagem" class="mt-3"></div>
-
                 <p class="aviso-suporte">Precisa de ajuda? Fale com o administrador do sistema.</p>
 
             </div>
 
         </div>
     </main>
-
-    <div class="trilho"></div>
 
     <script>
         // ANIMAÇÃO DE ENTRADA
