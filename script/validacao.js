@@ -31,8 +31,7 @@ document.getElementById("form-login").onsubmit = (e) => {
             mensagem.innerHTML = "<div class='alert alert-danger'>" + data.mensagem + "</div>";
         }
  
-        document.getElementById("senha").value = "";
-        document.getElementById("senha").focus();
+        document.getElementById("form-login").reset();
     })
     .catch(error => {
         mensagem.innerHTML = "<div class='alert alert-danger'>Erro ao conectar com o servidor.</div>";

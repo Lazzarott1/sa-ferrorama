@@ -13,7 +13,6 @@ $resumo = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT
     (SELECT COUNT(*) FROM sensores WHERE status_sensor = 'ALERTA') AS alertas"));
 
 $atalhos = [
-    ['dashboard/tela-dashboard.php', 'speedometer2', 'Dashboard', 'Acompanhe todas as leituras enviadas pelos sensores.'],
     ['sensores/tela-cadastro-sensores.php', 'broadcast', 'Sensores', 'Cadastre e acompanhe os sensores dos trens e dos trilhos.'],
     ['trens/tela-trens.php', 'train-front', 'Trens', 'Veja os trens, seus trilhos e os responsáveis.'],
     ['trilhos/tela-cadastro-trilhos.php', 'signpost-split', 'Trilhos', 'Gerencie as rotas, a distância e a localização das estações.'],
@@ -49,14 +48,14 @@ if ($admin) {
         </div>
 
         <?php if (isset($_GET['acesso'])) { ?>
-            <div class="alert alert-warning">Você não tem permissão para acessar essa tela.</div>
+            <div class="alert alert-warning rounded-1" style="border-left: 4px solid #daa301;">Você não tem permissão para acessar essa tela.</div>
         <?php } ?>
 
         <div class="row g-3 mb-4">
 
-            <div class="col-lg-8 d-flex flex-column">
+            <div class="col-lg-8">
                 <p class="home-titulo mb-2">RESUMO DA OPERAÇÃO</p>
-                <div class="row g-3 flex-grow-1">
+                <div class="row g-3">
                     <?php foreach ([['trens', 'train-front', 'Trens em operação'], ['trilhos', 'signpost-split', 'Trilhos em uso'], ['sensores', 'broadcast', 'Sensores ativos'], ['alertas', 'exclamation-triangle', 'Sensores em alerta']] as [$chave, $icone, $texto]) { ?>
                         <div class="col-6 col-md-3">
                             <div class="cartao-resumo <?php if ($chave == 'alertas' && $resumo['alertas'] > 0) echo 'alerta'; ?>">
@@ -69,20 +68,22 @@ if ($admin) {
                 </div>
             </div>
 
-            <div class="col-lg-4 d-flex flex-column">
+            <div class="col-lg-4">
                 <p class="home-titulo mb-2">CLIMA NA FERROVIA</p>
-                <div class="cartao-clima flex-grow-1" id="clima">
-                    <div class="d-flex align-items-center gap-3">
-                        <i class="bi bi-cloud icone" id="climaIcone"></i>
-                        <div class="temperatura" id="climaTemp">--</div>
-                        <div class="flex-grow-1 lh-sm">
+                <div class="cartao-clima" id="clima">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="temperatura" id="climaTemp">--</div>
                             <div id="climaTexto">Consultando o clima...</div>
-                            <small><i class="bi bi-geo-alt"></i> Joinville - SC <span id="climaExtra"></span></small>
                         </div>
+                        <i class="bi bi-cloud icone" id="climaIcone"></i>
+                    </div>
+                    <div class="mt-2"><i class="bi bi-geo-alt"></i> Joinville - SC <small id="climaExtra"></small></div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small id="climaHora"></small>
                         <button class="btn btn-sm" onclick="carregarClima()" title="Atualizar"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <small class="d-block mt-2" id="climaHora"></small>
-                    <small class="aviso d-none" id="climaAviso"></small>
+                    <div class="alert alert-warning py-1 px-2 mt-2 mb-0 small d-none" id="climaAviso"></div>
                 </div>
             </div>
 
@@ -134,7 +135,6 @@ if ($admin) {
     </main>
 
     <script src="../script/clima.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../script/mapa.js"></script>
 
 </body>
