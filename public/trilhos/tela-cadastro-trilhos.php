@@ -2,79 +2,71 @@
 
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
+include __DIR__ . '/../listagem.php';
 
 $erros = [];
+$aberto = -1;
 $novo = ['nome_trilho' => '', 'descricao_trilho' => '', 'km_trilho' => '', 'status_trilho' => 'ATIVO', 'cep' => '', 'logradouro' => '', 'bairro' => '', 'cidade' => '', 'uf' => ''];
 
-$associacoes = "(SELECT COUNT(*) FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS total_trens,
-    (SELECT COUNT(*) FROM sensores WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO') AS total_sensores";
+$trens_ativos = "(SELECT COUNT(*) FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO')";
+$sensores_ativos = "(SELECT COUNT(*) FROM sensores WHERE sensores.id_trilho = trilhos.id_trilho AND sensores.status_sensor <> 'INATIVO')";
 
 
-//    INATIVAR TRILHO
+//    ATIVAR / INATIVAR TRILHOS
 
-if ($admin && isset($_POST['inativar'])) {
+if ($admin && (isset($_POST['ativar']) || isset($_POST['inativar']))) {
 
-    $id_trilho = (int) $_POST['id_trilho'];
-
-    try {
-        $stmt = mysqli_prepare($conexao, "SELECT $associacoes FROM trilhos WHERE id_trilho = ?");
-        mysqli_stmt_bind_param($stmt, "i", $id_trilho);
-        mysqli_stmt_execute($stmt);
-        $total = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-        if ($total && ($total['total_trens'] > 0 || $total['total_sensores'] > 0)) {
-            header("Location: tela-cadastro-trilhos.php?bloqueado=" . $id_trilho);
-            exit;
-        }
-
-        $stmt = mysqli_prepare($conexao, "UPDATE trilhos SET status_trilho = 'INATIVO' WHERE id_trilho = ?");
-        mysqli_stmt_bind_param($stmt, "i", $id_trilho);
-
-        if (mysqli_stmt_execute($stmt)) {
-            header("Location: tela-cadastro-trilhos.php");
-            exit;
-        }
-    } catch (Exception $e) {
+    if (!mudarStatus($conexao, 'trilhos', 'id_trilho', 'status_trilho', "$trens_ativos = 0 AND $sensores_ativos = 0")) {
+        header("Location: " . $_SERVER['REQUEST_URI']);
+        exit;
     }
 
-    $erros[] = "Não foi possível inativar o trilho. Tente novamente.";
+    $erros[] = "Trilhos com trens ou sensores ativos não foram inativados. Inative ou altere esses itens antes.";
 }
 
 
-//    CADASTRAR TRILHO
+//    CADASTRAR / EDITAR TRILHO
 
-if ($admin && isset($_POST['cadastrar'])) {
+if ($admin && isset($_POST['salvar'])) {
 
-    [$novo, $erros] = validarTrilho();
+    $id = (int) $_POST['id'];
+    [$form, $erros] = validarTrilho();
+
+    if ($id && !$erros && $form['status_trilho'] == 'INATIVO') {
+        $total = mysqli_fetch_row(mysqli_query($conexao, "SELECT $trens_ativos, $sensores_ativos FROM trilhos WHERE id_trilho = $id"));
+
+        if ($total[0] > 0 || $total[1] > 0) {
+            $erros[] = "Este trilho tem " . $total[0] . " trem(ns) e " . $total[1] . " sensor(es) ativo(s). Inative ou altere esses itens antes de inativar o trilho.";
+        }
+    }
 
     if (!$erros) {
         try {
-            $stmt = mysqli_prepare($conexao, "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, status_trilho, cep, logradouro, bairro, cidade, uf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "sssssssss", $novo['nome_trilho'], $novo['descricao_trilho'], $novo['km_trilho'], $novo['status_trilho'], $novo['cep'], $novo['logradouro'], $novo['bairro'], $novo['cidade'], $novo['uf']);
+            $stmt = mysqli_prepare($conexao, $id
+                ? "UPDATE trilhos SET nome_trilho = ?, descricao_trilho = ?, km_trilho = ?, status_trilho = ?, cep = ?, logradouro = ?, bairro = ?, cidade = ?, uf = ? WHERE id_trilho = $id"
+                : "INSERT INTO trilhos (nome_trilho, descricao_trilho, km_trilho, status_trilho, cep, logradouro, bairro, cidade, uf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "sssssssss", ...array_values($form));
 
             if (mysqli_stmt_execute($stmt)) {
-                header("Location: tela-cadastro-trilhos.php");
+                header("Location: " . $_SERVER['REQUEST_URI']);
                 exit;
             }
         } catch (Exception $e) {
         }
 
-        $erros[] = "Não foi possível cadastrar o trilho. Tente novamente.";
+        $erros[] = "Não foi possível salvar o trilho. Tente novamente.";
     }
+
+    $aberto = $id;
 }
 
 
 //    BUSCAR DADOS
 
-$filtro = $_GET['filtro'] ?? 'ativos';
-
-$where = [
-    'ativos' => "WHERE status_trilho <> 'INATIVO'",
-    'inativos' => "WHERE status_trilho = 'INATIVO'"
-][$filtro] ?? "";
+$where = filtrar('status_trilho');
 
 try {
-    $trilhos = mysqli_fetch_all(mysqli_query($conexao, "SELECT trilhos.*, $associacoes,
+    $trilhos = mysqli_fetch_all(mysqli_query($conexao, "SELECT trilhos.*, $trens_ativos AS total_trens, $sensores_ativos AS total_sensores,
         (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_trilho = trilhos.id_trilho AND trens.status_trem <> 'INATIVO') AS nomes_trens
         FROM trilhos $where ORDER BY id_trilho DESC"), MYSQLI_ASSOC);
 } catch (Throwable $e) {
@@ -82,13 +74,57 @@ try {
     $erros[] = "Não foi possível carregar os trilhos. Tente novamente.";
 }
 
-$trilhoBloqueado = null;
-
-foreach ($trilhos as $linha) {
-    if (isset($_GET['bloqueado']) && (int) $linha['id_trilho'] === (int) $_GET['bloqueado']) {
-        $trilhoBloqueado = $linha;
-    }
-}
+function formTrilho($trilho)
+{
+    $id = $trilho['id_trilho'] ?? 0; ?>
+    <form method="POST" class="caixa-corpo">
+        <input type="hidden" name="id" value="<?php echo $id; ?>">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="nomeTrilho<?php echo $id; ?>" class="form-label">NOME DO TRILHO</label>
+                <input type="text" name="nome" id="nomeTrilho<?php echo $id; ?>" class="form-control" placeholder="Ex: Trilho Norte 01" value="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>" required>
+            </div>
+            <div class="col-md-6">
+                <label for="kmTrilho<?php echo $id; ?>" class="form-label">KM</label>
+                <input type="number" name="km" id="kmTrilho<?php echo $id; ?>" class="form-control" step="0.01" min="0.01" placeholder="Ex: 12.5" value="<?php echo htmlspecialchars($trilho['km_trilho']); ?>" required>
+            </div>
+            <div class="col-md-6">
+                <label for="descricaoTrilho<?php echo $id; ?>" class="form-label">DESCRIÇÃO</label>
+                <input type="text" name="descricao" id="descricaoTrilho<?php echo $id; ?>" class="form-control" placeholder="Ex: Trecho entre os pátios A e B" value="<?php echo htmlspecialchars($trilho['descricao_trilho']); ?>" required>
+            </div>
+            <div class="col-md-3">
+                <label for="statusTrilho<?php echo $id; ?>" class="form-label">STATUS</label>
+                <select name="status" id="statusTrilho<?php echo $id; ?>" class="form-select" required>
+                    <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
+                        <option value="<?php echo $valor; ?>" <?php if ($trilho['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                    <?php } ?>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="dataTrilho<?php echo $id; ?>" class="form-label">DATA DE CRIAÇÃO</label>
+                <input type="text" id="dataTrilho<?php echo $id; ?>" class="form-control" value="<?php echo date('d/m/Y', strtotime($trilho['data_criacao'] ?? 'now')); ?>" disabled>
+            </div>
+            <div class="col-12 border-top pt-3">
+                <span class="form-label">LOCALIZAÇÃO DA ESTAÇÃO (OPCIONAL)</span>
+            </div>
+            <div class="col-md-3">
+                <label for="cep<?php echo $id; ?>" class="form-label">CEP</label>
+                <input type="text" name="cep" id="cep<?php echo $id; ?>" class="form-control" inputmode="numeric" maxlength="9" placeholder="Ex: 89201-100" value="<?php echo preg_replace('/^(\d{5})(\d{3})$/', '$1-$2', htmlspecialchars($trilho['cep'])); ?>" onblur="buscarCep(this)">
+                <div class="form-text">Digite o CEP para preencher o endereço.</div>
+            </div>
+            <?php foreach (['logradouro' => ['LOGRADOURO', 4], 'bairro' => ['BAIRRO', 2], 'cidade' => ['CIDADE', 2], 'uf' => ['UF', 1]] as $campo => [$rotulo, $tamanho]) { ?>
+                <div class="col-md-<?php echo $tamanho; ?>">
+                    <label for="<?php echo $campo . $id; ?>" class="form-label"><?php echo $rotulo; ?></label>
+                    <input type="text" name="<?php echo $campo; ?>" id="<?php echo $campo . $id; ?>" class="form-control" maxlength="<?php echo $campo == 'uf' ? 2 : 100; ?>" value="<?php echo htmlspecialchars($trilho[$campo]); ?>">
+                </div>
+            <?php } ?>
+        </div>
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" name="salvar" class="btn btn-primary"><?php echo $id ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR'; ?></button>
+            <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">CANCELAR</button>
+        </div>
+    </form>
+<?php }
 
 ?>
 
@@ -115,7 +151,7 @@ foreach ($trilhos as $linha) {
                 <p>Gerencie os trilhos cadastrados na malha ferroviária</p>
             </div>
             <?php if ($admin) { ?>
-                <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formTrilho">+ NOVO TRILHO</button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#editar0">+ NOVO TRILHO</button>
             <?php } ?>
         </div>
 
@@ -124,63 +160,23 @@ foreach ($trilhos as $linha) {
         <?php } ?>
 
         <?php if ($admin) { ?>
-        <div class="caixa collapse <?php if (($erros && isset($_POST['cadastrar'])) || isset($_GET['novo'])) echo 'show'; ?>" id="formTrilho">
-            <div class="caixa-topo">CADASTRAR NOVO TRILHO</div>
-            <form method="POST" class="caixa-corpo">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="nomeTrilho" class="form-label">NOME DO TRILHO</label>
-                        <input type="text" name="nome" id="nomeTrilho" class="form-control" placeholder="Ex: Trilho Norte 01" value="<?php echo htmlspecialchars($novo['nome_trilho']); ?>" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="kmTrilho" class="form-label">KM</label>
-                        <input type="number" name="km" id="kmTrilho" class="form-control" step="0.01" min="0.01" placeholder="Ex: 12.5" value="<?php echo htmlspecialchars($novo['km_trilho']); ?>" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="descricaoTrilho" class="form-label">DESCRIÇÃO</label>
-                        <input type="text" name="descricao" id="descricaoTrilho" class="form-control" placeholder="Ex: Trecho entre os pátios A e B" value="<?php echo htmlspecialchars($novo['descricao_trilho']); ?>" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="statusTrilho" class="form-label">STATUS</label>
-                        <select name="status" id="statusTrilho" class="form-select" required>
-                            <?php foreach (['ATIVO' => 'Ativo', 'MANUTENCAO' => 'Manutenção', 'INATIVO' => 'Inativo'] as $valor => $texto) { ?>
-                                <option value="<?php echo $valor; ?>" <?php if ($novo['status_trilho'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                            <?php } ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
-                        <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y'); ?>" disabled>
-                    </div>
-                    <?php $endereco = $novo; include __DIR__ . '/campos-cep.php'; ?>
-                </div>
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" name="cadastrar" class="btn btn-primary">CADASTRAR</button>
-                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formTrilho">CANCELAR</button>
-                </div>
-            </form>
-        </div>
+            <div class="caixa collapse <?php if ($aberto === 0 || isset($_GET['novo'])) echo 'show'; ?>" id="editar0">
+                <div class="caixa-topo">CADASTRAR NOVO TRILHO</div>
+                <?php formTrilho($aberto === 0 ? $form : $novo); ?>
+            </div>
         <?php } ?>
 
         <div class="caixa">
-            <div class="caixa-topo">
-                TRILHOS CADASTRADOS
-                <form method="GET">
-                    <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <?php foreach (['ativos' => 'Ativos', 'inativos' => 'Inativos', 'todos' => 'Todos'] as $valor => $texto) { ?>
-                            <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                        <?php } ?>
-                    </select>
-                </form>
-            </div>
+            <?php topo('TRILHOS CADASTRADOS', $admin); ?>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 tabela">
                     <thead>
-                        <tr><th>ID</th><th>NOME</th><th>DESCRIÇÃO</th><th>KM</th><th>LOCAL</th><th>TRENS</th><th>CRIADO EM</th><th>STATUS</th><th class="text-center">AÇÕES</th></tr>
+                        <tr><?php if ($admin) marcarTodos(); ?><th>ID</th><th>NOME</th><th>DESCRIÇÃO</th><th>KM</th><th>LOCAL</th><th>TRENS</th><th>CRIADO EM</th><th>STATUS</th><th class="text-center">AÇÕES</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($trilhos as $trilho) { ?>
                             <tr>
+                                <?php if ($admin) marcar($trilho['id_trilho'], 'o trilho ' . $trilho['nome_trilho'], $trilho['total_trens'] || $trilho['total_sensores'] ? 'Ele tem ' . $trilho['total_trens'] . ' trem(ns) e ' . $trilho['total_sensores'] . ' sensor(es) ativo(s). Inative ou altere esses itens antes de inativá-lo.' : ''); ?>
                                 <td><?php echo $trilho['id_trilho']; ?></td>
                                 <td><?php echo htmlspecialchars($trilho['nome_trilho']); ?></td>
                                 <td><?php echo htmlspecialchars($trilho['descricao_trilho']); ?></td>
@@ -189,23 +185,16 @@ foreach ($trilhos as $linha) {
                                 <td><?php echo htmlspecialchars($trilho['nomes_trens'] ?? 'Sem trem'); ?></td>
                                 <td><?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?></td>
                                 <td><span class="badge status status-<?php echo $trilho['status_trilho']; ?>"><?php echo htmlspecialchars($trilho['status_trilho']); ?></span></td>
-                                <td class="text-center text-nowrap">
-                                    <?php if ($admin) { ?>
-                                        <a href="tela-editar-trilhos.php?id=<?php echo $trilho['id_trilho']; ?>" class="btn btn-sm btn-outline-primary">EDITAR</a>
-                                        <?php if ($trilho['status_trilho'] != 'INATIVO' && ($trilho['total_trens'] > 0 || $trilho['total_sensores'] > 0)) { ?>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalTrilhoAssociado" data-nome="<?php echo htmlspecialchars($trilho['nome_trilho']); ?>" data-trens="<?php echo (int) $trilho['total_trens']; ?>" data-sensores="<?php echo (int) $trilho['total_sensores']; ?>">INATIVAR</button>
-                                        <?php } elseif ($trilho['status_trilho'] != 'INATIVO') { ?>
-                                            <form method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja inativar este trilho?');">
-                                                <input type="hidden" name="id_trilho" value="<?php echo $trilho['id_trilho']; ?>">
-                                                <button type="submit" name="inativar" class="btn btn-sm btn-outline-danger">INATIVAR</button>
-                                            </form>
-                                        <?php } ?>
-                                    <?php } else { echo '-'; } ?>
-                                </td>
+                                <td class="text-center text-nowrap"><?php if ($admin) acoes($trilho['id_trilho'], $trilho['status_trilho'] == 'INATIVO'); else echo '-'; ?></td>
                             </tr>
+                            <?php if ($admin) { ?>
+                                <tr class="collapse <?php if ($aberto == $trilho['id_trilho']) echo 'show'; ?>" id="editar<?php echo $trilho['id_trilho']; ?>">
+                                    <td colspan="10" class="p-0"><?php formTrilho($aberto == $trilho['id_trilho'] ? $form + $trilho : $trilho); ?></td>
+                                </tr>
+                            <?php } ?>
                         <?php } ?>
                         <?php if (!$trilhos) { ?>
-                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhum trilho cadastrado.</td></tr>
+                            <tr><td colspan="10" class="text-center text-muted py-4">Nenhum trilho cadastrado.</td></tr>
                         <?php } ?>
                     </tbody>
                 </table>
@@ -214,51 +203,10 @@ foreach ($trilhos as $linha) {
 
     </main>
 
-    <div class="modal fade" id="modalTrilhoAssociado" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header modal-topo py-2">
-                    <h6 class="modal-title fw-bold">INATIVAÇÃO NÃO PERMITIDA</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <strong>O trilho <span id="modalNomeTrilho"><?php echo htmlspecialchars($trilhoBloqueado['nome_trilho'] ?? ''); ?></span> possui associações.</strong><br>
-                        Inative ou altere os trens e sensores ativos vinculados a ele antes de inativá-lo.
-                    </div>
-                    <table class="table table-sm mb-0 tabela">
-                        <thead><tr><th>ASSOCIAÇÃO</th><th class="text-center">QUANTIDADE</th></tr></thead>
-                        <tbody>
-                            <tr><td>Trens</td><td class="text-center" id="modalTotalTrens"><?php echo (int) ($trilhoBloqueado['total_trens'] ?? 0); ?></td></tr>
-                            <tr><td>Sensores</td><td class="text-center" id="modalTotalSensores"><?php echo (int) ($trilhoBloqueado['total_sensores'] ?? 0); ?></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">ENTENDI</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php modalStatus(); ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        modalTrilhoAssociado.addEventListener('show.bs.modal', function (evento) {
-            const botao = evento.relatedTarget;
-
-            if (botao) {
-                modalNomeTrilho.textContent = botao.dataset.nome;
-                modalTotalTrens.textContent = botao.dataset.trens;
-                modalTotalSensores.textContent = botao.dataset.sensores;
-            }
-        });
-
-        <?php if ($trilhoBloqueado) { ?>
-            new bootstrap.Modal(modalTrilhoAssociado).show();
-            history.replaceState(null, '', 'tela-cadastro-trilhos.php');
-        <?php } ?>
-    </script>
+    <script src="../../script/cep.js"></script>
 
 </body>
 
