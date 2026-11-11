@@ -1,14 +1,78 @@
 <?php
 
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
-
-include __DIR__ . '/../../infra/conexao.php';
+include __DIR__ . '/../listagem.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $perfis = ['ADMINISTRADOR', 'OPERADOR'];
+$erros = [];
+$aberto = -1;
+$eu = (int) $_SESSION['id_usuario'];
+$trens_ativos = "(SELECT COUNT(*) FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO')";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+//    ATIVAR / INATIVAR USUÁRIOS
+
+if (isset($_POST['ativar']) || isset($_POST['inativar'])) {
+
+    if (!hash_equals($_SESSION['token'] ?? '', $_POST['token'] ?? '')) {
+        $erros[] = "Solicitação inválida.";
+    } elseif (!mudarStatus($conexao, 'usuarios', 'id_usuario', 'status_usuario', "id_usuario <> $eu AND $trens_ativos = 0")) {
+        header("Location: " . $_SERVER['REQUEST_URI']);
+        exit();
+    } else {
+        $erros[] = "Usuários responsáveis por trens ativos e a sua própria conta não foram inativados.";
+    }
+}
+
+
+//    EDITAR USUÁRIO
+
+if (isset($_POST['salvar'])) {
+
+    $id = (int) $_POST['id'];
+    $proprio = $id === $eu;
+    $nome_usuario = trim($_POST['nome_usuario'] ?? '');
+    $email_usuario = trim($_POST['email_usuario'] ?? '');
+    $senha = $_POST['senha'] ?? '';
+    $perfil = $proprio ? 'ADMINISTRADOR' : ($_POST['perfil'] ?? '');
+    $status_usuario = $proprio ? 'ATIVO' : ($_POST['status_usuario'] ?? '');
+
+    if (!in_array($perfil, $perfis, true) || !in_array($status_usuario, ['ATIVO', 'INATIVO'], true)) {
+        $erros[] = "Perfil ou status inválido.";
+    } elseif ($nome_usuario === '' || !filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
+        $erros[] = "Preencha o nome e um e-mail válido.";
+    } elseif ($senha !== '' && strlen($senha) < 8) {
+        $erros[] = "A senha deve ter pelo menos 8 caracteres.";
+    } elseif ($status_usuario === 'INATIVO' && ($total = mysqli_fetch_row(mysqli_query($conexao, "SELECT $trens_ativos FROM usuarios WHERE id_usuario = $id"))[0]) > 0) {
+        $erros[] = "Este usuário é responsável por " . $total . " trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.";
+    } else {
+        try {
+            $valores = [$nome_usuario, $email_usuario, $perfil, $status_usuario];
+
+            if ($senha !== '') {
+                $valores[] = password_hash($senha, PASSWORD_DEFAULT);
+            }
+
+            $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET nome_usuario = ?, email_usuario = ?, perfil = ?, status_usuario = ?" . ($senha !== '' ? ", senha = ?" : "") . " WHERE id_usuario = $id");
+            mysqli_stmt_bind_param($stmt, str_repeat('s', count($valores)), ...$valores);
+            mysqli_stmt_execute($stmt);
+
+            header("Location: " . $_SERVER['REQUEST_URI']);
+            exit();
+        } catch (mysqli_sql_exception $e) {
+            $erros[] = $e->getCode() === 1062 ? "Esse nome de usuário já existe." : "Erro ao atualizar usuário.";
+        }
+    }
+
+    $aberto = $id;
+}
+
+
+//    CADASTRAR USUÁRIO
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$erros) {
     $nome_usuario = trim($_POST['nome_usuario'] ?? '');
     $email_usuario = trim($_POST['email_usuario'] ?? '');
     $senha = $_POST['senha'] ?? '';
@@ -59,42 +123,57 @@ if (empty($_SESSION['token'])) {
     $_SESSION['token'] = bin2hex(random_bytes(32));
 }
 
-$mensagens = [
-    'inativado'    => ['success', 'Usuário inativado com sucesso.'],
-    'editado'      => ['success', 'Usuário atualizado com sucesso.'],
-    'inexistente'  => ['warning', 'Usuário não encontrado ou já inativo.'],
-    'proprio'      => ['warning', 'Você não pode inativar a própria conta.'],
-    'associado'    => ['warning', 'Este usuário é responsável por trens ativos. Troque o responsável desses trens antes de inativá-lo.'],
-    'invalido'     => ['danger', 'Solicitação inválida.'],
-    'erro'         => ['danger', 'Erro ao inativar usuário. Tente novamente.'],
-];
 
-$mensagem = $mensagens[$_GET['msg'] ?? ''] ?? null;
-
-$filtro_status = $_GET['status'] ?? '';
-
-if (!in_array($filtro_status, ['ATIVO', 'INATIVO'], true)) {
-    $filtro_status = '';
-}
-
-$usuarios = [];
-$erro_lista = false;
+$where = filtrar('status_usuario');
 
 try {
-    $sql_lista = "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario, data_cadastro,
-                  (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO') AS nomes_trens,
-                  (SELECT COUNT(*) FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO') AS total_trens
-                  FROM usuarios
-                  WHERE (? = '' OR status_usuario = ?)
-                  ORDER BY nome_usuario";
-    $stmt = mysqli_prepare($conexao, $sql_lista);
-    mysqli_stmt_bind_param($stmt, "ss", $filtro_status, $filtro_status);
-    mysqli_stmt_execute($stmt);
-    $usuarios = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
-    mysqli_stmt_close($stmt);
+    $usuarios = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario, data_cadastro,
+        (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO') AS nomes_trens,
+        $trens_ativos AS total_trens
+        FROM usuarios $where ORDER BY nome_usuario"), MYSQLI_ASSOC);
 } catch (mysqli_sql_exception $e) {
-    $erro_lista = true;
+    $usuarios = [];
+    $erros[] = "Não foi possível carregar os usuários. Tente novamente mais tarde.";
 }
+
+function formUsuario($usuario, $proprio)
+{
+    $id = $usuario['id_usuario']; ?>
+    <form method="POST" class="caixa-corpo">
+        <input type="hidden" name="id" value="<?php echo $id; ?>">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="nome_usuario<?php echo $id; ?>" class="form-label">NOME DE USUÁRIO</label>
+                <input type="text" id="nome_usuario<?php echo $id; ?>" name="nome_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
+            </div>
+            <div class="col-md-6">
+                <label for="email_usuario<?php echo $id; ?>" class="form-label">E-MAIL</label>
+                <input type="email" id="email_usuario<?php echo $id; ?>" name="email_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
+            </div>
+            <div class="col-md-6">
+                <label for="senha<?php echo $id; ?>" class="form-label">NOVA SENHA</label>
+                <input type="password" id="senha<?php echo $id; ?>" name="senha" class="form-control" placeholder="Deixe em branco para manter a senha atual" minlength="8">
+            </div>
+            <?php foreach (['perfil' => ['PERFIL', ['OPERADOR' => 'Operador', 'ADMINISTRADOR' => 'Administrador']], 'status_usuario' => ['STATUS', ['ATIVO' => 'Ativo', 'INATIVO' => 'Inativo']]] as $campo => [$rotulo, $opcoes]) { ?>
+                <div class="col-md-3">
+                    <label for="<?php echo $campo . $id; ?>" class="form-label"><?php echo $rotulo; ?></label>
+                    <select id="<?php echo $campo . $id; ?>" name="<?php echo $campo; ?>" class="form-select" <?php if ($proprio) echo 'disabled'; ?>>
+                        <?php foreach ($opcoes as $valor => $texto) { ?>
+                            <option value="<?php echo $valor; ?>" <?php if ($usuario[$campo] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            <?php } ?>
+            <?php if ($proprio) { ?>
+                <div class="col-12 form-text mt-1">Você não pode alterar o próprio perfil nem o próprio status.</div>
+            <?php } ?>
+        </div>
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" name="salvar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+            <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">CANCELAR</button>
+        </div>
+    </form>
+<?php }
 
 ?>
 
@@ -123,8 +202,8 @@ try {
             <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formUsuario">+ NOVO USUÁRIO</button>
         </div>
 
-        <?php if ($mensagem) { ?>
-            <div class="alert alert-<?php echo $mensagem[0]; ?>"><?php echo $mensagem[1]; ?></div>
+        <?php if ($erros) { ?>
+            <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
 
         <div class="caixa collapse" id="formUsuario">
@@ -160,45 +239,31 @@ try {
         </div>
 
         <div class="caixa">
-            <div class="caixa-topo">
-                USUÁRIOS CADASTRADOS
-                <form method="GET">
-                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <?php foreach (['' => 'Todos', 'ATIVO' => 'Ativos', 'INATIVO' => 'Inativos'] as $valor => $texto) { ?>
-                            <option value="<?php echo $valor; ?>" <?php if ($filtro_status === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                        <?php } ?>
-                    </select>
-                </form>
-            </div>
+            <?php topo('USUÁRIOS CADASTRADOS', true); ?>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 tabela">
                     <thead>
-                        <tr><th>ID</th><th>NOME DE USUÁRIO</th><th>E-MAIL</th><th>PERFIL</th><th>TRENS</th><th>STATUS</th><th>CADASTRADO EM</th><th class="text-center">AÇÕES</th></tr>
+                        <tr><?php marcarTodos(); ?><th>ID</th><th>NOME DE USUÁRIO</th><th>E-MAIL</th><th>PERFIL</th><th>TRENS</th><th>STATUS</th><th>CADASTRADO EM</th><th class="text-center">AÇÕES</th></tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($usuarios as $usuario) { ?>
+                        <?php foreach ($usuarios as $usuario) { $id = (int) $usuario['id_usuario']; ?>
                             <tr>
-                                <td><?php echo (int) $usuario['id_usuario']; ?></td>
+                                <?php marcar($id, 'o usuário ' . $usuario['nome_usuario'], $id === $eu ? 'Você não pode inativar a própria conta.' : ($usuario['total_trens'] > 0 ? 'Ele é responsável por ' . $usuario['total_trens'] . ' trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.' : '')); ?>
+                                <td><?php echo $id; ?></td>
                                 <td><?php echo htmlspecialchars($usuario['nome_usuario']); ?></td>
                                 <td><?php echo htmlspecialchars($usuario['email_usuario']); ?></td>
                                 <td><span class="badge status status-<?php echo $usuario['perfil']; ?>"><?php echo $usuario['perfil']; ?></span></td>
                                 <td><?php echo htmlspecialchars($usuario['nomes_trens'] ?? 'Sem trem'); ?></td>
                                 <td><span class="badge status status-<?php echo $usuario['status_usuario']; ?>"><?php echo $usuario['status_usuario']; ?></span></td>
                                 <td><?php echo date('d/m/Y H:i', strtotime($usuario['data_cadastro'])); ?></td>
-                                <td class="text-center text-nowrap">
-                                    <a href="tela-editar-user.php?id=<?php echo (int) $usuario['id_usuario']; ?>" class="btn btn-sm btn-outline-primary">EDITAR</a>
-                                    <?php if ((int) $usuario['id_usuario'] === (int) $_SESSION['id_usuario']) { ?>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Você não pode inativar a própria conta">INATIVAR</button>
-                                    <?php } elseif ($usuario['status_usuario'] === 'ATIVO') { ?>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativarUsuario" data-id="<?php echo (int) $usuario['id_usuario']; ?>" data-nome="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" data-trens="<?php echo (int) $usuario['total_trens']; ?>">INATIVAR</button>
-                                    <?php } ?>
-                                </td>
+                                <td class="text-center text-nowrap"><?php acoes($id, $usuario['status_usuario'] === 'INATIVO'); ?></td>
+                            </tr>
+                            <tr class="collapse <?php if ($aberto === $id) echo 'show'; ?>" id="editar<?php echo $id; ?>">
+                                <td colspan="9" class="p-0"><?php formUsuario($aberto === $id ? $_POST + $usuario : $usuario, $id === $eu); ?></td>
                             </tr>
                         <?php } ?>
-                        <?php if ($erro_lista) { ?>
-                            <tr><td colspan="8" class="text-center text-danger py-4">Não foi possível carregar os usuários. Tente novamente mais tarde.</td></tr>
-                        <?php } elseif (!$usuarios) { ?>
-                            <tr><td colspan="8" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                        <?php if (!$usuarios) { ?>
+                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
                         <?php } ?>
                     </tbody>
                 </table>
@@ -207,49 +272,10 @@ try {
 
     </main>
 
-    <div class="modal fade" id="modalInativarUsuario" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header modal-topo py-2">
-                    <h6 class="modal-title fw-bold">INATIVAR USUÁRIO</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-warning mb-0">
-                        <strong id="modalPerguntaUsuario"></strong><br>
-                        <span id="modalTextoUsuario"></span>
-                    </div>
-                </div>
-                <div class="modal-footer py-2">
-                    <form method="POST" action="inativar-user.php" class="d-flex gap-2">
-                        <input type="hidden" name="id_usuario" id="modalIdUsuario">
-                        <input type="hidden" name="token" value="<?php echo $_SESSION['token']; ?>">
-                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">CANCELAR</button>
-                        <button type="submit" id="modalBotaoInativar" class="btn btn-sm btn-danger">INATIVAR</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php modalStatus(); ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../script/validacao_cadastro_user.js"></script>
-
-    <script>
-        modalInativarUsuario.addEventListener('show.bs.modal', function (evento) {
-            const botao = evento.relatedTarget;
-            const trens = Number(botao.dataset.trens);
-
-            modalIdUsuario.value = botao.dataset.id;
-            modalPerguntaUsuario.textContent = (trens ? 'Não é possível inativar o usuário ' : 'Tem certeza que deseja inativar o usuário ') + botao.dataset.nome + (trens ? '.' : '?');
-            modalTextoUsuario.textContent = trens ? 'Ele é responsável por ' + trens + ' trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.' : 'Ele não poderá mais entrar no sistema. Para reativar, use EDITAR.';
-            modalBotaoInativar.hidden = trens > 0;
-        });
-
-        <?php if ($mensagem) { ?>
-        history.replaceState(null, '', 'tela-cadastro-user.php<?php echo $filtro_status ? '?status=' . $filtro_status : ''; ?>');
-        <?php } ?>
-    </script>
 
 </body>
 
