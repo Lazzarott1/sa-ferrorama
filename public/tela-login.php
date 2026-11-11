@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['ajax'])) {
         header('Content-Type: application/json');
-        echo json_encode(['sucesso' => $erro === '', 'mensagem' => $erro ?: 'Login realizado com sucesso!']);
+        echo json_encode(['sucesso' => $erro === '', 'mensagem' => $erro]);
         exit();
     }
 
@@ -106,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="intro">
 
+    <div id="mensagem" class="position-fixed top-0 end-0 m-3 z-3"></div>
+
     <a href="../index.html" class="voltar-site">&larr; Conhecer o FerroMonitor</a>
 
     <main class="d-flex justify-content-center align-items-center min-vh-100 py-4">
@@ -137,8 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button class="btn btn-entrar w-100 py-2 fs-5" type="submit">ENTRAR</button>
 
                 </form>
-
-                <div id="mensagem" class="mt-3"></div>
 
                 <p class="aviso-suporte">Precisa de ajuda? Fale com o administrador do sistema.</p>
 
