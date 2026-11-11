@@ -162,7 +162,7 @@ $trilhos = buscar($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE st
                 <form method="get">
                     <select name="tipo" class="form-select form-select-sm" onchange="this.form.submit()">
                         <?php foreach (array_merge(['Todos'], $tiposDisponiveis) as $t) { ?>
-                            <option <?= $filtroTipo === $t ? 'selected' : '' ?>><?= htmlspecialchars($t) ?></option>
+                            <option value="<?= htmlspecialchars($t) ?>" <?= $filtroTipo === $t ? 'selected' : '' ?>><?= htmlspecialchars(mb_strtoupper($t)) ?></option>
                         <?php } ?>
                     </select>
                 </form>
