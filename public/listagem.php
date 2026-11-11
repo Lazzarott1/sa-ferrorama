@@ -27,8 +27,10 @@ function topo($titulo, $admin)
         <?php echo $titulo; ?>
         <div class="d-flex flex-wrap gap-2">
             <?php if ($admin) { ?>
-                <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-light">ATIVAR SELECIONADOS</button>
-                <button type="button" class="btn btn-sm btn-outline-light" onclick="inativar()">INATIVAR SELECIONADOS</button>
+                <div id="emMassa" class="d-flex gap-2 d-none">
+                    <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-light">ATIVAR SELECIONADOS</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="inativar()">INATIVAR SELECIONADOS</button>
+                </div>
             <?php } ?>
             <form method="GET">
                 <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -86,8 +88,15 @@ function modalStatus()
     </div>
 
     <script>
+        function mostrarMassa() {
+            document.getElementById('emMassa')?.classList.toggle('d-none', document.querySelectorAll('.marcar:checked').length < 2);
+        }
+
+        document.addEventListener('change', mostrarMassa);
+
         function marcarSo(id) {
             document.querySelectorAll('.marcar').forEach(c => c.checked = c.value == id);
+            mostrarMassa();
         }
 
         function inativar(id) {
