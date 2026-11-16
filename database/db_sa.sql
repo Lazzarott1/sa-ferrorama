@@ -62,6 +62,14 @@ CREATE TABLE relatorios (
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho)
 );
 
+CREATE TABLE leituras (
+    id_leitura       INT AUTO_INCREMENT PRIMARY KEY,
+    id_sensor        INT             NOT NULL,
+    valor            DECIMAL(10,2)   NOT NULL,
+    data_leitura     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_sensor) REFERENCES sensores(id_sensor)
+);
+
 USE sa_ferrorama;
 
 INSERT INTO usuarios (nome_usuario, senha, email_usuario, perfil) VALUES

@@ -1,5 +1,5 @@
 async function buscarCep(campo) {
-    const aviso = document.getElementById('avisoCep');
+    const aviso = campo.nextElementSibling;
     const cep = campo.value.replace(/\D/g, '');
 
     const avisar = (texto, cor) => {
