@@ -291,7 +291,8 @@ html body {
     color: #1b3f53;
 }
 
-/* etiquetas de status: cinza é o padrão (INATIVO), verde ativo, amarelo manutenção/alerta, vermelho erro */
+/* etiquetas de status: cinza é o padrão (INATIVO), verde ativo, amarelo manutenção/alerta,
+   vermelho erro */
 .badge.status {
     border: 1px solid #c4c8cb;
     border-radius: 4px;

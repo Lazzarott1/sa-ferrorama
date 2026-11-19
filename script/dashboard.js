@@ -71,10 +71,24 @@ function mostrarSensores(sensores) {
         }
 
         html += '<div class="col-sm-6 col-lg-3"><div class="caixa mb-0 h-100">';
-        html += '<div class="caixa-topo">' + protegerTexto(s.nome_sensor) + ' ' + mostrarStatus(s.status_sensor) + '</div>';
+        html += '<div class="caixa-topo">'
+            + protegerTexto(s.nome_sensor)
+            + ' '
+            + mostrarStatus(s.status_sensor)
+            + '</div>';
         html += '<div class="p-3">';
-        html += '<div class="fs-3 fw-bold ' + cor + '">' + mostrarValor(s.valor, s.tipo_sensor) + '</div>';
-        html += '<small class="text-muted">' + protegerTexto(s.tipo_sensor) + ' · ' + protegerTexto(s.nome_trilho) + '<br>' + data + '</small>';
+        html += '<div class="fs-3 fw-bold '
+            + cor
+            + '">'
+            + mostrarValor(s.valor, s.tipo_sensor)
+            + '</div>';
+        html += '<small class="text-muted">'
+            + protegerTexto(s.tipo_sensor)
+            + ' · '
+            + protegerTexto(s.nome_trilho)
+            + '<br>'
+            + data
+            + '</small>';
         html += '</div></div></div>';
     }
 
@@ -104,7 +118,9 @@ function mostrarLeituras(leituras) {
     }
 
     if (leituras.length == 0) {
-        html = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma leitura registrada.</td></tr>';
+        html = '<tr>'
+            + '<td colspan="7" class="text-center text-muted py-4">Nenhuma leitura registrada.</td>'
+            + '</tr>';
     }
 
     document.getElementById('leituras').innerHTML = html;
@@ -124,7 +140,8 @@ function atualizar() {
             mostrarResumo(dados.resumo);
             mostrarSensores(dados.sensores);
             mostrarLeituras(dados.leituras);
-            document.getElementById('atualizado').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+            document.getElementById('atualizado').textContent = 'atualizado às '
+                + new Date().toLocaleTimeString('pt-BR');
         })
         // perdeu a conexão: só avisa, na próxima rodada tenta de novo
         .catch(function () {

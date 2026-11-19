@@ -23,13 +23,18 @@ function validarSensor($conexao, $id, $nome, $tipo, $id_trilho, $status)
     }
 
     // O trilho precisa estar ativo, a não ser que o sensor já estivesse nele
-    $sensor_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho FROM sensores WHERE id_sensor = $id"));
+    $sensor_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho
+        FROM sensores
+        WHERE id_sensor = $id"));
 
-    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho FROM trilhos WHERE id_trilho = $id_trilho"));
+    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho
+        FROM trilhos
+        WHERE id_trilho = $id_trilho"));
 
     if (!$trilho) {
         $erros[] = "Selecione um trilho ativo.";
-    } elseif ($trilho['status_trilho'] == 'INATIVO' && (!$sensor_atual || $sensor_atual['id_trilho'] != $id_trilho)) {
+    } elseif ($trilho['status_trilho'] == 'INATIVO'
+        && (!$sensor_atual || $sensor_atual['id_trilho'] != $id_trilho)) {
         $erros[] = "Selecione um trilho ativo.";
     }
 

@@ -46,15 +46,21 @@ function mudarStatus($conexao, $tabela, $chave, $coluna, $regra = "1")
     $lista = implode(',', $ids);
 
     if (isset($_POST['ativar'])) {
-        mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'ATIVO' WHERE $chave IN ($lista) AND $coluna = 'INATIVO'");
+        mysqli_query($conexao, "UPDATE $tabela
+            SET $coluna = 'ATIVO'
+            WHERE $chave IN ($lista) AND $coluna = 'INATIVO'");
         return 0;
     }
 
     // nada é apagado do banco, só muda o status
-    mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'INATIVO' WHERE $chave IN ($lista) AND $regra");
+    mysqli_query($conexao, "UPDATE $tabela
+        SET $coluna = 'INATIVO'
+        WHERE $chave IN ($lista) AND $regra");
 
     // conta quantos dos marcados continuaram ativos (bloqueados pela regra)
-    $resultado = mysqli_query($conexao, "SELECT COUNT(*) AS total FROM $tabela WHERE $chave IN ($lista) AND $coluna <> 'INATIVO'");
+    $resultado = mysqli_query($conexao, "SELECT COUNT(*) AS total
+        FROM $tabela
+        WHERE $chave IN ($lista) AND $coluna <> 'INATIVO'");
     $linha = mysqli_fetch_assoc($resultado);
 
     return $linha['total'];
@@ -71,15 +77,37 @@ function topo($titulo, $admin)
             <?php if ($admin) { ?>
                 <!-- esses botões só aparecem quando marca 2 itens ou mais (listagem.js) -->
                 <div id="emMassa" class="d-flex gap-2 d-none">
-                    <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-light">ATIVAR SELECIONADOS</button>
-                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalInativar" onclick="inativar(0)">INATIVAR SELECIONADOS</button>
+                    <button
+                        type="submit"
+                        form="formStatus"
+                        name="ativar"
+                        class="btn btn-sm btn-light">
+                        ATIVAR SELECIONADOS
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-light"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalInativar"
+                        onclick="inativar(0)">
+                        INATIVAR SELECIONADOS
+                    </button>
                 </div>
             <?php } ?>
             <form method="GET">
-                <select name="filtro" class="form-select form-select-sm" onchange="enviarFiltro(this)">
-                    <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>ATIVOS</option>
-                    <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>INATIVOS</option>
-                    <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>TODOS</option>
+                <select
+                    name="filtro"
+                    class="form-select form-select-sm"
+                    onchange="enviarFiltro(this)">
+                    <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>
+                        ATIVOS
+                    </option>
+                    <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>
+                        INATIVOS
+                    </option>
+                    <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>
+                        TODOS
+                    </option>
                 </select>
             </form>
         </div>
@@ -99,19 +127,50 @@ function marcarTodos()
 function marcar($id, $nome, $bloqueio)
 {
     ?>
-    <td><input type="checkbox" class="form-check-input marcar" form="formStatus" name="ids[]" value="<?php echo $id; ?>" data-nome="<?php echo htmlspecialchars($nome); ?>" data-bloqueio="<?php echo htmlspecialchars($bloqueio); ?>" onchange="mostrarMassa()"></td>
+    <td>
+        <input
+            type="checkbox"
+            class="form-check-input marcar"
+            form="formStatus"
+            name="ids[]"
+            value="<?php echo $id; ?>"
+            data-nome="<?php echo htmlspecialchars($nome); ?>"
+            data-bloqueio="<?php echo htmlspecialchars($bloqueio); ?>"
+            onchange="mostrarMassa()">
+    </td>
     <?php
 }
 
-// botões de cada linha: EDITAR abre o formulário embaixo do item; o outro botão é ATIVAR ou INATIVAR conforme o status
+// botões de cada linha: EDITAR abre o formulário embaixo do item; o outro botão é ATIVAR ou
+// INATIVAR conforme o status
 function acoes($id, $status)
 {
     ?>
-    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">EDITAR</button>
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-primary"
+        data-bs-toggle="collapse"
+        data-bs-target="#editar<?php echo $id; ?>">
+        EDITAR
+    </button>
     <?php if ($status == 'INATIVO') { ?>
-        <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-primary" onclick="marcarSo(<?php echo $id; ?>)">ATIVAR</button>
+        <button
+            type="submit"
+            form="formStatus"
+            name="ativar"
+            class="btn btn-sm btn-primary"
+            onclick="marcarSo(<?php echo $id; ?>)">
+            ATIVAR
+        </button>
     <?php } else { ?>
-        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar" onclick="inativar(<?php echo $id; ?>)">INATIVAR</button>
+        <button
+            type="button"
+            class="btn btn-sm btn-outline-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#modalInativar"
+            onclick="inativar(<?php echo $id; ?>)">
+            INATIVAR
+        </button>
     <?php } ?>
     <?php
 }
@@ -128,7 +187,8 @@ function modalStatus()
             <div class="modal-content">
                 <div class="modal-header modal-topo py-2">
                     <h6 class="modal-title fw-bold" id="tituloInativar"></h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal">
+                    </button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-warning mb-0">
@@ -137,8 +197,17 @@ function modalStatus()
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">CANCELAR</button>
-                    <button type="submit" form="formStatus" name="inativar" id="botaoInativar" class="btn btn-sm btn-danger">INATIVAR</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                        CANCELAR
+                    </button>
+                    <button
+                        type="submit"
+                        form="formStatus"
+                        name="inativar"
+                        id="botaoInativar"
+                        class="btn btn-sm btn-danger">
+                        INATIVAR
+                    </button>
                 </div>
             </div>
         </div>

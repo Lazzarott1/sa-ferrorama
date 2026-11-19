@@ -48,10 +48,19 @@ function buscarCep(campo, id) {
 
             campo.value = dados.cep;
             preencherEndereco(id, dados.logradouro, dados.bairro, dados.localidade, dados.uf);
-            avisarCep(id, 'Endereço encontrado: ' + dados.localidade + '/' + dados.uf + '.', 'text-success');
+            avisarCep(
+                id,
+                'Endereço encontrado: ' + dados.localidade + '/' + dados.uf + '.',
+                'text-success'
+            );
         })
         // sem internet ou ViaCEP fora do ar: deixa a pessoa preencher na mão
         .catch(function () {
-            avisarCep(id, 'Não foi possível consultar o CEP agora. Tente de novo ou preencha o endereço à mão.', 'text-warning-emphasis');
+            avisarCep(
+                id,
+                'Não foi possível consultar o CEP agora. '
+                    + 'Tente de novo ou preencha o endereço à mão.',
+                'text-warning-emphasis'
+            );
         });
 }

@@ -41,11 +41,16 @@ if (isset($_GET['json'])) {
 
     // cada sensor ativo junto com a última leitura dele (a de maior id)
     $sensores = [];
-    $resultado = mysqli_query($conexao, "SELECT sensores.nome_sensor, sensores.tipo_sensor, sensores.status_sensor, trilhos.nome_trilho, leituras.valor,
+    $resultado = mysqli_query($conexao, "SELECT sensores.nome_sensor, sensores.tipo_sensor,
+        sensores.status_sensor, trilhos.nome_trilho, leituras.valor,
         DATE_FORMAT(leituras.data_leitura, '%d/%m/%Y %H:%i:%s') AS data
         FROM sensores
         LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
-        LEFT JOIN leituras ON leituras.id_leitura = (SELECT MAX(id_leitura) FROM leituras WHERE leituras.id_sensor = sensores.id_sensor)
+        LEFT JOIN leituras ON leituras.id_leitura = (
+            SELECT MAX(id_leitura)
+            FROM leituras
+            WHERE leituras.id_sensor = sensores.id_sensor
+        )
         WHERE sensores.status_sensor <> 'INATIVO'
         ORDER BY sensores.nome_sensor");
     while ($linha = mysqli_fetch_assoc($resultado)) {
@@ -54,8 +59,10 @@ if (isset($_GET['json'])) {
 
     // as 100 leituras mais recentes
     $leituras = [];
-    $resultado = mysqli_query($conexao, "SELECT leituras.id_leitura, DATE_FORMAT(leituras.data_leitura, '%d/%m/%Y %H:%i:%s') AS data,
-        sensores.nome_sensor, sensores.tipo_sensor, trilhos.nome_trilho, leituras.valor, sensores.status_sensor
+    $resultado = mysqli_query($conexao, "SELECT leituras.id_leitura,
+        DATE_FORMAT(leituras.data_leitura, '%d/%m/%Y %H:%i:%s') AS data,
+        sensores.nome_sensor, sensores.tipo_sensor, trilhos.nome_trilho, leituras.valor,
+        sensores.status_sensor
         FROM leituras
         JOIN sensores ON sensores.id_sensor = leituras.id_sensor
         LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
@@ -85,7 +92,9 @@ if (isset($_GET['json'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="../../assets/img/style/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
 </head>
 
 <body>
@@ -98,7 +107,10 @@ if (isset($_GET['json'])) {
         <div class="cabecalho">
             <div>
                 <h3>Dashboard</h3>
-                <p>Leituras dos sensores em tempo real · <span id="atualizado">Carregando...</span></p>
+                <p>
+                    Leituras dos sensores em tempo real ·
+                    <span id="atualizado">Carregando...</span>
+                </p>
             </div>
         </div>
 
@@ -134,7 +146,8 @@ if (isset($_GET['json'])) {
             </div>
         </div>
 
-        <!-- cartões dos sensores e a tabela de leituras também são preenchidos pelo dashboard.js -->
+        <!-- cartões dos sensores e a tabela de leituras também são preenchidos pelo -->
+        <!-- dashboard.js -->
         <div class="row g-3 mb-4" id="sensores"></div>
 
         <div class="caixa">

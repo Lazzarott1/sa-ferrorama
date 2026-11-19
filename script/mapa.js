@@ -2,18 +2,45 @@
 
 // Nome de cada trecho: [até que parte do segmento vai (0 a 1), nome]
 const trechos = {
-    'principal': [[0.189, 'Reta Norte'], [0.299, 'Curva Nordeste'], [0.39, 'Curva Leste Interna'], [0.474, 'Serpentina Central'], [0.621, 'Reta Central'], [0.792, 'Curva Oeste Inferior'], [1.0, 'Reta Sul']],
-    'oeste': [[0.164, 'Reta Norte (trecho oeste)'], [0.87, 'Curva Oeste Superior'], [1.0, 'Acesso à Agulha Central']],
-    'diagonal-norte': [[0.165, 'Diagonal Norte'], [0.393, 'Serpentina Norte'], [0.531, 'Reta de Ligação Leste'], [0.849, 'Curva Leste'], [1.0, 'Reta Sul (trecho leste)']],
+    'principal': [
+        [0.189, 'Reta Norte'],
+        [0.299, 'Curva Nordeste'],
+        [0.39, 'Curva Leste Interna'],
+        [0.474, 'Serpentina Central'],
+        [0.621, 'Reta Central'],
+        [0.792, 'Curva Oeste Inferior'],
+        [1.0, 'Reta Sul']
+    ],
+    'oeste': [
+        [0.164, 'Reta Norte (trecho oeste)'],
+        [0.87, 'Curva Oeste Superior'],
+        [1.0, 'Acesso à Agulha Central']
+    ],
+    'diagonal-norte': [
+        [0.165, 'Diagonal Norte'],
+        [0.393, 'Serpentina Norte'],
+        [0.531, 'Reta de Ligação Leste'],
+        [0.849, 'Curva Leste'],
+        [1.0, 'Reta Sul (trecho leste)']
+    ],
     'diagonal-sul': [[0.408, 'Diagonal Sul'], [1.0, 'Serpentina Sul']],
     'ramal': [[0.609, 'Linha do Ramal'], [1.0, 'Ramal sem Saída']]
 };
 
 // Cada agulha liga uma ponta a dois caminhos
 const agulhas = {
-    'agulha-norte': { ponta: 'oeste:inicio', caminhos: ['principal:inicio', 'diagonal-norte:inicio'] },
-    'agulha-central': { ponta: 'oeste:fim', caminhos: ['ramal:inicio', 'diagonal-sul:inicio'] },
-    'agulha-sul': { ponta: 'diagonal-norte:fim', caminhos: ['principal:fim', 'diagonal-sul:fim'] }
+    'agulha-norte': {
+        ponta: 'oeste:inicio',
+        caminhos: ['principal:inicio', 'diagonal-norte:inicio']
+    },
+    'agulha-central': {
+        ponta: 'oeste:fim',
+        caminhos: ['ramal:inicio', 'diagonal-sul:inicio']
+    },
+    'agulha-sul': {
+        ponta: 'diagonal-norte:fim',
+        caminhos: ['principal:fim', 'diagonal-sul:fim']
+    }
 };
 
 // O que existe no começo e no fim de cada segmento
@@ -127,7 +154,13 @@ function posicionarVagoes(caminho) {
         }
 
         let angulo = Math.atan2(alvo.y - ponto.y, alvo.x - ponto.x) * 180 / Math.PI;
-        vagoes[n].setAttribute('transform', 'translate(' + ponto.x + ' ' + ponto.y + ') rotate(' + angulo + ')');
+        vagoes[n].setAttribute('transform', 'translate('
+            + ponto.x
+            + ' '
+            + ponto.y
+            + ') rotate('
+            + angulo
+            + ')');
     }
 
     // joga fora o pedaço do rastro que nenhum vagão usa mais

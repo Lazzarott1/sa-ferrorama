@@ -37,11 +37,28 @@ if (isset($_POST['gerar_relatorio'])) {
         $erro = 'Preencha ao menos Título, Data Início e Data Fim.';
     } elseif ($fim < $inicio) {
         $erro = 'A Data Fim não pode ser antes da Data Início.';
-    } elseif ($tipo_dado != '' && $tipo_dado != 'Velocidade' && $tipo_dado != 'Temperatura' && $tipo_dado != 'Localização' && $tipo_dado != 'Consumo de Energia' && $tipo_dado != 'Falhas') {
+    } elseif ($tipo_dado != ''
+        && $tipo_dado != 'Velocidade'
+        && $tipo_dado != 'Temperatura'
+        && $tipo_dado != 'Localização'
+        && $tipo_dado != 'Consumo de Energia'
+        && $tipo_dado != 'Falhas') {
         $erro = 'Selecione um tipo de dado válido.';
     } else {
-        $stmt = mysqli_prepare($conexao, "INSERT INTO relatorios (titulo, tipo, data_inicio, data_fim, id_trem, id_trilho, tipo_dado, status_relatorio) VALUES (?, ?, ?, ?, ?, ?, ?, 'PRONTO')");
-        mysqli_stmt_bind_param($stmt, "ssssiis", $titulo, $tipo, $inicio, $fim, $id_trem, $id_trilho, $tipo_dado);
+        $stmt = mysqli_prepare($conexao, "INSERT INTO relatorios (titulo, tipo, data_inicio,
+            data_fim, id_trem, id_trilho, tipo_dado, status_relatorio)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'PRONTO')");
+        mysqli_stmt_bind_param(
+            $stmt,
+            "ssssiis",
+            $titulo,
+            $tipo,
+            $inicio,
+            $fim,
+            $id_trem,
+            $id_trilho,
+            $tipo_dado
+        );
         mysqli_stmt_execute($stmt);
 
         // já abre o relatório que acabou de ser criado
@@ -76,7 +93,9 @@ if ($relatorio) {
     // Se escolheu só o trem, o trilho do relatório é o trilho desse trem
     $trilho_do_trem = 0;
     if ($id_trem != 0) {
-        $trem = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho FROM trens WHERE id_trem = $id_trem"));
+        $trem = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho
+            FROM trens
+            WHERE id_trem = $id_trem"));
         $trilho_do_trem = (int) $trem['id_trilho'];
     }
     if ($id_trilho == 0) {
@@ -101,7 +120,8 @@ if ($relatorio) {
     // Filtro dos sensores (vale também para as leituras)
     $filtro_sensores = "";
     if ($id_trilho != 0) {
-        $filtro_sensores = " AND (sensores.id_trilho = $id_trilho OR sensores.id_trilho = $trilho_do_trem)";
+        $filtro_sensores = " AND (sensores.id_trilho = $id_trilho"
+            . " OR sensores.id_trilho = $trilho_do_trem)";
     }
 
     // Falhas = só o que está em manutenção ou em alerta; outro tipo filtra os sensores daquele tipo
@@ -114,24 +134,29 @@ if ($relatorio) {
     }
 
     // as 4 tabelas do relatório (só as leituras usam o período escolhido)
-    $trens = mysqli_query($conexao, "SELECT trens.nome_trem, trens.modelo_trem, trens.capacidade_trem, trilhos.nome_trilho, trens.status_trem
+    $trens = mysqli_query($conexao, "SELECT trens.nome_trem, trens.modelo_trem,
+        trens.capacidade_trem, trilhos.nome_trilho, trens.status_trem
         FROM trens
         LEFT JOIN trilhos ON trilhos.id_trilho = trens.id_trilho
         WHERE trens.status_trem <> 'INATIVO' $filtro_trens
         ORDER BY trens.nome_trem");
 
-    $trilhos = mysqli_query($conexao, "SELECT nome_trilho, descricao_trilho, km_trilho, status_trilho
+    $trilhos = mysqli_query($conexao, "SELECT nome_trilho, descricao_trilho, km_trilho,
+        status_trilho
         FROM trilhos
         WHERE status_trilho <> 'INATIVO' $filtro_trilhos
         ORDER BY nome_trilho");
 
-    $sensores = mysqli_query($conexao, "SELECT sensores.nome_sensor, sensores.tipo_sensor, trilhos.nome_trilho, sensores.status_sensor
+    $sensores = mysqli_query($conexao, "SELECT sensores.nome_sensor, sensores.tipo_sensor,
+        trilhos.nome_trilho, sensores.status_sensor
         FROM sensores
         LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
         WHERE sensores.status_sensor <> 'INATIVO' $filtro_sensores
         ORDER BY sensores.nome_sensor");
 
-    $leituras = mysqli_query($conexao, "SELECT DATE_FORMAT(leituras.data_leitura, '%d/%m/%Y %H:%i') AS data, sensores.nome_sensor, sensores.tipo_sensor, trilhos.nome_trilho, leituras.valor
+    $leituras = mysqli_query($conexao, "SELECT
+        DATE_FORMAT(leituras.data_leitura, '%d/%m/%Y %H:%i') AS data,
+        sensores.nome_sensor, sensores.tipo_sensor, trilhos.nome_trilho, leituras.valor
         FROM leituras
         JOIN sensores ON sensores.id_sensor = leituras.id_sensor
         LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
@@ -155,7 +180,10 @@ if (isset($_GET['tipo'])) {
 if ($filtro_tipo == 'Todos') {
     $relatorios = mysqli_query($conexao, "SELECT * FROM relatorios ORDER BY gerado_em DESC");
 } else {
-    $stmt = mysqli_prepare($conexao, "SELECT * FROM relatorios WHERE tipo = ? ORDER BY gerado_em DESC");
+    $stmt = mysqli_prepare($conexao, "SELECT *
+        FROM relatorios
+        WHERE tipo = ?
+        ORDER BY gerado_em DESC");
     mysqli_stmt_bind_param($stmt, "s", $filtro_tipo);
     mysqli_stmt_execute($stmt);
     $relatorios = mysqli_stmt_get_result($stmt);
@@ -163,8 +191,14 @@ if ($filtro_tipo == 'Todos') {
 
 // tipos que já existem (pro filtro) e trens/trilhos ativos (pros selects do formulário)
 $tipos = mysqli_query($conexao, "SELECT DISTINCT tipo FROM relatorios ORDER BY tipo");
-$lista_trens = mysqli_query($conexao, "SELECT id_trem, nome_trem FROM trens WHERE status_trem <> 'INATIVO' ORDER BY nome_trem");
-$lista_trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' ORDER BY nome_trilho");
+$lista_trens = mysqli_query($conexao, "SELECT id_trem, nome_trem
+    FROM trens
+    WHERE status_trem <> 'INATIVO'
+    ORDER BY nome_trem");
+$lista_trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho
+    FROM trilhos
+    WHERE status_trilho <> 'INATIVO'
+    ORDER BY nome_trilho");
 
 
 // funções pequenas pra mostrar as datas no jeito brasileiro
@@ -210,7 +244,9 @@ function cartaoTotal($nome, $total, $cor)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatórios</title>
     <link rel="stylesheet" href="../../assets/img/style/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
 </head>
 
 <body>
@@ -225,7 +261,13 @@ function cartaoTotal($nome, $total, $cor)
                 <h3>Relatórios</h3>
                 <p>Gere e visualize análises da operação ferroviária</p>
             </div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formRelatorio">+ NOVO RELATÓRIO</button>
+            <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-toggle="collapse"
+                data-bs-target="#formRelatorio">
+                + NOVO RELATÓRIO
+            </button>
         </div>
 
         <!-- erro do formulário -->
@@ -240,22 +282,40 @@ function cartaoTotal($nome, $total, $cor)
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label for="titulo" class="form-label">TÍTULO</label>
-                        <input type="text" name="titulo" id="titulo" class="form-control" placeholder="Ex: Relatório Semanal" required>
+                        <input
+                            type="text"
+                            name="titulo"
+                            id="titulo"
+                            class="form-control"
+                            placeholder="Ex: Relatório Semanal"
+                            required>
                     </div>
                     <div class="col-md-3">
                         <label for="dataInicio" class="form-label">DATA INÍCIO</label>
-                        <input type="date" name="data_inicio" id="dataInicio" class="form-control" required>
+                        <input
+                            type="date"
+                            name="data_inicio"
+                            id="dataInicio"
+                            class="form-control"
+                            required>
                     </div>
                     <div class="col-md-3">
                         <label for="dataFim" class="form-label">DATA FIM</label>
-                        <input type="date" name="data_fim" id="dataFim" class="form-control" required>
+                        <input
+                            type="date"
+                            name="data_fim"
+                            id="dataFim"
+                            class="form-control"
+                            required>
                     </div>
                     <div class="col-md-4">
                         <label for="tremRelatorio" class="form-label">TREM (OPCIONAL)</label>
                         <select name="id_trem" id="tremRelatorio" class="form-select">
                             <option value="">Todos os trens</option>
                             <?php while ($trem = mysqli_fetch_assoc($lista_trens)) { ?>
-                                <option value="<?php echo $trem['id_trem']; ?>"><?php echo htmlspecialchars($trem['nome_trem']); ?></option>
+                                <option value="<?php echo $trem['id_trem']; ?>">
+                                    <?php echo htmlspecialchars($trem['nome_trem']); ?>
+                                </option>
                             <?php } ?>
                         </select>
                     </div>
@@ -264,7 +324,9 @@ function cartaoTotal($nome, $total, $cor)
                         <select name="id_trilho" id="trilhoRelatorio" class="form-select">
                             <option value="">Todos os trilhos</option>
                             <?php while ($trilho = mysqli_fetch_assoc($lista_trilhos)) { ?>
-                                <option value="<?php echo $trilho['id_trilho']; ?>"><?php echo htmlspecialchars($trilho['nome_trilho']); ?></option>
+                                <option value="<?php echo $trilho['id_trilho']; ?>">
+                                    <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
+                                </option>
                             <?php } ?>
                         </select>
                     </div>
@@ -281,8 +343,16 @@ function cartaoTotal($nome, $total, $cor)
                     </div>
                 </div>
                 <div class="mt-4 d-flex gap-2">
-                    <button type="submit" name="gerar_relatorio" class="btn btn-primary">GERAR</button>
-                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formRelatorio">CANCELAR</button>
+                    <button type="submit" name="gerar_relatorio" class="btn btn-primary">
+                        GERAR
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#formRelatorio">
+                        CANCELAR
+                    </button>
                 </div>
             </form>
         </div>
@@ -291,11 +361,19 @@ function cartaoTotal($nome, $total, $cor)
             <div class="caixa-topo">
                 RELATÓRIOS GERADOS (<?php echo mysqli_num_rows($relatorios); ?>)
                 <form method="GET">
-                    <select name="tipo" class="form-select form-select-sm" onchange="enviarFiltro(this)">
+                    <select
+                        name="tipo"
+                        class="form-select form-select-sm"
+                        onchange="enviarFiltro(this)">
                         <option value="Todos">TODOS</option>
-                        <!-- uma opção pra cada tipo já gerado; o relatorios.js envia quando troca -->
+                        <!-- uma opção pra cada tipo já gerado; o relatorios.js envia quando -->
+                        <!-- troca -->
                         <?php while ($linha = mysqli_fetch_assoc($tipos)) { ?>
-                            <option value="<?php echo htmlspecialchars($linha['tipo']); ?>" <?php if ($filtro_tipo == $linha['tipo']) echo 'selected'; ?>><?php echo htmlspecialchars(mb_strtoupper($linha['tipo'])); ?></option>
+                            <option
+                                value="<?php echo htmlspecialchars($linha['tipo']); ?>"
+                                <?php if ($filtro_tipo == $linha['tipo']) echo 'selected'; ?>>
+                                <?php echo htmlspecialchars(mb_strtoupper($linha['tipo'])); ?>
+                            </option>
                         <?php } ?>
                     </select>
                 </form>
@@ -317,15 +395,37 @@ function cartaoTotal($nome, $total, $cor)
                         <?php while ($linha = mysqli_fetch_assoc($relatorios)) { ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($linha['titulo']); ?></td>
-                                <td><a href="?tipo=<?php echo urlencode($linha['tipo']); ?>"><?php echo htmlspecialchars($linha['tipo']); ?></a></td>
-                                <td><?php echo mostrarData($linha['data_inicio']); ?> a <?php echo mostrarData($linha['data_fim']); ?></td>
-                                <td><span class="badge status status-<?php echo $linha['status_relatorio']; ?>"><?php echo $linha['status_relatorio']; ?></span></td>
+                                <td>
+                                    <a href="?tipo=<?php echo urlencode($linha['tipo']); ?>">
+                                        <?php echo htmlspecialchars($linha['tipo']); ?>
+                                    </a>
+                                </td>
+                                <td>
+                                    <?php echo mostrarData($linha['data_inicio']); ?> a
+                                    <?php echo mostrarData($linha['data_fim']); ?>
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge status status-<?php echo $linha['status_relatorio']; ?>">
+                                        <?php echo $linha['status_relatorio']; ?>
+                                    </span>
+                                </td>
                                 <td><?php echo mostrarDataHora($linha['gerado_em']); ?></td>
-                                <td class="text-center"><a href="?ver=<?php echo $linha['id_relatorio']; ?>" class="btn btn-sm btn-outline-primary">VER</a></td>
+                                <td class="text-center">
+                                    <a
+                                        href="?ver=<?php echo $linha['id_relatorio']; ?>"
+                                        class="btn btn-sm btn-outline-primary">
+                                        VER
+                                    </a>
+                                </td>
                             </tr>
                         <?php } ?>
                         <?php if (mysqli_num_rows($relatorios) == 0) { ?>
-                            <tr><td colspan="6" class="text-center text-muted py-4">Nenhum relatório gerado ainda.</td></tr>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Nenhum relatório gerado ainda.
+                                </td>
+                            </tr>
                         <?php } ?>
                     </tbody>
                 </table>
@@ -334,18 +434,26 @@ function cartaoTotal($nome, $total, $cor)
 
     </main>
 
-    <!-- modal com o conteúdo do relatório, só existe quando a url tem ?ver= (o relatorios.js abre ele sozinho) -->
+    <!-- modal com o conteúdo do relatório, só existe quando a url tem ?ver= (o relatorios.js -->
+    <!-- abre ele sozinho) -->
     <?php if ($relatorio) { ?>
         <div class="modal fade" id="modalRelatorio" tabindex="-1">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header modal-topo py-2">
-                        <h6 class="modal-title fw-bold"><?php echo htmlspecialchars($relatorio['titulo']); ?></h6>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <h6 class="modal-title fw-bold">
+                            <?php echo htmlspecialchars($relatorio['titulo']); ?>
+                        </h6>
+                        <button
+                            type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal">
+                        </button>
                     </div>
                     <div class="modal-body">
                         <p class="text-muted">
-                            Período: <?php echo mostrarData($relatorio['data_inicio']); ?> a <?php echo mostrarData($relatorio['data_fim']); ?>
+                            Período: <?php echo mostrarData($relatorio['data_inicio']); ?>
+                            a <?php echo mostrarData($relatorio['data_fim']); ?>
                             &middot; Trem: <?php echo textoOuTodos($relatorio['nome_trem']); ?>
                             &middot; Trilho: <?php echo textoOuTodos($relatorio['nome_trilho']); ?>
                             &middot; Dados: <?php echo textoOuTodos($relatorio['tipo_dado']); ?>
@@ -366,7 +474,8 @@ function cartaoTotal($nome, $total, $cor)
                             ?>
                         </div>
 
-                        <!-- daqui pra baixo são as 4 tabelas; todas seguem o mesmo jeito: se não tem linha mostra o aviso, senão monta a tabela -->
+                        <!-- daqui pra baixo são as 4 tabelas; todas seguem o mesmo jeito: se -->
+                        <!-- não tem linha mostra o aviso, senão monta a tabela -->
                         <h6 class="texto-azul fw-bold">Trens</h6>
                         <?php if (mysqli_num_rows($trens) == 0) { ?>
                             <p class="text-muted small mb-4">Nenhum registro encontrado.</p>
@@ -374,15 +483,27 @@ function cartaoTotal($nome, $total, $cor)
                             <div class="caixa table-responsive">
                                 <table class="table table-sm mb-0 tabela">
                                     <thead>
-                                        <tr><th>Nome</th><th>Modelo</th><th>Capacidade</th><th>Trilho</th><th>Status</th></tr>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Modelo</th>
+                                            <th>Capacidade</th>
+                                            <th>Trilho</th>
+                                            <th>Status</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         <?php while ($linha = mysqli_fetch_assoc($trens)) { ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($linha['nome_trem']); ?></td>
-                                                <td><?php echo htmlspecialchars($linha['modelo_trem']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_trem']); ?>
+                                                </td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['modelo_trem']); ?>
+                                                </td>
                                                 <td><?php echo $linha['capacidade_trem']; ?></td>
-                                                <td><?php echo htmlspecialchars($linha['nome_trilho']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                </td>
                                                 <td><?php echo $linha['status_trem']; ?></td>
                                             </tr>
                                         <?php } ?>
@@ -398,14 +519,25 @@ function cartaoTotal($nome, $total, $cor)
                             <div class="caixa table-responsive">
                                 <table class="table table-sm mb-0 tabela">
                                     <thead>
-                                        <tr><th>Nome</th><th>Descrição</th><th>KM</th><th>Status</th></tr>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Descrição</th>
+                                            <th>KM</th>
+                                            <th>Status</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         <?php while ($linha = mysqli_fetch_assoc($trilhos)) { ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($linha['nome_trilho']); ?></td>
-                                                <td><?php echo htmlspecialchars($linha['descricao_trilho']); ?></td>
-                                                <td><?php echo htmlspecialchars($linha['km_trilho']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                </td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['descricao_trilho']); ?>
+                                                </td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['km_trilho']); ?>
+                                                </td>
                                                 <td><?php echo $linha['status_trilho']; ?></td>
                                             </tr>
                                         <?php } ?>
@@ -421,14 +553,23 @@ function cartaoTotal($nome, $total, $cor)
                             <div class="caixa table-responsive">
                                 <table class="table table-sm mb-0 tabela">
                                     <thead>
-                                        <tr><th>Nome</th><th>Tipo</th><th>Trilho</th><th>Status</th></tr>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Tipo</th>
+                                            <th>Trilho</th>
+                                            <th>Status</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         <?php while ($linha = mysqli_fetch_assoc($sensores)) { ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($linha['nome_sensor']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_sensor']); ?>
+                                                </td>
                                                 <td><?php echo $linha['tipo_sensor']; ?></td>
-                                                <td><?php echo htmlspecialchars($linha['nome_trilho']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                </td>
                                                 <td><?php echo $linha['status_sensor']; ?></td>
                                             </tr>
                                         <?php } ?>
@@ -444,15 +585,25 @@ function cartaoTotal($nome, $total, $cor)
                             <div class="caixa table-responsive">
                                 <table class="table table-sm mb-0 tabela">
                                     <thead>
-                                        <tr><th>Data e hora</th><th>Sensor</th><th>Tipo</th><th>Trilho</th><th>Valor</th></tr>
+                                        <tr>
+                                            <th>Data e hora</th>
+                                            <th>Sensor</th>
+                                            <th>Tipo</th>
+                                            <th>Trilho</th>
+                                            <th>Valor</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         <?php while ($linha = mysqli_fetch_assoc($leituras)) { ?>
                                             <tr>
                                                 <td><?php echo $linha['data']; ?></td>
-                                                <td><?php echo htmlspecialchars($linha['nome_sensor']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_sensor']); ?>
+                                                </td>
                                                 <td><?php echo $linha['tipo_sensor']; ?></td>
-                                                <td><?php echo htmlspecialchars($linha['nome_trilho']); ?></td>
+                                                <td>
+                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                </td>
                                                 <td><?php echo $linha['valor']; ?></td>
                                             </tr>
                                         <?php } ?>

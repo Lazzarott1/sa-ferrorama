@@ -57,7 +57,8 @@ function marcarSo(id) {
     mostrarMassa();
 }
 
-// prepara o texto do modal de inativar (o id 0 quer dizer que veio do botão de inativar selecionados)
+// prepara o texto do modal de inativar (o id 0 quer dizer que veio do botão de inativar
+// selecionados)
 function inativar(id) {
     if (id != 0) {
         marcarSo(id);

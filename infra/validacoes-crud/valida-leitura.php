@@ -7,7 +7,9 @@ function validarLeitura($conexao, $id_sensor, $valor)
     $erros = [];
 
     // o sensor tem que existir e não pode estar inativo
-    $sensor = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_sensor FROM sensores WHERE id_sensor = $id_sensor"));
+    $sensor = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_sensor
+        FROM sensores
+        WHERE id_sensor = $id_sensor"));
 
     if (!$sensor || $sensor['status_sensor'] == 'INATIVO') {
         $erros[] = "Selecione um sensor ativo.";

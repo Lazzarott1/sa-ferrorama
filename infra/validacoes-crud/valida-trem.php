@@ -28,23 +28,31 @@ function validarTrem($conexao, $id, $nome, $modelo, $capacidade, $id_trilho, $id
     }
 
     // Trilho e responsável precisam estar ativos, a não ser que o trem já estivesse com eles
-    $trem_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho, id_usuario FROM trens WHERE id_trem = $id"));
+    $trem_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho, id_usuario
+        FROM trens
+        WHERE id_trem = $id"));
 
     // o trilho escolhido precisa existir
-    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho FROM trilhos WHERE id_trilho = $id_trilho"));
+    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho
+        FROM trilhos
+        WHERE id_trilho = $id_trilho"));
 
     if (!$trilho) {
         $erros[] = "Selecione um trilho ativo.";
-    } elseif ($trilho['status_trilho'] == 'INATIVO' && (!$trem_atual || $trem_atual['id_trilho'] != $id_trilho)) {
+    } elseif ($trilho['status_trilho'] == 'INATIVO'
+        && (!$trem_atual || $trem_atual['id_trilho'] != $id_trilho)) {
         $erros[] = "Selecione um trilho ativo.";
     }
 
     // e o responsável também
-    $usuario = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_usuario FROM usuarios WHERE id_usuario = $id_usuario"));
+    $usuario = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_usuario
+        FROM usuarios
+        WHERE id_usuario = $id_usuario"));
 
     if (!$usuario) {
         $erros[] = "Selecione um responsável ativo.";
-    } elseif ($usuario['status_usuario'] != 'ATIVO' && (!$trem_atual || $trem_atual['id_usuario'] != $id_usuario)) {
+    } elseif ($usuario['status_usuario'] != 'ATIVO'
+        && (!$trem_atual || $trem_atual['id_usuario'] != $id_usuario)) {
         $erros[] = "Selecione um responsável ativo.";
     }
 

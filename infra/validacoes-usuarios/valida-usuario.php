@@ -2,8 +2,20 @@
 
 // confere os dados do formulário de usuário (cadastro e edição)
 // $id é 0 no cadastro; devolve a lista de erros
-function validarUsuario($conexao, $id, $nome, $email, $senha, $perfil, $status, $cep, $logradouro, $bairro, $cidade, $uf)
-{
+function validarUsuario(
+    $conexao,
+    $id,
+    $nome,
+    $email,
+    $senha,
+    $perfil,
+    $status,
+    $cep,
+    $logradouro,
+    $bairro,
+    $cidade,
+    $uf
+) {
     $erros = [];
 
     if ($nome == '') {
@@ -31,7 +43,9 @@ function validarUsuario($conexao, $id, $nome, $email, $senha, $perfil, $status, 
     }
 
     // não pode ter dois usuários com o mesmo nome (o "id <> ?" ignora o próprio usuário na edição)
-    $stmt = mysqli_prepare($conexao, "SELECT id_usuario FROM usuarios WHERE nome_usuario = ? AND id_usuario <> ?");
+    $stmt = mysqli_prepare($conexao, "SELECT id_usuario
+        FROM usuarios
+        WHERE nome_usuario = ? AND id_usuario <> ?");
     mysqli_stmt_bind_param($stmt, "si", $nome, $id);
     mysqli_stmt_execute($stmt);
     $repetido = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -42,11 +56,15 @@ function validarUsuario($conexao, $id, $nome, $email, $senha, $perfil, $status, 
 
     // quem é responsável por trem ativo não pode ser inativado
     if ($status == 'INATIVO') {
-        $resultado = mysqli_query($conexao, "SELECT COUNT(*) AS total FROM trens WHERE id_usuario = $id AND status_trem <> 'INATIVO'");
+        $resultado = mysqli_query($conexao, "SELECT COUNT(*) AS total
+            FROM trens
+            WHERE id_usuario = $id AND status_trem <> 'INATIVO'");
         $trens = mysqli_fetch_assoc($resultado);
 
         if ($trens['total'] > 0) {
-            $erros[] = "Este usuário é responsável por " . $trens['total'] . " trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.";
+            $erros[] = "Este usuário é responsável por "
+                . $trens['total']
+                . " trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.";
         }
     }
 

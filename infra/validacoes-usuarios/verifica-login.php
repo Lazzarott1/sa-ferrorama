@@ -27,7 +27,9 @@ include __DIR__ . '/../conexao.php';
 
 // busca o usuário de novo no banco, porque o admin pode ter inativado ou trocado o perfil dele
 $id_logado = (int) $_SESSION['id_usuario'];
-$resultado = mysqli_query($conexao, "SELECT perfil, status_usuario FROM usuarios WHERE id_usuario = $id_logado");
+$resultado = mysqli_query($conexao, "SELECT perfil, status_usuario
+    FROM usuarios
+    WHERE id_usuario = $id_logado");
 $usuario_logado = mysqli_fetch_assoc($resultado);
 
 // foi inativado: derruba a sessão na hora

@@ -1,7 +1,11 @@
 // cartão de clima da home
 
 // API do Open-Meteo com as coordenadas de Joinville (não precisa de chave)
-const CLIMA_URL = 'https://api.open-meteo.com/v1/forecast?latitude=-26.3045&longitude=-48.8487&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&timezone=America%2FSao_Paulo';
+const CLIMA_URL = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=-26.3045&longitude=-48.8487'
+    + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,'
+    + 'wind_speed_10m,weather_code,is_day'
+    + '&timezone=America%2FSao_Paulo';
 
 // a API manda um código de clima, aqui a gente transforma em texto
 function descreverTempo(codigo) {
@@ -55,11 +59,23 @@ function carregarClima() {
             let atual = dados.current;
             let codigo = atual.weather_code;
 
-            document.getElementById('climaTemp').textContent = Math.round(atual.temperature_2m) + '°C';
-            document.getElementById('climaTexto').textContent = descreverTempo(codigo) + ' · sensação de ' + Math.round(atual.apparent_temperature) + '°C';
-            document.getElementById('climaIcone').className = 'bi icone bi-' + escolherIcone(codigo, atual.is_day);
-            document.getElementById('climaExtra').textContent = '· umidade ' + atual.relative_humidity_2m + '% · vento ' + Math.round(atual.wind_speed_10m) + ' km/h';
-            document.getElementById('climaHora').textContent = 'Medição das ' + horaAgora(new Date(atual.time)) + ' · consultado às ' + horaAgora(new Date());
+            document.getElementById('climaTemp').textContent = Math.round(atual.temperature_2m)
+                + '°C';
+            document.getElementById('climaTexto').textContent = descreverTempo(codigo)
+                + ' · sensação de '
+                + Math.round(atual.apparent_temperature)
+                + '°C';
+            document.getElementById('climaIcone').className = 'bi icone bi-'
+                + escolherIcone(codigo, atual.is_day);
+            document.getElementById('climaExtra').textContent = '· umidade '
+                + atual.relative_humidity_2m
+                + '% · vento '
+                + Math.round(atual.wind_speed_10m)
+                + ' km/h';
+            document.getElementById('climaHora').textContent = 'Medição das '
+                + horaAgora(new Date(atual.time))
+                + ' · consultado às '
+                + horaAgora(new Date());
 
             // aviso pros operadores: chuva deixa a pista molhada e vento forte é perigoso na ponte
             let aviso = '';
@@ -79,8 +95,10 @@ function carregarClima() {
         // se a API não respondeu mostra traços e pede pra atualizar
         .catch(function () {
             document.getElementById('climaTemp').textContent = '--';
-            document.getElementById('climaTexto').textContent = 'Não foi possível carregar o clima agora.';
-            document.getElementById('climaHora').textContent = 'Verifique a internet e clique em atualizar.';
+            document.getElementById('climaTexto').textContent =
+                'Não foi possível carregar o clima agora.';
+            document.getElementById('climaHora').textContent =
+                'Verifique a internet e clique em atualizar.';
         });
 }
 

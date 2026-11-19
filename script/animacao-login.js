@@ -1,4 +1,5 @@
-// animação de entrada do login: a logo começa grande no meio da tela e depois vai pro lugar dela no card
+// animação de entrada do login: a logo começa grande no meio da tela e depois vai pro lugar dela no
+// card
 let marca = document.getElementById('marca');
 let terminou = false;
 
@@ -25,7 +26,8 @@ let posicao = marca.getBoundingClientRect();
 let distanciaX = window.innerWidth / 2 - (posicao.left + posicao.width / 2);
 let distanciaY = window.innerHeight / 2 - (posicao.top + posicao.height / 2);
 
-// passa essa distância pro CSS (login.css, classe marca-centro), porque ela muda com o tamanho da tela
+// passa essa distância pro CSS (login.css, classe marca-centro), porque ela muda com o tamanho da
+// tela
 marca.style.setProperty('--distancia-x', distanciaX + 'px');
 marca.style.setProperty('--distancia-y', distanciaY + 'px');
 marca.classList.add('marca-centro');
