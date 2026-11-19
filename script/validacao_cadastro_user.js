@@ -1,3 +1,4 @@
+// envia o cadastro de usuário sem recarregar a página
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-cadastro');
     const mensagem = document.getElementById('mensagem');
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dados.append('senha', document.getElementById('senha').value);
         dados.append('perfil', document.getElementById('perfil').value);
  
+        // manda pro PHP e mostra a resposta dentro da div #mensagem
         try {
             const resposta = await fetch('tela-cadastro-user.php', {
                 method: 'POST',
@@ -23,11 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resposta.ok) {
                 mensagem.innerHTML = `<div class="alert alert-success">${texto}</div>`;
                 form.reset();
+                // espera um pouquinho pra pessoa ver a mensagem e recarrega pra aparecer na lista
                 setTimeout(() => location.reload(), 1200);
             } else {
                 mensagem.innerHTML = `<div class="alert alert-danger">Erro: ${texto}</div>`;
             }
  
+        // cai aqui se nem conseguiu falar com o servidor
         } catch (erro) {
             mensagem.innerHTML = `<div class="alert alert-danger">Erro de conexão: ${erro.message}</div>`;
         }

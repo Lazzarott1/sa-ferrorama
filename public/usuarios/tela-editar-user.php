@@ -1,6 +1,8 @@
 <?php
 
+// tela de editar usuário, só pra administrador
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+// mostra os erros do PHP na tela (ajuda a achar problema enquanto testa)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -9,15 +11,18 @@ include __DIR__ . '/../../infra/conexao.php';
 
 //    VALIDAR ID RECEBIDO
 
+// sem id não tem o que editar, volta pra lista
 if (!isset($_GET['id']) && !isset($_POST['id_usuario'])) {
     header("Location: tela-cadastro-user.php");
     exit;
 }
 
+// o id vem pela url na primeira vez e pelo campo escondido quando salva
 $id_usuario = isset($_POST['id_usuario'])
     ? (int) $_POST['id_usuario']
     : (int) $_GET['id'];
 
+// true quando o admin está editando ele mesmo
 $proprio_usuario = $id_usuario === (int) $_SESSION['id_usuario'];
 
 
@@ -25,17 +30,20 @@ $proprio_usuario = $id_usuario === (int) $_SESSION['id_usuario'];
 
 if (isset($_POST['editar'])) {
 
+    // pega o que veio do formulário
     $nome_usuario = trim($_POST['nome_usuario']);
     $email_usuario = trim($_POST['email_usuario']);
     $senha = $_POST['senha'];
     $perfil = $_POST['perfil'] ?? '';
     $status_usuario = $_POST['status_usuario'] ?? '';
 
+    // o admin não pode tirar o próprio acesso, então perfil e status ficam travados
     if ($proprio_usuario) {
         $perfil = 'ADMINISTRADOR';
         $status_usuario = 'ATIVO';
     }
 
+    // validações: se alguma falhar para tudo e mostra a mensagem
     if (!in_array($perfil, ['ADMINISTRADOR', 'OPERADOR'], true) || !in_array($status_usuario, ['ATIVO', 'INATIVO'], true)) {
         die("Perfil ou status inválido.");
     }
@@ -44,10 +52,12 @@ if (isset($_POST['editar'])) {
         die("Preencha o nome e um e-mail válido.");
     }
 
+    // senha é opcional aqui, mas se digitou tem que ter 8 caracteres ou mais
     if ($senha !== '' && strlen($senha) < 8) {
         die("A senha deve ter pelo menos 8 caracteres.");
     }
 
+    // não deixa inativar quem é responsável por trem ativo
     if ($status_usuario === 'INATIVO') {
         $stmt = mysqli_prepare($conexao, "SELECT COUNT(*) FROM trens WHERE id_usuario = ? AND status_trem <> 'INATIVO'");
         mysqli_stmt_bind_param($stmt, "i", $id_usuario);
@@ -92,6 +102,7 @@ if (isset($_POST['editar'])) {
         mysqli_stmt_bind_param($stmt, "ssssi", $nome_usuario, $email_usuario, $perfil, $status_usuario, $id_usuario);
     }
 
+    // o erro 1062 é quando o nome de usuário já existe (a coluna é UNIQUE no banco)
     try {
         mysqli_stmt_execute($stmt);
     } catch (mysqli_sql_exception $e) {
@@ -100,6 +111,7 @@ if (isset($_POST['editar'])) {
 
     mysqli_stmt_close($stmt);
 
+    // deu certo, volta pra lista com a mensagem de sucesso
     header("Location: tela-cadastro-user.php?msg=editado");
     exit;
 }
@@ -107,6 +119,7 @@ if (isset($_POST['editar'])) {
 
 //    BUSCAR USUÁRIO PARA PREENCHER O FORMULÁRIO
 
+// busca o usuário pra preencher os campos
 $sql = "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario FROM usuarios WHERE id_usuario = ?";
 
 $stmt = mysqli_prepare($conexao, $sql);
@@ -123,6 +136,7 @@ if (!mysqli_stmt_execute($stmt)) {
 
 $resultado = mysqli_stmt_get_result($stmt);
 
+// usuário não existe: volta pra lista
 if (!$resultado || mysqli_num_rows($resultado) === 0) {
     header("Location: tela-cadastro-user.php");
     exit;
@@ -147,6 +161,7 @@ mysqli_stmt_close($stmt);
 
 <body>
 
+    <!-- menu de cima -->
     <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="pagina">
@@ -161,6 +176,7 @@ mysqli_stmt_close($stmt);
         <div class="caixa">
             <div class="caixa-topo">EDITAR USUÁRIO #<?php echo $usuario['id_usuario']; ?></div>
             <form method="POST" class="caixa-corpo">
+                <!-- id escondido pra saber qual usuário salvar -->
                 <input type="hidden" name="id_usuario" value="<?php echo $usuario['id_usuario']; ?>">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -173,10 +189,12 @@ mysqli_stmt_close($stmt);
                     </div>
                     <div class="col-md-6">
                         <label for="senha" class="form-label">NOVA SENHA</label>
+                        <!-- se deixar em branco a senha continua a mesma -->
                         <input type="password" id="senha" name="senha" class="form-control" placeholder="Deixe em branco para manter a senha atual" minlength="8">
                     </div>
                     <div class="col-md-3">
                         <label for="perfil" class="form-label">PERFIL</label>
+                        <!-- perfil e status ficam desabilitados quando o admin edita ele mesmo -->
                         <select id="perfil" name="perfil" class="form-select" <?php if ($proprio_usuario) echo 'disabled'; ?>>
                             <?php foreach (['OPERADOR' => 'Operador', 'ADMINISTRADOR' => 'Administrador'] as $valor => $texto) { ?>
                                 <option value="<?php echo $valor; ?>" <?php if ($usuario['perfil'] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>

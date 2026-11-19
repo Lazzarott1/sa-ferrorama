@@ -1,38 +1,137 @@
-const esc = texto => String(texto ?? '-').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const status = s => `<span class="badge status status-${esc(s)}">${esc(s)}</span>`;
+// dashboard: busca as leituras a cada 3 segundos e redesenha a tela
 
-async function atualizar() {
-    try {
-        const resposta = await fetch('tela-dashboard.php?json=1', { cache: 'no-store' });
-        if (!resposta.headers.get('content-type').includes('json')) return location.reload();
-        const d = await resposta.json();
-        const valor = (v, tipo) => v === null ? '--' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' ' + (d.unidades[tipo] ?? '');
+// troca os caracteres especiais pra ninguém conseguir colocar HTML no nome do sensor
+function protegerTexto(texto) {
+    if (texto == null) {
+        return '-';
+    }
 
-        resumo.innerHTML = Object.entries(d.resumo).map(([nome, qtd]) => `
-            <div class="col-6 col-md-3"><div class="caixa py-2 mb-0">
-                <div class="fs-3 fw-bold ${nome == 'Alertas' && qtd > 0 ? 'text-danger' : 'texto-azul'}">${qtd}</div>
-                <div class="form-label text-uppercase mb-0">${nome}</div>
-            </div></div>`).join('');
+    let div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+}
 
-        sensores.innerHTML = d.sensores.map(s => `
-            <div class="col-sm-6 col-lg-3"><div class="caixa mb-0 h-100">
-                <div class="caixa-topo">${esc(s.nome_sensor)} ${status(s.status_sensor)}</div>
-                <div class="p-3">
-                    <div class="fs-3 fw-bold ${s.status_sensor == 'ALERTA' ? 'text-danger' : 'texto-azul'}">${valor(s.valor, s.tipo_sensor)}</div>
-                    <small class="text-muted">${esc(s.tipo_sensor)} · ${esc(s.nome_trilho)}<br>${s.data ?? 'Sem leituras'}</small>
-                </div>
-            </div></div>`).join('') || '<p class="text-muted">Nenhum sensor ativo cadastrado.</p>';
+// unidade de medida de cada tipo de sensor
+function unidade(tipo) {
+    if (tipo == 'Velocidade') {
+        return ' km/h';
+    }
+    if (tipo == 'Localização') {
+        return ' km';
+    }
+    if (tipo == 'Temperatura') {
+        return ' °C';
+    }
+    return '';
+}
 
-        leituras.innerHTML = d.leituras.map(l => `
-            <tr><td>${l.id_leitura}</td><td>${l.data}</td><td>${esc(l.nome_sensor)}</td><td>${esc(l.tipo_sensor)}</td><td>${esc(l.nome_trilho)}</td>
-            <td class="fw-bold">${valor(l.valor, l.tipo_sensor)}</td><td>${status(l.status_sensor)}</td></tr>`).join('')
-            || '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma leitura registrada.</td></tr>';
+// formata o número no padrão brasileiro (12,50 km/h)
+function mostrarValor(valor, tipo) {
+    if (valor == null) {
+        return '--';
+    }
 
-        atualizado.textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR');
-    } catch (e) {
-        atualizado.textContent = 'sem conexão, tentando de novo...';
+    return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + unidade(tipo);
+}
+
+// etiqueta colorida do status (as cores estão no style.css)
+function mostrarStatus(status) {
+    return '<span class="badge status status-' + status + '">' + status + '</span>';
+}
+
+// os 4 quadradinhos de cima; o de alertas fica vermelho se tiver algum
+function mostrarResumo(resumo) {
+    document.getElementById('totalLeituras').textContent = resumo.leituras;
+    document.getElementById('totalHoje').textContent = resumo.leituras_hoje;
+    document.getElementById('totalSensores').textContent = resumo.sensores_ativos;
+    document.getElementById('totalAlertas').textContent = resumo.alertas;
+
+    if (resumo.alertas > 0) {
+        document.getElementById('totalAlertas').className = 'fs-3 fw-bold text-danger';
+    } else {
+        document.getElementById('totalAlertas').className = 'fs-3 fw-bold texto-azul';
     }
 }
 
+// um cartão pra cada sensor com a última leitura dele
+function mostrarSensores(sensores) {
+    let html = '';
+
+    for (let i = 0; i < sensores.length; i++) {
+        let s = sensores[i];
+
+        let cor = 'texto-azul';
+        if (s.status_sensor == 'ALERTA') {
+            cor = 'text-danger';
+        }
+
+        let data = 'Sem leituras';
+        if (s.data != null) {
+            data = s.data;
+        }
+
+        html += '<div class="col-sm-6 col-lg-3"><div class="caixa mb-0 h-100">';
+        html += '<div class="caixa-topo">' + protegerTexto(s.nome_sensor) + ' ' + mostrarStatus(s.status_sensor) + '</div>';
+        html += '<div class="p-3">';
+        html += '<div class="fs-3 fw-bold ' + cor + '">' + mostrarValor(s.valor, s.tipo_sensor) + '</div>';
+        html += '<small class="text-muted">' + protegerTexto(s.tipo_sensor) + ' · ' + protegerTexto(s.nome_trilho) + '<br>' + data + '</small>';
+        html += '</div></div></div>';
+    }
+
+    if (sensores.length == 0) {
+        html = '<p class="text-muted">Nenhum sensor ativo cadastrado.</p>';
+    }
+
+    document.getElementById('sensores').innerHTML = html;
+}
+
+// tabela das últimas leituras
+function mostrarLeituras(leituras) {
+    let html = '';
+
+    for (let i = 0; i < leituras.length; i++) {
+        let l = leituras[i];
+
+        html += '<tr>';
+        html += '<td>' + l.id_leitura + '</td>';
+        html += '<td>' + l.data + '</td>';
+        html += '<td>' + protegerTexto(l.nome_sensor) + '</td>';
+        html += '<td>' + protegerTexto(l.tipo_sensor) + '</td>';
+        html += '<td>' + protegerTexto(l.nome_trilho) + '</td>';
+        html += '<td class="fw-bold">' + mostrarValor(l.valor, l.tipo_sensor) + '</td>';
+        html += '<td>' + mostrarStatus(l.status_sensor) + '</td>';
+        html += '</tr>';
+    }
+
+    if (leituras.length == 0) {
+        html = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma leitura registrada.</td></tr>';
+    }
+
+    document.getElementById('leituras').innerHTML = html;
+}
+
+// pede os dados pro PHP em JSON (?json=1)
+function atualizar() {
+    fetch('tela-dashboard.php?json=1')
+        .then(function (resposta) {
+            // se a sessão caiu o PHP redireciona pro login, então recarrega a página
+            if (resposta.redirected) {
+                location.reload();
+            }
+            return resposta.json();
+        })
+        .then(function (dados) {
+            mostrarResumo(dados.resumo);
+            mostrarSensores(dados.sensores);
+            mostrarLeituras(dados.leituras);
+            document.getElementById('atualizado').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+        })
+        // perdeu a conexão: só avisa, na próxima rodada tenta de novo
+        .catch(function () {
+            document.getElementById('atualizado').textContent = 'sem conexão, tentando de novo...';
+        });
+}
+
+// atualiza agora e depois a cada 3 segundos
 atualizar();
 setInterval(atualizar, 3000);

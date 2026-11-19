@@ -1,73 +1,127 @@
 <?php
 
-function filtrar($coluna)
+// funções que as listas de trilhos, trens, sensores e usuários usam igualzinho
+// assim não precisa repetir o mesmo código em cada tela
+
+// qual filtro está escolhido na url (?filtro=); o padrão é mostrar só os ativos
+function filtroEscolhido()
 {
-    global $filtro;
-    $filtro = $_GET['filtro'] ?? 'ativos';
-    return ['ativos' => "WHERE $coluna <> 'INATIVO'", 'inativos' => "WHERE $coluna = 'INATIVO'"][$filtro] ?? "";
+    if (isset($_GET['filtro'])) {
+        return $_GET['filtro'];
+    }
+
+    return 'ativos';
 }
 
-function mudarStatus($conexao, $tabela, $chave, $coluna, $permitido = "1")
+// monta o WHERE da consulta conforme o filtro
+function filtrar($coluna)
 {
-    $ids = implode(',', array_map('intval', $_POST['ids'] ?? [])) ?: '0';
+    $filtro = filtroEscolhido();
 
-    if (isset($_POST['ativar'])) {
-        mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'ATIVO' WHERE $chave IN ($ids) AND $coluna = 'INATIVO'");
+    if ($filtro == 'ativos') {
+        return "WHERE $coluna <> 'INATIVO'";
+    }
+
+    if ($filtro == 'inativos') {
+        return "WHERE $coluna = 'INATIVO'";
+    }
+
+    return "";
+}
+
+// ativa ou inativa os itens marcados na lista
+// $regra é uma condição a mais pra poder inativar (ex: trilho sem trem ativo)
+// devolve quantos itens ficaram sem inativar
+function mudarStatus($conexao, $tabela, $chave, $coluna, $regra = "1")
+{
+    if (!isset($_POST['ids'])) {
         return 0;
     }
 
-    mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'INATIVO' WHERE $chave IN ($ids) AND $permitido");
-    return mysqli_fetch_row(mysqli_query($conexao, "SELECT COUNT(*) FROM $tabela WHERE $chave IN ($ids) AND $coluna <> 'INATIVO'"))[0];
+    // o (int) garante que só tem número na lista de ids
+    $ids = [];
+    foreach ($_POST['ids'] as $id) {
+        $ids[] = (int) $id;
+    }
+    $lista = implode(',', $ids);
+
+    if (isset($_POST['ativar'])) {
+        mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'ATIVO' WHERE $chave IN ($lista) AND $coluna = 'INATIVO'");
+        return 0;
+    }
+
+    // nada é apagado do banco, só muda o status
+    mysqli_query($conexao, "UPDATE $tabela SET $coluna = 'INATIVO' WHERE $chave IN ($lista) AND $regra");
+
+    // conta quantos dos marcados continuaram ativos (bloqueados pela regra)
+    $resultado = mysqli_query($conexao, "SELECT COUNT(*) AS total FROM $tabela WHERE $chave IN ($lista) AND $coluna <> 'INATIVO'");
+    $linha = mysqli_fetch_assoc($resultado);
+
+    return $linha['total'];
 }
 
+// faixa azul em cima da tabela, com o título, os botões de ação em massa e o filtro
 function topo($titulo, $admin)
 {
-    global $filtro; ?>
+    $filtro = filtroEscolhido();
+    ?>
     <div class="caixa-topo">
         <?php echo $titulo; ?>
         <div class="d-flex flex-wrap gap-2">
             <?php if ($admin) { ?>
+                <!-- esses botões só aparecem quando marca 2 itens ou mais (listagem.js) -->
                 <div id="emMassa" class="d-flex gap-2 d-none">
                     <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-light">ATIVAR SELECIONADOS</button>
-                    <button type="button" class="btn btn-sm btn-outline-light" onclick="inativar()">INATIVAR SELECIONADOS</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalInativar" onclick="inativar(0)">INATIVAR SELECIONADOS</button>
                 </div>
             <?php } ?>
             <form method="GET">
-                <select name="filtro" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <?php foreach (['ativos' => 'ATIVOS', 'inativos' => 'INATIVOS', 'todos' => 'TODOS'] as $valor => $texto) { ?>
-                        <option value="<?php echo $valor; ?>" <?php if ($filtro == $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                    <?php } ?>
+                <select name="filtro" class="form-select form-select-sm" onchange="enviarFiltro(this)">
+                    <option value="ativos" <?php if ($filtro == 'ativos') echo 'selected'; ?>>ATIVOS</option>
+                    <option value="inativos" <?php if ($filtro == 'inativos') echo 'selected'; ?>>INATIVOS</option>
+                    <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>TODOS</option>
                 </select>
             </form>
         </div>
     </div>
-<?php }
-
-function marcarTodos()
-{ ?>
-    <th><input type="checkbox" class="form-check-input" onchange="document.querySelectorAll('.marcar').forEach(c => c.checked = this.checked)"></th>
-<?php }
-
-function marcar($id, $nome, $bloqueio = '')
-{ ?>
-    <td><input type="checkbox" class="form-check-input marcar" form="formStatus" name="ids[]" value="<?php echo $id; ?>" data-nome="<?php echo htmlspecialchars($nome); ?>" data-bloqueio="<?php echo htmlspecialchars($bloqueio); ?>"></td>
-<?php }
-
-function acoes($id, $inativo)
-{ ?>
-    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">EDITAR</button>
-    <?php if ($inativo) { ?>
-        <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-primary" onclick="marcarSo(<?php echo $id; ?>)">ATIVAR</button>
-    <?php } else { ?>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="inativar(<?php echo $id; ?>)">INATIVAR</button>
-    <?php }
+    <?php
 }
 
+// checkbox do cabeçalho que marca ou desmarca todos
+function marcarTodos()
+{
+    ?>
+    <th><input type="checkbox" class="form-check-input" onchange="marcarTodos(this)"></th>
+    <?php
+}
+
+// checkbox de cada linha; o data-bloqueio guarda o motivo de não poder inativar (vazio se pode)
+function marcar($id, $nome, $bloqueio)
+{
+    ?>
+    <td><input type="checkbox" class="form-check-input marcar" form="formStatus" name="ids[]" value="<?php echo $id; ?>" data-nome="<?php echo htmlspecialchars($nome); ?>" data-bloqueio="<?php echo htmlspecialchars($bloqueio); ?>" onchange="mostrarMassa()"></td>
+    <?php
+}
+
+// botões de cada linha: EDITAR abre o formulário embaixo do item; o outro botão é ATIVAR ou INATIVAR conforme o status
+function acoes($id, $status)
+{
+    ?>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">EDITAR</button>
+    <?php if ($status == 'INATIVO') { ?>
+        <button type="submit" form="formStatus" name="ativar" class="btn btn-sm btn-primary" onclick="marcarSo(<?php echo $id; ?>)">ATIVAR</button>
+    <?php } else { ?>
+        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalInativar" onclick="inativar(<?php echo $id; ?>)">INATIVAR</button>
+    <?php } ?>
+    <?php
+}
+
+// formulário vazio que envia os checkboxes marcados (eles apontam pra ele com form="formStatus")
+// + o modal que pergunta se quer mesmo inativar
 function modalStatus()
-{ ?>
-    <form id="formStatus" method="POST">
-        <input type="hidden" name="token" value="<?php echo $_SESSION['token'] ?? ''; ?>">
-    </form>
+{
+    ?>
+    <form id="formStatus" method="POST"></form>
 
     <div class="modal fade" id="modalInativar" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -77,7 +131,10 @@ function modalStatus()
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-warning mb-0"><strong id="perguntaInativar"></strong><div id="textoInativar"></div></div>
+                    <div class="alert alert-warning mb-0">
+                        <strong id="perguntaInativar"></strong>
+                        <div id="textoInativar"></div>
+                    </div>
                 </div>
                 <div class="modal-footer py-2">
                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">CANCELAR</button>
@@ -86,37 +143,5 @@ function modalStatus()
             </div>
         </div>
     </div>
-
-    <script>
-        function mostrarMassa() {
-            document.getElementById('emMassa')?.classList.toggle('d-none', document.querySelectorAll('.marcar:checked').length < 2);
-        }
-
-        document.addEventListener('change', mostrarMassa);
-
-        function marcarSo(id) {
-            document.querySelectorAll('.marcar').forEach(c => c.checked = c.value == id);
-            mostrarMassa();
-        }
-
-        function inativar(id) {
-            if (id) marcarSo(id);
-
-            const lista = [...document.querySelectorAll('.marcar:checked')];
-            const bloqueados = lista.filter(c => c.dataset.bloqueio).length;
-            const um = lista.length == 1;
-            const negado = !lista.length || (um && bloqueados);
-
-            tituloInativar.textContent = negado ? 'INATIVAÇÃO NÃO PERMITIDA' : 'CONFIRMAR INATIVAÇÃO';
-            perguntaInativar.textContent = !lista.length ? 'Nenhum item selecionado.'
-                : um ? (negado ? 'Não é possível inativar ' : 'Tem certeza que deseja inativar ') + lista[0].dataset.nome + (negado ? '.' : '?')
-                : 'Tem certeza que deseja inativar os ' + lista.length + ' itens selecionados?';
-            textoInativar.textContent = !lista.length ? 'Marque os itens na lista antes de inativar.'
-                : um ? lista[0].dataset.bloqueio
-                : bloqueados ? bloqueados + ' deles não serão inativados por terem associações.' : '';
-            botaoInativar.hidden = negado;
-
-            bootstrap.Modal.getOrCreateInstance(modalInativar).show();
-        }
-    </script>
-<?php }
+    <?php
+}

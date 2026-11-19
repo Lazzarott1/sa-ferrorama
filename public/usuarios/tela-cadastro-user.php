@@ -1,182 +1,203 @@
 <?php
 
+// tela de usuários, só o administrador entra (o verifica-admin manda o operador de volta pra home)
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
+include __DIR__ . '/../../infra/validacoes-usuarios/valida-usuario.php';
 include __DIR__ . '/../listagem.php';
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
-$perfis = ['ADMINISTRADOR', 'OPERADOR'];
 $erros = [];
+// $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do item editado
 $aberto = -1;
-$eu = (int) $_SESSION['id_usuario'];
-$trens_ativos = "(SELECT COUNT(*) FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO')";
+
+// SQL que conta de quantos trens ativos o usuário é responsável
+$trens_ativos = "(SELECT COUNT(*) FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND trens.status_trem <> 'INATIVO')";
 
 
-//    ATIVAR / INATIVAR USUÁRIOS
+// ATIVAR / INATIVAR USUÁRIOS
 
 if (isset($_POST['ativar']) || isset($_POST['inativar'])) {
+    // não inativa a própria conta nem quem é responsável por trem ativo
+    $nao_inativados = mudarStatus($conexao, 'usuarios', 'id_usuario', 'status_usuario', "id_usuario <> $id_logado AND $trens_ativos = 0");
 
-    if (!hash_equals($_SESSION['token'] ?? '', $_POST['token'] ?? '')) {
-        $erros[] = "Solicitação inválida.";
-    } elseif (!mudarStatus($conexao, 'usuarios', 'id_usuario', 'status_usuario', "id_usuario <> $eu AND $trens_ativos = 0")) {
+    if ($nao_inativados == 0) {
         header("Location: " . $_SERVER['REQUEST_URI']);
         exit();
-    } else {
-        $erros[] = "Usuários responsáveis por trens ativos e a sua própria conta não foram inativados.";
     }
+
+    $erros[] = "Usuários responsáveis por trens ativos e a sua própria conta não foram inativados.";
 }
 
 
-//    EDITAR USUÁRIO
+// CADASTRAR / EDITAR USUÁRIO
 
 if (isset($_POST['salvar'])) {
-
+    // o mesmo formulário serve pra cadastrar e editar: id 0 é cadastro, id maior que 0 é edição
+    // aqui pega tudo que veio do formulário
     $id = (int) $_POST['id'];
-    $proprio = $id === $eu;
-    $nome_usuario = trim($_POST['nome_usuario'] ?? '');
-    $email_usuario = trim($_POST['email_usuario'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $perfil = $proprio ? 'ADMINISTRADOR' : ($_POST['perfil'] ?? '');
-    $status_usuario = $proprio ? 'ATIVO' : ($_POST['status_usuario'] ?? '');
+    $nome = trim($_POST['nome_usuario']);
+    $email = trim($_POST['email_usuario']);
+    $senha = $_POST['senha'];
+    // o CEP é guardado só com os números
+    $cep = str_replace('-', '', trim($_POST['cep']));
+    $logradouro = trim($_POST['logradouro']);
+    $bairro = trim($_POST['bairro']);
+    $cidade = trim($_POST['cidade']);
+    $uf = strtoupper(trim($_POST['uf']));
 
-    if (!in_array($perfil, $perfis, true) || !in_array($status_usuario, ['ATIVO', 'INATIVO'], true)) {
-        $erros[] = "Perfil ou status inválido.";
-    } elseif ($nome_usuario === '' || !filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
-        $erros[] = "Preencha o nome e um e-mail válido.";
-    } elseif ($senha !== '' && strlen($senha) < 8) {
-        $erros[] = "A senha deve ter pelo menos 8 caracteres.";
-    } elseif ($status_usuario === 'INATIVO' && ($total = mysqli_fetch_row(mysqli_query($conexao, "SELECT $trens_ativos FROM usuarios WHERE id_usuario = $id"))[0]) > 0) {
-        $erros[] = "Este usuário é responsável por " . $total . " trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.";
+    // editando a si mesmo: perfil e status ficam travados (senão o admin poderia se trancar fora)
+    // usuário novo sempre começa ATIVO
+    if ($id == $id_logado) {
+        $perfil = 'ADMINISTRADOR';
+        $status = 'ATIVO';
+    } elseif ($id == 0) {
+        $perfil = $_POST['perfil'];
+        $status = 'ATIVO';
     } else {
-        try {
-            $valores = [$nome_usuario, $email_usuario, $perfil, $status_usuario];
+        $perfil = $_POST['perfil'];
+        $status = $_POST['status_usuario'];
+    }
 
-            if ($senha !== '') {
-                $valores[] = password_hash($senha, PASSWORD_DEFAULT);
-            }
+    $erros = validarUsuario($conexao, $id, $nome, $email, $senha, $perfil, $status, $cep, $logradouro, $bairro, $cidade, $uf);
 
-            $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET nome_usuario = ?, email_usuario = ?, perfil = ?, status_usuario = ?" . ($senha !== '' ? ", senha = ?" : "") . " WHERE id_usuario = $id");
-            mysqli_stmt_bind_param($stmt, str_repeat('s', count($valores)), ...$valores);
-            mysqli_stmt_execute($stmt);
+    if (count($erros) == 0) {
+        // id 0 faz INSERT, senão faz UPDATE (os ? são preenchidos pelo bind_param, assim ninguém consegue injetar SQL)
+        if ($id == 0) {
+            // nunca guarda a senha pura, só o hash
+            $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+            $stmt = mysqli_prepare($conexao, "INSERT INTO usuarios (nome_usuario, email_usuario, senha, perfil, cep, logradouro, bairro, cidade, uf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt, "sssssssss", $nome, $email, $senha_hash, $perfil, $cep, $logradouro, $bairro, $cidade, $uf);
+        // senha em branco na edição: mantém a antiga
+        } elseif ($senha == '') {
+            $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET nome_usuario = ?, email_usuario = ?, perfil = ?, status_usuario = ?, cep = ?, logradouro = ?, bairro = ?, cidade = ?, uf = ? WHERE id_usuario = ?");
+            mysqli_stmt_bind_param($stmt, "sssssssssi", $nome, $email, $perfil, $status, $cep, $logradouro, $bairro, $cidade, $uf, $id);
+        } else {
+            $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+            $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET nome_usuario = ?, email_usuario = ?, perfil = ?, status_usuario = ?, cep = ?, logradouro = ?, bairro = ?, cidade = ?, uf = ?, senha = ? WHERE id_usuario = ?");
+            mysqli_stmt_bind_param($stmt, "ssssssssssi", $nome, $email, $perfil, $status, $cep, $logradouro, $bairro, $cidade, $uf, $senha_hash, $id);
+        }
 
+        // salvou: recarrega a mesma página (mantendo o filtro) pra limpar o formulário
+        if (mysqli_stmt_execute($stmt)) {
             header("Location: " . $_SERVER['REQUEST_URI']);
             exit();
-        } catch (mysqli_sql_exception $e) {
-            $erros[] = $e->getCode() === 1062 ? "Esse nome de usuário já existe." : "Erro ao atualizar usuário.";
         }
+
+        $erros[] = "Não foi possível salvar o usuário. Tente novamente.";
     }
 
+    // se chegou aqui deu erro: guarda o que foi digitado pra reabrir o formulário preenchido
     $aberto = $id;
+    $digitado = ['id_usuario' => $id, 'nome_usuario' => $nome, 'email_usuario' => $email, 'perfil' => $perfil, 'status_usuario' => $status, 'cep' => $cep, 'logradouro' => $logradouro, 'bairro' => $bairro, 'cidade' => $cidade, 'uf' => $uf];
 }
 
 
-//    CADASTRAR USUÁRIO
+// BUSCAR USUÁRIOS (com os trens de que são responsáveis)
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$erros) {
-    $nome_usuario = trim($_POST['nome_usuario'] ?? '');
-    $email_usuario = trim($_POST['email_usuario'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $perfil = $_POST['perfil'] ?? '';
-
-    if ($nome_usuario === '' || $email_usuario === '' || $senha === '' || !in_array($perfil, $perfis, true)) {
-        http_response_code(400);
-        echo "Preencha todos os campos corretamente.";
-        exit();
-    }
-
-    if (!filter_var($email_usuario, FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo "Informe um e-mail válido.";
-        exit();
-    }
-
-    if (strlen($senha) < 8) {
-        http_response_code(400);
-        echo "A senha deve ter pelo menos 8 caracteres.";
-        exit();
-    }
-
-    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-
-    try {
-        $sql = "INSERT INTO usuarios (nome_usuario, email_usuario, senha, perfil) VALUES (?, ?, ?, ?)";
-        $stmt = mysqli_prepare($conexao, $sql);
-        mysqli_stmt_bind_param($stmt, 'ssss', $nome_usuario, $email_usuario, $senha_hash, $perfil);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        echo "Usuário cadastrado com sucesso!";
-    } catch (mysqli_sql_exception $e) {
-        if ($e->getCode() === 1062) {
-            http_response_code(409);
-            echo "Esse nome de usuário já existe.";
-        } else {
-            http_response_code(500);
-            echo "Erro ao cadastrar usuário.";
-        }
-    }
-
-    exit();
-}
-
-if (empty($_SESSION['token'])) {
-    $_SESSION['token'] = bin2hex(random_bytes(32));
-}
-
-
+// filtro Ativos / Inativos / Todos (função do listagem.php)
 $where = filtrar('status_usuario');
 
-try {
-    $usuarios = mysqli_fetch_all(mysqli_query($conexao, "SELECT id_usuario, nome_usuario, email_usuario, perfil, status_usuario, data_cadastro,
-        (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND status_trem <> 'INATIVO') AS nomes_trens,
-        $trens_ativos AS total_trens
-        FROM usuarios $where ORDER BY nome_usuario"), MYSQLI_ASSOC);
-} catch (mysqli_sql_exception $e) {
-    $usuarios = [];
-    $erros[] = "Não foi possível carregar os usuários. Tente novamente mais tarde.";
-}
+// junta o nome dos trens que cada um é responsável (coluna TRENS)
+$usuarios = mysqli_query($conexao, "SELECT usuarios.*,
+    $trens_ativos AS total_trens,
+    (SELECT GROUP_CONCAT(nome_trem SEPARATOR ', ') FROM trens WHERE trens.id_usuario = usuarios.id_usuario AND trens.status_trem <> 'INATIVO') AS nomes_trens
+    FROM usuarios
+    $where
+    ORDER BY nome_usuario");
 
-function formUsuario($usuario, $proprio)
+// valores em branco pro formulário de cadastro
+$novo = ['id_usuario' => 0, 'nome_usuario' => '', 'email_usuario' => '', 'perfil' => 'OPERADOR', 'status_usuario' => 'ATIVO', 'cep' => '', 'logradouro' => '', 'bairro' => '', 'cidade' => '', 'uf' => ''];
+
+
+// desenha o formulário do usuário, usado no cadastro e também na edição dentro da lista
+function formUsuario($usuario, $id_logado)
 {
-    $id = $usuario['id_usuario']; ?>
+    $id = $usuario['id_usuario'];
+
+    // mostra o CEP com o traço (89201-100)
+    $cep = $usuario['cep'];
+    if (strlen($cep) == 8) {
+        $cep = substr($cep, 0, 5) . '-' . substr($cep, 5);
+    }
+    ?>
     <form method="POST" class="caixa-corpo">
         <input type="hidden" name="id" value="<?php echo $id; ?>">
         <div class="row g-3">
             <div class="col-md-6">
-                <label for="nome_usuario<?php echo $id; ?>" class="form-label">NOME DE USUÁRIO</label>
-                <input type="text" id="nome_usuario<?php echo $id; ?>" name="nome_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
+                <label for="nomeUsuario<?php echo $id; ?>" class="form-label">NOME DE USUÁRIO</label>
+                <input type="text" name="nome_usuario" id="nomeUsuario<?php echo $id; ?>" class="form-control" placeholder="Ex: joao.silva" value="<?php echo htmlspecialchars($usuario['nome_usuario']); ?>" required>
             </div>
             <div class="col-md-6">
-                <label for="email_usuario<?php echo $id; ?>" class="form-label">E-MAIL</label>
-                <input type="email" id="email_usuario<?php echo $id; ?>" name="email_usuario" class="form-control" value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
+                <label for="emailUsuario<?php echo $id; ?>" class="form-label">E-MAIL</label>
+                <input type="email" name="email_usuario" id="emailUsuario<?php echo $id; ?>" class="form-control" placeholder="Ex: joao@ferromonitor.com" value="<?php echo htmlspecialchars($usuario['email_usuario']); ?>" required>
             </div>
             <div class="col-md-6">
-                <label for="senha<?php echo $id; ?>" class="form-label">NOVA SENHA</label>
-                <input type="password" id="senha<?php echo $id; ?>" name="senha" class="form-control" placeholder="Deixe em branco para manter a senha atual" minlength="8">
+                <?php if ($id == 0) { ?>
+                    <label for="senha0" class="form-label">SENHA</label>
+                    <input type="password" name="senha" id="senha0" class="form-control" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                <?php } else { ?>
+                    <label for="senha<?php echo $id; ?>" class="form-label">NOVA SENHA</label>
+                    <input type="password" name="senha" id="senha<?php echo $id; ?>" class="form-control" placeholder="Deixe em branco para manter a senha atual" minlength="8">
+                <?php } ?>
             </div>
-            <?php foreach (['perfil' => ['PERFIL', ['OPERADOR' => 'Operador', 'ADMINISTRADOR' => 'Administrador']], 'status_usuario' => ['STATUS', ['ATIVO' => 'Ativo', 'INATIVO' => 'Inativo']]] as $campo => [$rotulo, $opcoes]) { ?>
+            <div class="col-md-3">
+                <label for="perfil<?php echo $id; ?>" class="form-label">PERFIL</label>
+                <select name="perfil" id="perfil<?php echo $id; ?>" class="form-select" <?php if ($id == $id_logado) echo 'disabled'; ?>>
+                    <option value="OPERADOR" <?php if ($usuario['perfil'] == 'OPERADOR') echo 'selected'; ?>>Operador</option>
+                    <option value="ADMINISTRADOR" <?php if ($usuario['perfil'] == 'ADMINISTRADOR') echo 'selected'; ?>>Administrador</option>
+                </select>
+            </div>
+            <?php if ($id != 0) { ?>
                 <div class="col-md-3">
-                    <label for="<?php echo $campo . $id; ?>" class="form-label"><?php echo $rotulo; ?></label>
-                    <select id="<?php echo $campo . $id; ?>" name="<?php echo $campo; ?>" class="form-select" <?php if ($proprio) echo 'disabled'; ?>>
-                        <?php foreach ($opcoes as $valor => $texto) { ?>
-                            <option value="<?php echo $valor; ?>" <?php if ($usuario[$campo] === $valor) echo 'selected'; ?>><?php echo $texto; ?></option>
-                        <?php } ?>
+                    <label for="status<?php echo $id; ?>" class="form-label">STATUS</label>
+                    <select name="status_usuario" id="status<?php echo $id; ?>" class="form-select" <?php if ($id == $id_logado) echo 'disabled'; ?>>
+                        <option value="ATIVO" <?php if ($usuario['status_usuario'] == 'ATIVO') echo 'selected'; ?>>Ativo</option>
+                        <option value="INATIVO" <?php if ($usuario['status_usuario'] == 'INATIVO') echo 'selected'; ?>>Inativo</option>
                     </select>
                 </div>
             <?php } ?>
-            <?php if ($proprio) { ?>
+            <?php if ($id == $id_logado) { ?>
                 <div class="col-12 form-text mt-1">Você não pode alterar o próprio perfil nem o próprio status.</div>
             <?php } ?>
+
+            <div class="col-12 border-top pt-3">
+                <span class="form-label">ENDEREÇO (OPCIONAL)</span>
+            </div>
+            <div class="col-md-3">
+                <label for="cep<?php echo $id; ?>" class="form-label">CEP</label>
+                <!-- quando sai do campo o cep.js busca o endereço e preenche os campos de baixo -->
+                <input type="text" name="cep" id="cep<?php echo $id; ?>" class="form-control" inputmode="numeric" maxlength="9" placeholder="Ex: 89201-100" value="<?php echo htmlspecialchars($cep); ?>" onblur="buscarCep(this, <?php echo $id; ?>)">
+                <div id="avisoCep<?php echo $id; ?>" class="form-text">Digite o CEP para preencher o endereço.</div>
+            </div>
+            <div class="col-md-4">
+                <label for="logradouro<?php echo $id; ?>" class="form-label">LOGRADOURO</label>
+                <input type="text" name="logradouro" id="logradouro<?php echo $id; ?>" class="form-control" maxlength="150" value="<?php echo htmlspecialchars($usuario['logradouro']); ?>">
+            </div>
+            <div class="col-md-2">
+                <label for="bairro<?php echo $id; ?>" class="form-label">BAIRRO</label>
+                <input type="text" name="bairro" id="bairro<?php echo $id; ?>" class="form-control" maxlength="100" value="<?php echo htmlspecialchars($usuario['bairro']); ?>">
+            </div>
+            <div class="col-md-2">
+                <label for="cidade<?php echo $id; ?>" class="form-label">CIDADE</label>
+                <input type="text" name="cidade" id="cidade<?php echo $id; ?>" class="form-control" maxlength="100" value="<?php echo htmlspecialchars($usuario['cidade']); ?>">
+            </div>
+            <div class="col-md-1">
+                <label for="uf<?php echo $id; ?>" class="form-label">UF</label>
+                <input type="text" name="uf" id="uf<?php echo $id; ?>" class="form-control" maxlength="2" value="<?php echo htmlspecialchars($usuario['uf']); ?>">
+            </div>
         </div>
         <div class="mt-4 d-flex gap-2">
-            <button type="submit" name="salvar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+            <?php if ($id == 0) { ?>
+                <button type="submit" name="salvar" class="btn btn-primary">CADASTRAR</button>
+            <?php } else { ?>
+                <button type="submit" name="salvar" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+            <?php } ?>
             <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#editar<?php echo $id; ?>">CANCELAR</button>
         </div>
     </form>
-<?php }
+    <?php
+}
 
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -190,6 +211,7 @@ function formUsuario($usuario, $proprio)
 
 <body>
 
+    <!-- menu de cima -->
     <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="pagina">
@@ -199,71 +221,104 @@ function formUsuario($usuario, $proprio)
                 <h3>Usuários</h3>
                 <p>Gerencie quem tem acesso ao sistema</p>
             </div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formUsuario">+ NOVO USUÁRIO</button>
+            <!-- abre e fecha o formulário de cadastro -->
+            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#editar0">+ NOVO USUÁRIO</button>
         </div>
 
-        <?php if ($erros) { ?>
+        <!-- erros da validação, um por linha -->
+        <?php if (count($erros) > 0) { ?>
             <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
 
-        <div class="caixa collapse" id="formUsuario">
+        <!-- formulário de cadastro, começa fechado (abre sozinho se deu erro no cadastro) -->
+        <div class="caixa collapse <?php if ($aberto === 0) echo 'show'; ?>" id="editar0">
             <div class="caixa-topo">CADASTRAR NOVO USUÁRIO</div>
-            <form id="form-cadastro" class="caixa-corpo">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="nome_usuario" class="form-label">NOME DE USUÁRIO</label>
-                        <input type="text" id="nome_usuario" name="nome_usuario" class="form-control" placeholder="Ex: joao.silva" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="email_usuario" class="form-label">E-MAIL</label>
-                        <input type="email" id="email_usuario" name="email_usuario" class="form-control" placeholder="Ex: joao@ferromonitor.com" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="senha" class="form-label">SENHA</label>
-                        <input type="password" id="senha" name="senha" class="form-control" placeholder="Mínimo 8 caracteres" minlength="8" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="perfil" class="form-label">PERFIL</label>
-                        <select id="perfil" name="perfil" class="form-select" required>
-                            <option value="OPERADOR">Operador</option>
-                            <option value="ADMINISTRADOR">Administrador</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="mensagem" class="mt-3"></div>
-                <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">CADASTRAR</button>
-                    <button type="button" class="btn btn-secondary" data-bs-toggle="collapse" data-bs-target="#formUsuario">CANCELAR</button>
-                </div>
-            </form>
+            <?php
+            if ($aberto === 0) {
+                formUsuario($digitado, $id_logado);
+            } else {
+                formUsuario($novo, $id_logado);
+            }
+            ?>
         </div>
 
         <div class="caixa">
+            <!-- faixa azul com o título, os botões de ação em massa e o filtro (listagem.php) -->
             <?php topo('USUÁRIOS CADASTRADOS', true); ?>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 tabela">
                     <thead>
-                        <tr><?php marcarTodos(); ?><th>ID</th><th>NOME DE USUÁRIO</th><th>E-MAIL</th><th>PERFIL</th><th>TRENS</th><th>STATUS</th><th>CADASTRADO EM</th><th class="text-center">AÇÕES</th></tr>
+                        <tr>
+                            <?php marcarTodos(); ?>
+                            <th>ID</th>
+                            <th>NOME DE USUÁRIO</th>
+                            <th>E-MAIL</th>
+                            <th>PERFIL</th>
+                            <th>CIDADE</th>
+                            <th>TRENS</th>
+                            <th>STATUS</th>
+                            <th>CADASTRADO EM</th>
+                            <th class="text-center">AÇÕES</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($usuarios as $usuario) { $id = (int) $usuario['id_usuario']; ?>
+                        <!-- uma linha pra cada usuário -->
+                        <?php while ($usuario = mysqli_fetch_assoc($usuarios)) { ?>
+                            <?php
+                            $id = $usuario['id_usuario'];
+
+                            // motivo pra não poder inativar (vai pro modal)
+                            $bloqueio = '';
+                            if ($id == $id_logado) {
+                                $bloqueio = 'Você não pode inativar a própria conta.';
+                            } elseif ($usuario['total_trens'] > 0) {
+                                $bloqueio = 'Ele é responsável por ' . $usuario['total_trens'] . ' trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.';
+                            }
+                            ?>
                             <tr>
-                                <?php marcar($id, 'o usuário ' . $usuario['nome_usuario'], $id === $eu ? 'Você não pode inativar a própria conta.' : ($usuario['total_trens'] > 0 ? 'Ele é responsável por ' . $usuario['total_trens'] . ' trem(ns) ativo(s). Troque o responsável desses trens antes de inativá-lo.' : '')); ?>
+                                <?php marcar($id, 'o usuário ' . $usuario['nome_usuario'], $bloqueio); ?>
                                 <td><?php echo $id; ?></td>
                                 <td><?php echo htmlspecialchars($usuario['nome_usuario']); ?></td>
                                 <td><?php echo htmlspecialchars($usuario['email_usuario']); ?></td>
                                 <td><span class="badge status status-<?php echo $usuario['perfil']; ?>"><?php echo $usuario['perfil']; ?></span></td>
-                                <td><?php echo htmlspecialchars($usuario['nomes_trens'] ?? 'Sem trem'); ?></td>
+                                <td>
+                                    <?php
+                                    if ($usuario['cidade'] == '') {
+                                        echo '-';
+                                    } else {
+                                        echo htmlspecialchars($usuario['cidade'] . '/' . $usuario['uf']);
+                                    }
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php
+                                    if ($usuario['nomes_trens'] == null) {
+                                        echo 'Sem trem';
+                                    } else {
+                                        echo htmlspecialchars($usuario['nomes_trens']);
+                                    }
+                                    ?>
+                                </td>
                                 <td><span class="badge status status-<?php echo $usuario['status_usuario']; ?>"><?php echo $usuario['status_usuario']; ?></span></td>
                                 <td><?php echo date('d/m/Y H:i', strtotime($usuario['data_cadastro'])); ?></td>
-                                <td class="text-center text-nowrap"><?php acoes($id, $usuario['status_usuario'] === 'INATIVO'); ?></td>
+                                <td class="text-center text-nowrap"><?php acoes($id, $usuario['status_usuario']); ?></td>
                             </tr>
-                            <tr class="collapse <?php if ($aberto === $id) echo 'show'; ?>" id="editar<?php echo $id; ?>">
-                                <td colspan="9" class="p-0"><?php formUsuario($aberto === $id ? $_POST + $usuario : $usuario, $id === $eu); ?></td>
+                            <!-- linha escondida embaixo de cada item com o formulário de edição, abre no botão EDITAR -->
+                            <tr class="collapse <?php if ($aberto == $id) echo 'show'; ?>" id="editar<?php echo $id; ?>">
+                                <td colspan="10" class="p-0">
+                                    <?php
+                                    if ($aberto == $id) {
+                                        formUsuario($digitado, $id_logado);
+                                    } else {
+                                        formUsuario($usuario, $id_logado);
+                                    }
+                                    ?>
+                                </td>
                             </tr>
                         <?php } ?>
-                        <?php if (!$usuarios) { ?>
-                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                        <!-- lista vazia -->
+                        <?php if (mysqli_num_rows($usuarios) == 0) { ?>
+                            <tr><td colspan="10" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
                         <?php } ?>
                     </tbody>
                 </table>
@@ -272,9 +327,13 @@ function formUsuario($usuario, $proprio)
 
     </main>
 
+    <!-- modal de confirmar inativação (listagem.php) -->
     <?php modalStatus(); ?>
 
-    <script src="../../script/validacao_cadastro_user.js"></script>
+    <!-- marcar itens, ações em massa e o modal de inativar -->
+    <script src="../../script/listagem.js"></script>
+    <!-- busca do CEP no ViaCEP -->
+    <script src="../../script/cep.js"></script>
 
 </body>
 

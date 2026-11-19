@@ -1,35 +1,49 @@
-const form = document.getElementById("form-login");
-const mensagem = document.getElementById("mensagem");
+// envio do formulário de login sem recarregar a página
+let formLogin = document.getElementById('form-login');
+let mensagem = document.getElementById('mensagem');
+let tempoMensagem;
 
+// mostra o aviso vermelho no canto e some sozinho depois de 5 segundos
 function mostrarErro(texto) {
-    mensagem.innerHTML = "<div class='alert alert-danger shadow mb-0'>" + texto + "</div>";
-    clearTimeout(mensagem.tempo);
-    mensagem.tempo = setTimeout(() => mensagem.innerHTML = "", 5000);
+    mensagem.innerHTML = '<div class="alert alert-danger shadow mb-0">' + texto + '</div>';
+
+    clearTimeout(tempoMensagem);
+    tempoMensagem = setTimeout(function () {
+        mensagem.innerHTML = '';
+    }, 5000);
 }
 
-form.onsubmit = (e) => {
-    e.preventDefault();
+formLogin.addEventListener('submit', function (evento) {
+    // não deixa o form recarregar a página, a gente manda pelo fetch
+    evento.preventDefault();
 
-    let nome_usuario = document.getElementById("nome_usuario").value.trim();
-    let senha = document.getElementById("senha").value.trim();
+    let usuario = document.getElementById('nome_usuario').value.trim();
+    let senha = document.getElementById('senha').value.trim();
 
-    if (nome_usuario === "" || senha === "") {
-        return mostrarErro("Preencha usuário e senha.");
+    // nem manda pro servidor se tiver campo vazio
+    if (usuario == '' || senha == '') {
+        mostrarErro('Preencha usuário e senha.');
+        return;
     }
 
-    fetch("tela-login.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "nome_usuario=" + encodeURIComponent(nome_usuario) + "&senha=" + encodeURIComponent(senha) + "&ajax=1"
+    // o PHP responde um JSON dizendo se deu certo
+    fetch('tela-login.php', {
+        method: 'POST',
+        body: new FormData(formLogin)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.sucesso) {
-            window.location.href = "tela-geral-home.php";
-        } else {
-            mostrarErro(data.mensagem);
-            form.reset();
-        }
-    })
-    .catch(() => mostrarErro("Erro ao conectar com o servidor."));
-};
+        .then(function (resposta) {
+            return resposta.json();
+        })
+        .then(function (dados) {
+            if (dados.sucesso) {
+                window.location.href = 'tela-geral-home.php';
+            } else {
+                mostrarErro(dados.mensagem);
+                formLogin.reset();
+            }
+        })
+        // o servidor nem respondeu
+        .catch(function () {
+            mostrarErro('Erro ao conectar com o servidor.');
+        });
+});

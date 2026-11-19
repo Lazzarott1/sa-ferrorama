@@ -1,13 +1,11 @@
 <?php
 
+// usado nas telas que só o administrador pode abrir
+// primeiro confere o login (é de lá que vem o $admin e o $caminho)
 include __DIR__ . '/verifica-login.php';
 
+// operador tentando entrar: volta pra home com o aviso de sem permissão
 if (!$admin) {
-    $pasta_public = realpath(__DIR__ . '/../../public');
-    $pasta_pagina = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
-
-    $tela_home = ($pasta_pagina === $pasta_public) ? 'tela-geral-home.php' : '../tela-geral-home.php';
-
-    header("Location: " . $tela_home . "?acesso=negado");
+    header("Location: " . $caminho . "tela-geral-home.php?acesso=negado");
     exit();
 }

@@ -1,3 +1,4 @@
+// cadastro de usuário antigo (sem o perfil), envia o formulário sem recarregar a página
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-cadastro');
     const mensagem = document.getElementById('mensagem');
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dados.append('nome_usuario', document.getElementById('nome_usuario').value);
         dados.append('senha', document.getElementById('senha').value);
  
+        // manda pro PHP e mostra a resposta dentro da div #mensagem
         try {
             const resposta = await fetch('tela-cadastro-user.php', {
                 method: 'POST',
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mensagem.innerHTML = `<div class="alert alert-danger">Erro: ${texto}</div>`;
             }
  
+        // cai aqui se nem conseguiu falar com o servidor
         } catch (erro) {
             mensagem.innerHTML = `<div class="alert alert-danger">Erro de conexão: ${erro.message}</div>`;
         }

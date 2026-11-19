@@ -1,14 +1,17 @@
 <?php
 
+// tela de editar trem, só pra administrador
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-trem.php';
 
+// o id vem pela url na primeira vez (?id=) e pelo campo escondido quando salva
 $id_trem = (int) ($_POST['id_trem'] ?? $_GET['id'] ?? 0);
 $erros = [];
 
 
 //    BUSCAR TREM
 
+// se o trem não existir volta pra lista
 $stmt = mysqli_prepare($conexao, "SELECT * FROM trens WHERE id_trem = ?");
 mysqli_stmt_bind_param($stmt, "i", $id_trem);
 mysqli_stmt_execute($stmt);
@@ -19,6 +22,7 @@ if (!$trem) {
     exit;
 }
 
+// guarda o trilho e o responsável de antes, pra deixar manter eles mesmo se foram inativados
 $trilho_atual = (int) $trem['id_trilho'];
 $usuario_atual = (int) $trem['id_usuario'];
 
@@ -27,9 +31,11 @@ $usuario_atual = (int) $trem['id_usuario'];
 
 if (isset($_POST['editar'])) {
 
+    // valida e junta com o que foi digitado, assim o form volta preenchido se der erro
     [$dados, $erros] = validarTrem($conexao, $trilho_atual, $usuario_atual);
     $trem = array_merge($trem, $dados);
 
+    // tudo certo: salva e volta pra lista
     if (!$erros) {
         try {
             $stmt = mysqli_prepare($conexao, "UPDATE trens SET nome_trem = ?, modelo_trem = ?, capacidade_trem = ?, id_trilho = ?, id_usuario = ?, status_trem = ? WHERE id_trem = ?");
@@ -49,11 +55,13 @@ if (isset($_POST['editar'])) {
 
 //    BUSCAR OPÇÕES
 
+// trilhos pro select: os ativos + o atual do trem
 $stmt = mysqli_prepare($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' OR id_trilho = ? ORDER BY nome_trilho");
 mysqli_stmt_bind_param($stmt, "i", $trilho_atual);
 mysqli_stmt_execute($stmt);
 $resultadoTrilhos = mysqli_stmt_get_result($stmt);
 
+// responsáveis pro select: usuários ativos + o atual do trem
 $stmt = mysqli_prepare($conexao, "SELECT id_usuario, nome_usuario FROM usuarios WHERE status_usuario = 'ATIVO' OR id_usuario = ? ORDER BY nome_usuario");
 mysqli_stmt_bind_param($stmt, "i", $usuario_atual);
 mysqli_stmt_execute($stmt);
@@ -74,6 +82,7 @@ $resultadoUsuarios = mysqli_stmt_get_result($stmt);
 
 <body>
 
+    <!-- menu de cima -->
     <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="pagina">
@@ -85,6 +94,7 @@ $resultadoUsuarios = mysqli_stmt_get_result($stmt);
             </div>
         </div>
 
+        <!-- erros da validação, um por linha -->
         <?php if ($erros) { ?>
             <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
@@ -92,6 +102,7 @@ $resultadoUsuarios = mysqli_stmt_get_result($stmt);
         <div class="caixa">
             <div class="caixa-topo">EDITAR TREM #<?php echo $trem['id_trem']; ?></div>
             <form method="POST" class="caixa-corpo">
+                <!-- id escondido pra saber qual trem salvar -->
                 <input type="hidden" name="id_trem" value="<?php echo $trem['id_trem']; ?>">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -108,6 +119,7 @@ $resultadoUsuarios = mysqli_stmt_get_result($stmt);
                         </select>
                     </div>
                     <div class="col-md-6">
+                        <!-- o texto desse label muda conforme o modelo (capacidade.js) -->
                         <label for="capacidadeTrem" id="labelCapacidade" class="form-label">CAPACIDADE</label>
                         <input type="number" name="capacidade" id="capacidadeTrem" class="form-control" value="<?php echo htmlspecialchars($trem['capacidade_trem']); ?>" min="1" required>
                     </div>
@@ -147,6 +159,7 @@ $resultadoUsuarios = mysqli_stmt_get_result($stmt);
 
     </main>
 
+    <!-- troca o texto da capacidade: KG pra carga, passageiros pra passageiros -->
     <script src="../../script/capacidade.js"></script>
 
 </body>

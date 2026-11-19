@@ -1,3 +1,7 @@
+/* estilo geral do sistema, usado em todas as telas (o login e a home têm arquivo próprio também)
+   obs: esse arquivo é carregado ANTES do bootstrap, não inverter senão a navbar quebra */
+
+/* ===== NAVBAR ===== */
 .navbar {
     position: fixed;
     width: 100%;
@@ -15,6 +19,7 @@
     transform: translateY(-2px);
 }
 
+/* risquinho dourado que cresce embaixo do link quando passa o mouse */
 .navbar-nav .nav-link::after {
     content: "";
     display: block;
@@ -29,6 +34,7 @@
     width: 100%;
 }
 
+/* deixa logo, menu e usuário lado a lado no topo */
 .hstack {
     display: flex;
     flex-direction: row;
@@ -37,6 +43,7 @@
     justify-content: space-between;
 }
 
+/* botão Sair com borda dourada */
 .btn-sair {
     background-color: transparent;
     color: white;
@@ -76,6 +83,8 @@
     border-radius: 5px;
 }
 
+/* ===== BOTÕES =====
+   troca o azul padrão do bootstrap pelo nosso azul (#1b3f53) com borda dourada no hover */
 .btn.btn-primary {
     --bs-btn-color: #ffffff;
     --bs-btn-bg: #1b3f53;
@@ -101,16 +110,34 @@
     --bs-btn-focus-shadow-rgb: 218, 163, 1;
 }
 
-
+/* em tela pequena o menu desce pra linha de baixo */
 @media (max-width: 991px) {
-    .hstack { flex-wrap: wrap; }
-    #header nav { order: 3; width: 100%; position: static; }
-    #header .navbar-nav { flex-direction: row; flex-wrap: wrap; }
-    #header .navbar { padding: 0; }
-    #logo img { max-height: 44px; }
+    .hstack {
+        flex-wrap: wrap;
+    }
+
+    #header nav {
+        order: 3;
+        width: 100%;
+        position: static;
+    }
+
+    #header .navbar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    #header .navbar {
+        padding: 0;
+    }
+
+    #logo img {
+        max-height: 44px;
+    }
+
 }
 
-
+/* ===== ETIQUETA DO USUÁRIO LOGADO (canto direito do topo) ===== */
 .tag-perfil {
     display: flex;
     align-items: center;
@@ -139,40 +166,183 @@
     line-height: 1.15;
 }
 
-.tag-texto strong { font-size: 0.85rem; color: #ffffff; }
-.tag-texto small { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; color: #daa301; }
+.tag-texto strong {
+    font-size: 0.85rem;
+    color: #ffffff;
+}
 
-.tag-operador { border-color: rgba(255, 255, 255, 0.35); }
-.tag-operador .tag-avatar { background-color: #ffffff; }
-.tag-operador .tag-texto small { color: #c9d6de; }
+.tag-texto small {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #daa301;
+}
 
+/* operador fica com a etiqueta branca pra diferenciar do admin */
+.tag-operador {
+    border-color: rgba(255, 255, 255, 0.35);
+}
 
-html body { background-color: #f4f6f8; }
+.tag-operador .tag-avatar {
+    background-color: #ffffff;
+}
 
-.pagina { max-width: 1200px; margin: 0 auto; padding: 32px 16px; }
+.tag-operador .tag-texto small {
+    color: #c9d6de;
+}
 
-.cabecalho { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; border-left: 4px solid #daa301; padding-left: 16px; }
-.cabecalho h3 { color: #1b3f53; font-weight: 700; margin: 0; }
-.cabecalho p { color: #6c757d; margin: 0; }
+/* ===== PÁGINAS ===== */
+html body {
+    background-color: #f4f6f8;
+}
 
-.caixa { background: #fff; border: 1px solid #dfe5ea; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
-.caixa-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; padding: 8px 16px; background: #1b3f53; color: #fff; box-shadow: inset 0 -3px 0 #daa301; font-size: .75rem; font-weight: 700; letter-spacing: .5px; }
-.caixa-topo .form-select { width: auto; }
-.caixa-corpo { padding: 24px; }
+.pagina {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 16px;
+}
 
-.form-label { color: #1b3f53; font-size: .75rem; font-weight: 600; letter-spacing: .3px; }
-.texto-azul { color: #1b3f53; }
+/* título da tela com a faixa dourada na esquerda */
+.cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-left: 4px solid #daa301;
+    padding-left: 16px;
+}
 
-.tabela { font-size: .85rem; }
-.tabela thead th { background: #f8fafc; color: #6c757d; font-size: .72rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-.tabela tbody td:first-child { color: #1b3f53; font-weight: 700; }
-.tabela a { color: #1b3f53; }
+.cabecalho h3 {
+    color: #1b3f53;
+    font-weight: 700;
+    margin: 0;
+}
 
-.badge.status { border: 1px solid #c4c8cb; border-radius: 4px; background: #e2e3e5; color: #41464b; }
-.badge.status-ATIVO, .badge.status-PRONTO { border-color: #a3cfbb; background: #d1e7dd; color: #0a3622; }
-.badge.status-MANUTENCAO, .badge.status-ALERTA { border-color: #ffe69c; background: #fff3cd; color: #664d03; }
-.badge.status-ERRO { border-color: #f1aeb5; background: #f8d7da; color: #58151c; }
-.badge.status-ADMINISTRADOR { border-color: #1b3f53; background: #1b3f53; color: #fff; }
-.badge.status-OPERADOR { border-color: #daa301; background: #daa301; color: #1b3f53; }
+.cabecalho p {
+    color: #6c757d;
+    margin: 0;
+}
 
-.modal-topo { background: #1b3f53; color: #fff; border-bottom: 3px solid #daa301; }
+/* caixa branca das listas e formulários, com o topo azul */
+.caixa {
+    background: #fff;
+    border: 1px solid #dfe5ea;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.caixa-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 16px;
+    background: #1b3f53;
+    color: #fff;
+    box-shadow: inset 0 -3px 0 #daa301;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+}
+
+.caixa-topo .form-select {
+    width: auto;
+}
+
+.caixa-corpo {
+    padding: 24px;
+}
+
+.form-label {
+    color: #1b3f53;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+.texto-azul {
+    color: #1b3f53;
+}
+
+/* tabelas das listas */
+.tabela {
+    font-size: .85rem;
+}
+
+.tabela thead th {
+    background: #f8fafc;
+    color: #6c757d;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tabela tbody td:first-child {
+    color: #1b3f53;
+    font-weight: 700;
+}
+
+.tabela a {
+    color: #1b3f53;
+}
+
+/* etiquetas de status: cinza é o padrão (INATIVO), verde ativo, amarelo manutenção/alerta, vermelho erro */
+.badge.status {
+    border: 1px solid #c4c8cb;
+    border-radius: 4px;
+    background: #e2e3e5;
+    color: #41464b;
+}
+
+.badge.status-ATIVO, .badge.status-PRONTO {
+    border-color: #a3cfbb;
+    background: #d1e7dd;
+    color: #0a3622;
+}
+
+.badge.status-MANUTENCAO, .badge.status-ALERTA {
+    border-color: #ffe69c;
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.badge.status-ERRO {
+    border-color: #f1aeb5;
+    background: #f8d7da;
+    color: #58151c;
+}
+
+.badge.status-ADMINISTRADOR {
+    border-color: #1b3f53;
+    background: #1b3f53;
+    color: #fff;
+}
+
+.badge.status-OPERADOR {
+    border-color: #daa301;
+    background: #daa301;
+    color: #1b3f53;
+}
+
+/* topo azul dos modais */
+.modal-topo {
+    background: #1b3f53;
+    color: #fff;
+    border-bottom: 3px solid #daa301;
+}
+
+/* fundo azul do topo e da navbar */
+.topo-sistema {
+    background-color: #1b3f53;
+    color: #ffffff;
+}
+
+/* aviso de sem permissão da home, com a faixa dourada */
+.aviso-acesso {
+    border-left: 4px solid #daa301;
+}

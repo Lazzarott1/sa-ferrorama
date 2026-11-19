@@ -1,16 +1,15 @@
 <?php
+
+// desliga as exceções do mysqli, a gente mesmo confere os erros
 mysqli_report(MYSQLI_REPORT_OFF);
 
-$host = 'localhost';
-$usuario = 'root';
-$senha = '';
-$banco = 'sa_ferrorama';
+// dados do banco no XAMPP: servidor, usuário root, senha vazia e o nome do banco
+$conexao = mysqli_connect('localhost', 'root', '', 'sa_ferrorama');
 
-$conexao = new mysqli($host, $usuario, $senha, $banco);
-
-if ($conexao->connect_error) {
-    die('Erro na conexão: ' . $conexao->connect_error);
+// se não conectar para tudo e mostra o erro
+if (!$conexao) {
+    die('Erro na conexão: ' . mysqli_connect_error());
 }
 
-$conexao->set_charset('utf8mb4');
-$conn = $conexao;
+// pra acentuação não vir quebrada
+mysqli_set_charset($conexao, 'utf8mb4');

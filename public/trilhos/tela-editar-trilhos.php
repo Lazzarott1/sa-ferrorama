@@ -1,14 +1,17 @@
 <?php
 
+// tela de editar trilho, só pra administrador
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-trilho.php';
 
+// o id vem pela url na primeira vez (?id=) e pelo campo escondido quando salva
 $id_trilho = (int) ($_POST['id_trilho'] ?? $_GET['id'] ?? 0);
 $erros = [];
 
 
 //    BUSCAR TRILHO
 
+// se o trilho não existir volta pra lista
 $stmt = mysqli_prepare($conexao, "SELECT * FROM trilhos WHERE id_trilho = ?");
 mysqli_stmt_bind_param($stmt, "i", $id_trilho);
 mysqli_stmt_execute($stmt);
@@ -24,9 +27,11 @@ if (!$trilho) {
 
 if (isset($_POST['editar'])) {
 
+    // valida e já junta o que foi digitado com o trilho, assim o form volta preenchido se der erro
     [$dados, $erros] = validarTrilho();
     $trilho = array_merge($trilho, $dados);
 
+    // pra inativar o trilho não pode ter trem nem sensor ativo nele
     if (!$erros && $trilho['status_trilho'] == 'INATIVO') {
 
         $stmt = mysqli_prepare($conexao, "SELECT
@@ -41,6 +46,7 @@ if (isset($_POST['editar'])) {
         }
     }
 
+    // tudo certo: salva e volta pra lista
     if (!$erros) {
         try {
             $stmt = mysqli_prepare($conexao, "UPDATE trilhos SET nome_trilho = ?, descricao_trilho = ?, km_trilho = ?, status_trilho = ?, cep = ?, logradouro = ?, bairro = ?, cidade = ?, uf = ? WHERE id_trilho = ?");
@@ -72,6 +78,7 @@ if (isset($_POST['editar'])) {
 
 <body>
 
+    <!-- menu de cima -->
     <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="pagina">
@@ -83,6 +90,7 @@ if (isset($_POST['editar'])) {
             </div>
         </div>
 
+        <!-- erros da validação, um por linha -->
         <?php if ($erros) { ?>
             <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
@@ -90,6 +98,7 @@ if (isset($_POST['editar'])) {
         <div class="caixa">
             <div class="caixa-topo">EDITAR TRILHO #<?php echo $trilho['id_trilho']; ?></div>
             <form method="POST" class="caixa-corpo">
+                <!-- id escondido pra saber qual trilho salvar -->
                 <input type="hidden" name="id_trilho" value="<?php echo $trilho['id_trilho']; ?>">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -114,8 +123,10 @@ if (isset($_POST['editar'])) {
                     </div>
                     <div class="col-md-3">
                         <label for="dataTrilho" class="form-label">DATA DE CRIAÇÃO</label>
+                        <!-- a data de criação só aparece, não dá pra mudar -->
                         <input type="text" id="dataTrilho" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($trilho['data_criacao'])); ?>" disabled>
                     </div>
+                    <!-- campos do CEP e do endereço (o arquivo campos-cep.php usa a variável $endereco) -->
                     <?php $endereco = $trilho; include __DIR__ . '/campos-cep.php'; ?>
                 </div>
                 <div class="mt-4 d-flex gap-2">

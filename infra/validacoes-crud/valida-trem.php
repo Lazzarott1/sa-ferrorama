@@ -1,51 +1,52 @@
 <?php
 
-function validarTrem($conexao, $trilho_atual = 0, $usuario_atual = 0)
+// confere os dados do formulário de trem (cadastro e edição)
+// $id é 0 no cadastro; devolve a lista de erros
+function validarTrem($conexao, $id, $nome, $modelo, $capacidade, $id_trilho, $id_usuario, $status)
 {
-    $trem = [
-        'nome_trem' => trim($_POST['nome'] ?? ''),
-        'modelo_trem' => $_POST['modelo'] ?? '',
-        'capacidade_trem' => trim($_POST['capacidade'] ?? ''),
-        'id_trilho' => (int) ($_POST['id_trilho'] ?? 0),
-        'id_usuario' => (int) ($_POST['id_usuario'] ?? 0),
-        'status_trem' => $_POST['status'] ?? ''
-    ];
-
     $erros = [];
 
-    if ($trem['nome_trem'] === '') {
+    // nome obrigatório, até 100 caracteres
+    if ($nome == '') {
         $erros[] = "Informe o nome do trem.";
-    } elseif (mb_strlen($trem['nome_trem']) > 100) {
+    } elseif (mb_strlen($nome) > 100) {
         $erros[] = "O nome do trem pode ter no máximo 100 caracteres.";
     }
 
-    if (!in_array($trem['modelo_trem'], ['De passageiros', 'De carga'], true)) {
+    // só os dois modelos do select
+    if ($modelo != 'De passageiros' && $modelo != 'De carga') {
         $erros[] = "Selecione um modelo válido.";
     }
 
-    if (filter_var($trem['capacidade_trem'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+    // capacidade só com números e maior que zero
+    if (!ctype_digit($capacidade) || $capacidade < 1) {
         $erros[] = "A capacidade deve ser um número inteiro maior que zero.";
     }
 
-    if (!in_array($trem['status_trem'], ['ATIVO', 'MANUTENCAO', 'INATIVO'], true)) {
+    if ($status != 'ATIVO' && $status != 'MANUTENCAO' && $status != 'INATIVO') {
         $erros[] = "Selecione um status válido.";
     }
 
-    $stmt = mysqli_prepare($conexao, "SELECT id_trilho FROM trilhos WHERE id_trilho = ? AND (status_trilho <> 'INATIVO' OR id_trilho = ?)");
-    mysqli_stmt_bind_param($stmt, "ii", $trem['id_trilho'], $trilho_atual);
-    mysqli_stmt_execute($stmt);
+    // Trilho e responsável precisam estar ativos, a não ser que o trem já estivesse com eles
+    $trem_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho, id_usuario FROM trens WHERE id_trem = $id"));
 
-    if (!mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+    // o trilho escolhido precisa existir
+    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho FROM trilhos WHERE id_trilho = $id_trilho"));
+
+    if (!$trilho) {
+        $erros[] = "Selecione um trilho ativo.";
+    } elseif ($trilho['status_trilho'] == 'INATIVO' && (!$trem_atual || $trem_atual['id_trilho'] != $id_trilho)) {
         $erros[] = "Selecione um trilho ativo.";
     }
 
-    $stmt = mysqli_prepare($conexao, "SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND (status_usuario = 'ATIVO' OR id_usuario = ?)");
-    mysqli_stmt_bind_param($stmt, "ii", $trem['id_usuario'], $usuario_atual);
-    mysqli_stmt_execute($stmt);
+    // e o responsável também
+    $usuario = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_usuario FROM usuarios WHERE id_usuario = $id_usuario"));
 
-    if (!mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+    if (!$usuario) {
+        $erros[] = "Selecione um responsável ativo.";
+    } elseif ($usuario['status_usuario'] != 'ATIVO' && (!$trem_atual || $trem_atual['id_usuario'] != $id_usuario)) {
         $erros[] = "Selecione um responsável ativo.";
     }
 
-    return [$trem, $erros];
+    return $erros;
 }

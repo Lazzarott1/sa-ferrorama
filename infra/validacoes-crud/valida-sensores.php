@@ -1,37 +1,37 @@
 <?php
 
-function validarSensor($conexao, $trilho_atual = 0)
+// confere os dados do formulário de sensor (cadastro e edição)
+// $id é 0 no cadastro; devolve a lista de erros
+function validarSensor($conexao, $id, $nome, $tipo, $id_trilho, $status)
 {
-    $sensor = [
-        'nome_sensor' => trim($_POST['nome'] ?? ''),
-        'tipo_sensor' => $_POST['tipo'] ?? '',
-        'id_trilho' => (int) ($_POST['trilho'] ?? 0),
-        'status_sensor' => $_POST['status'] ?? ''
-    ];
-
     $erros = [];
 
-    if ($sensor['nome_sensor'] === '') {
+    // nome obrigatório e no banco cabe só 100 caracteres
+    if ($nome == '') {
         $erros[] = "Informe o nome do sensor.";
-    } elseif (mb_strlen($sensor['nome_sensor']) > 100) {
+    } elseif (mb_strlen($nome) > 100) {
         $erros[] = "O nome do sensor pode ter no máximo 100 caracteres.";
     }
 
-    if (!in_array($sensor['tipo_sensor'], ['Velocidade', 'Localização', 'Temperatura'], true)) {
+    // só aceita os valores que existem no select (alguém pode mexer no HTML pelo navegador)
+    if ($tipo != 'Velocidade' && $tipo != 'Localização' && $tipo != 'Temperatura') {
         $erros[] = "Selecione um tipo válido.";
     }
 
-    if (!in_array($sensor['status_sensor'], ['ATIVO', 'ALERTA', 'INATIVO'], true)) {
+    if ($status != 'ATIVO' && $status != 'ALERTA' && $status != 'INATIVO') {
         $erros[] = "Selecione um status válido.";
     }
 
-    $stmt = mysqli_prepare($conexao, "SELECT 1 FROM trilhos WHERE id_trilho = ? AND (status_trilho <> 'INATIVO' OR id_trilho = ?)");
-    mysqli_stmt_bind_param($stmt, "ii", $sensor['id_trilho'], $trilho_atual);
-    mysqli_stmt_execute($stmt);
+    // O trilho precisa estar ativo, a não ser que o sensor já estivesse nele
+    $sensor_atual = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT id_trilho FROM sensores WHERE id_sensor = $id"));
 
-    if (!mysqli_fetch_row(mysqli_stmt_get_result($stmt))) {
+    $trilho = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_trilho FROM trilhos WHERE id_trilho = $id_trilho"));
+
+    if (!$trilho) {
+        $erros[] = "Selecione um trilho ativo.";
+    } elseif ($trilho['status_trilho'] == 'INATIVO' && (!$sensor_atual || $sensor_atual['id_trilho'] != $id_trilho)) {
         $erros[] = "Selecione um trilho ativo.";
     }
 
-    return [$sensor, $erros];
+    return $erros;
 }

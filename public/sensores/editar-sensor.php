@@ -1,15 +1,19 @@
 <?php
+// tela de editar sensor, só pra administrador
 include __DIR__ . '/../../infra/validacoes-usuarios/verifica-admin.php';
 include __DIR__ . '/../../infra/validacoes-crud/valida-sensores.php';
 
 $erros = [];
+// o id vem na url, tipo editar-sensor.php?id=3
 $id_sensor = (int) ($_GET['id'] ?? 0);
 
+// busca o sensor no banco
 $stmt = mysqli_prepare($conexao, "SELECT * FROM sensores WHERE id_sensor = ?");
 mysqli_stmt_bind_param($stmt, "i", $id_sensor);
 mysqli_stmt_execute($stmt);
 $sensor = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
+// se não achou volta pra lista
 if (!$sensor) {
     header("Location: tela-cadastro-sensores.php");
     exit;
@@ -18,6 +22,7 @@ if (!$sensor) {
 $id_trilho_atual = (int) $sensor['id_trilho'];
 
 // SALVAR ALTERAÇÕES
+// valida e, se estiver tudo certo, salva e volta pra lista
 if (isset($_POST['editar'])) {
     [$dados, $erros] = validarSensor($conexao, $id_trilho_atual);
 
@@ -35,6 +40,7 @@ if (isset($_POST['editar'])) {
     }
 }
 
+// trilhos pro select: os ativos e também o que o sensor já usa (mesmo se tiver inativo)
 $trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WHERE status_trilho <> 'INATIVO' OR id_trilho = $id_trilho_atual ORDER BY nome_trilho");
 
 ?>
@@ -52,6 +58,7 @@ $trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WH
 
 <body>
 
+    <!-- menu de cima -->
     <?php include __DIR__ . '/../navbar.php'; ?>
 
     <main class="pagina">
@@ -63,12 +70,14 @@ $trilhos = mysqli_query($conexao, "SELECT id_trilho, nome_trilho FROM trilhos WH
             </div>
         </div>
 
+        <!-- erros da validação, um por linha -->
         <?php if ($erros) { ?>
             <div class="alert alert-danger"><?php echo implode('<br>', $erros); ?></div>
         <?php } ?>
 
         <div class="caixa">
             <div class="caixa-topo">EDITAR SENSOR #<?php echo $sensor['id_sensor']; ?></div>
+            <!-- formulário já vem preenchido com os dados atuais do sensor -->
             <form method="POST" class="caixa-corpo">
                 <div class="row g-3">
                     <div class="col-md-6">

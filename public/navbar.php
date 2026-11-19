@@ -1,13 +1,6 @@
-<?php
- 
-$pasta_public = realpath(__DIR__);
-$pasta_pagina = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
- 
-$caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
- 
-?>
- 
-<header class="container-fluid p-2 rounded-0 sticky-top" style="background-color: #1b3f53; color: #ffffff;">
+<!-- menu de cima, incluído em todas as telas
+     o $caminho vem do verifica-login.php: fica '../' quando a tela está numa subpasta de public/ -->
+<header class="container-fluid p-2 rounded-0 sticky-top topo-sistema">
     <div id="header" class="hstack gap-3 px-2">
         <div class="d-flex" id="logo">
             <img src="<?php echo $caminho; ?>../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo">
@@ -16,8 +9,8 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
                 <p class="mb-0">SISTEMA FERROVIÁRIO</p>
             </div>
         </div>
- 
-        <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #1b3f53;">
+
+        <nav class="navbar navbar-expand-lg navbar-dark topo-sistema">
             <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>tela-geral-home.php">Home</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>dashboard/tela-dashboard.php">Dashboard</a></li>
@@ -25,25 +18,28 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trens/tela-trens.php">Trens</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>trilhos/tela-cadastro-trilhos.php">Trilhos</a></li>
                 <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>relatorios/relatorios.php">Relatórios</a></li>
+                <!-- o operador não vê a aba Usuários -->
                 <?php if ($admin) { ?>
                     <li class="nav-item"><a class="nav-link text-white" href="<?php echo $caminho; ?>usuarios/tela-cadastro-user.php">Usuários</a></li>
                 <?php } ?>
             </ul>
         </nav>
- 
+
         <div class="d-flex align-items-center gap-3">
-            <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>">
-                <span class="tag-avatar"><?php echo strtoupper(substr($_SESSION['usuario'] ?? '?', 0, 1)); ?></span>
+            <!-- etiqueta com a inicial e o nome de quem está logado (o operador tem outra cor) -->
+            <div class="tag-perfil <?php if (!$admin) echo 'tag-operador'; ?>">
+                <span class="tag-avatar"><?php echo strtoupper(substr($_SESSION['usuario'], 0, 1)); ?></span>
                 <div class="tag-texto">
-                    <strong><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?></strong>
-                    <small><?php echo $admin ? 'ADMINISTRADOR' : 'OPERADOR'; ?></small>
+                    <strong><?php echo htmlspecialchars($_SESSION['usuario']); ?></strong>
+                    <small><?php echo $_SESSION['perfil']; ?></small>
                 </div>
             </div>
             <button class="btn-sair" data-bs-toggle="modal" data-bs-target="#modalSair">Sair</button>
         </div>
     </div>
 </header>
- 
+
+<!-- janelinha perguntando se quer sair mesmo, abre pelo botão Sair -->
 <div class="modal fade" id="modalSair" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -59,6 +55,6 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
         </div>
     </div>
 </div>
- 
+
+<!-- JS do Bootstrap, sem ele os modais e os botões de abrir formulário não funcionam -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
- 

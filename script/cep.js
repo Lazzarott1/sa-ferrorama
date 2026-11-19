@@ -1,36 +1,57 @@
-async function buscarCep(campo) {
-    const aviso = campo.nextElementSibling;
-    const cep = campo.value.replace(/\D/g, '');
+// busca o endereço pelo CEP no ViaCEP e preenche os campos sozinho
+// o id diz de qual formulário é (0 = cadastro, outro número = edição daquele usuário)
 
-    const avisar = (texto, cor) => {
-        aviso.textContent = texto;
-        aviso.className = 'form-text ' + cor;
-    };
+// escreve a mensagem embaixo do campo de CEP com a cor que a gente passar
+function avisarCep(id, texto, cor) {
+    let aviso = document.getElementById('avisoCep' + id);
+    aviso.textContent = texto;
+    aviso.className = 'form-text ' + cor;
+}
 
-    const preencher = (dados) => {
-        ['logradouro', 'bairro', 'uf'].forEach(c => campo.form.elements[c].value = dados[c] || '');
-        campo.form.elements.cidade.value = dados.localidade || '';
-    };
+// joga o endereço nos campos do formulário
+function preencherEndereco(id, logradouro, bairro, cidade, uf) {
+    document.getElementById('logradouro' + id).value = logradouro;
+    document.getElementById('bairro' + id).value = bairro;
+    document.getElementById('cidade' + id).value = cidade;
+    document.getElementById('uf' + id).value = uf;
+}
 
-    if (cep === '') return avisar('Digite o CEP para preencher o endereço.', '');
-    if (cep.length !== 8) return avisar('CEP inválido: digite os 8 números.', 'text-danger');
+// chamada quando sai do campo de CEP
+function buscarCep(campo, id) {
+    let cep = campo.value.replace('-', '').trim();
 
-    avisar('Consultando o CEP...', 'text-secondary');
-
-    try {
-        const resposta = await fetch('https://viacep.com.br/ws/' + cep + '/json/', { signal: AbortSignal.timeout(8000) });
-        if (!resposta.ok) throw new Error();
-        const dados = await resposta.json();
-
-        if (dados.erro) {
-            preencher({});
-            return avisar('CEP não encontrado. Confira o número digitado.', 'text-danger');
-        }
-
-        campo.value = dados.cep;
-        preencher(dados);
-        avisar('Endereço encontrado: ' + dados.localidade + '/' + dados.uf + '.', 'text-success');
-    } catch (erro) {
-        avisar('Não foi possível consultar o CEP agora. Tente de novo ou preencha o endereço à mão.', 'text-warning-emphasis');
+    // vazio ou com número errado nem consulta
+    if (cep == '') {
+        avisarCep(id, 'Digite o CEP para preencher o endereço.', '');
+        return;
     }
+
+    if (cep.length != 8 || isNaN(cep)) {
+        avisarCep(id, 'CEP inválido: digite os 8 números.', 'text-danger');
+        return;
+    }
+
+    avisarCep(id, 'Consultando o CEP...', 'text-secondary');
+
+    // pergunta pro ViaCEP (a API é de graça e não precisa de chave)
+    fetch('https://viacep.com.br/ws/' + cep + '/json/')
+        .then(function (resposta) {
+            return resposta.json();
+        })
+        .then(function (dados) {
+            // o ViaCEP responde { erro: true } quando o CEP não existe
+            if (dados.erro) {
+                preencherEndereco(id, '', '', '', '');
+                avisarCep(id, 'CEP não encontrado. Confira o número digitado.', 'text-danger');
+                return;
+            }
+
+            campo.value = dados.cep;
+            preencherEndereco(id, dados.logradouro, dados.bairro, dados.localidade, dados.uf);
+            avisarCep(id, 'Endereço encontrado: ' + dados.localidade + '/' + dados.uf + '.', 'text-success');
+        })
+        // sem internet ou ViaCEP fora do ar: deixa a pessoa preencher na mão
+        .catch(function () {
+            avisarCep(id, 'Não foi possível consultar o CEP agora. Tente de novo ou preencha o endereço à mão.', 'text-warning-emphasis');
+        });
 }

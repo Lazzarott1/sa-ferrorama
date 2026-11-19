@@ -1,28 +1,21 @@
 <?php
 
-function registrarLeitura($conexao)
+// confere uma leitura antes de salvar (usado no dashboard)
+// devolve a lista de erros, se vier vazia pode salvar
+function validarLeitura($conexao, $id_sensor, $valor)
 {
-    $id_sensor = (int) ($_POST['sensor'] ?? 0);
-    $valor = str_replace(',', '.', trim($_POST['valor'] ?? ''));
-
     $erros = [];
 
-    $stmt = mysqli_prepare($conexao, "SELECT 1 FROM sensores WHERE id_sensor = ? AND status_sensor <> 'INATIVO'");
-    mysqli_stmt_bind_param($stmt, "i", $id_sensor);
-    mysqli_stmt_execute($stmt);
+    // o sensor tem que existir e não pode estar inativo
+    $sensor = mysqli_fetch_assoc(mysqli_query($conexao, "SELECT status_sensor FROM sensores WHERE id_sensor = $id_sensor"));
 
-    if (!mysqli_fetch_row(mysqli_stmt_get_result($stmt))) {
+    if (!$sensor || $sensor['status_sensor'] == 'INATIVO') {
         $erros[] = "Selecione um sensor ativo.";
     }
 
+    // o valor tem que ser número e não pode ser gigante (não cabe no banco)
     if (!is_numeric($valor) || abs($valor) >= 100000000) {
         $erros[] = "Informe um valor numérico válido.";
-    }
-
-    if (!$erros) {
-        $stmt = mysqli_prepare($conexao, "INSERT INTO leituras (id_sensor, valor) VALUES (?, ?)");
-        mysqli_stmt_bind_param($stmt, "id", $id_sensor, $valor);
-        mysqli_stmt_execute($stmt);
     }
 
     return $erros;

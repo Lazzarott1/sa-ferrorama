@@ -2,122 +2,82 @@
 
 session_start();
 
-if (isset($_SESSION['id_usuario']) && !isset($_POST['ajax'])) {
-    header("Location: tela-geral-home.php");
-    exit();
-}
-
+// tela de login (não usa o verifica-login porque aqui a pessoa ainda não entrou)
 include '../infra/conexao.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $usuario = trim($_POST['nome_usuario'] ?? '');
-    $senha = $_POST['senha'] ?? '';
 
+// LOGIN (o script/validacao.js envia o formulário e recebe a resposta em JSON)
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $usuario = trim($_POST['nome_usuario']);
+    $senha = $_POST['senha'];
+
+    // procura o usuário pelo nome
     $stmt = mysqli_prepare($conexao, "SELECT id_usuario, nome_usuario, senha, perfil, status_usuario FROM usuarios WHERE nome_usuario = ?");
-    mysqli_stmt_bind_param($stmt, 's', $usuario);
+    mysqli_stmt_bind_param($stmt, "s", $usuario);
     mysqli_stmt_execute($stmt);
     $dados = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    mysqli_stmt_close($stmt);
 
-    $sem_hash = $dados && !password_get_info($dados['senha'])['algo'];
-
-    if ($sem_hash && $senha === $dados['senha']) {
-        // senha gravada direto no banco sem hash: converte no primeiro login
-        $hash = password_hash($senha, PASSWORD_DEFAULT);
+    // Senha cadastrada direto no banco, sem hash: troca pelo hash no primeiro login
+    if ($dados && $senha === $dados['senha']) {
+        $dados['senha'] = password_hash($senha, PASSWORD_DEFAULT);
         $stmt = mysqli_prepare($conexao, "UPDATE usuarios SET senha = ? WHERE id_usuario = ?");
-        mysqli_stmt_bind_param($stmt, 'si', $hash, $dados['id_usuario']);
+        mysqli_stmt_bind_param($stmt, "si", $dados['senha'], $dados['id_usuario']);
         mysqli_stmt_execute($stmt);
-        $dados['senha'] = $hash;
     }
 
-    $erro = '';
+    // monta a resposta: senha errada, usuário inativo ou tudo certo (aí guarda os dados na sessão)
     if (!$dados || !password_verify($senha, $dados['senha'])) {
-        $erro = "Usuário ou senha incorretos.";
-    } elseif ($dados['status_usuario'] !== 'ATIVO') {
-        $erro = "Usuário inativo. Fale com o administrador.";
+        $resposta = ['sucesso' => false, 'mensagem' => 'Usuário ou senha incorretos.'];
+    } elseif ($dados['status_usuario'] != 'ATIVO') {
+        $resposta = ['sucesso' => false, 'mensagem' => 'Usuário inativo. Fale com o administrador.'];
     } else {
         $_SESSION['id_usuario'] = $dados['id_usuario'];
         $_SESSION['usuario'] = $dados['nome_usuario'];
         $_SESSION['perfil'] = $dados['perfil'];
+        $resposta = ['sucesso' => true, 'mensagem' => ''];
     }
 
-    if (isset($_POST['ajax'])) {
-        header('Content-Type: application/json');
-        echo json_encode(['sucesso' => $erro === '', 'mensagem' => $erro]);
-        exit();
-    }
+    // devolve em JSON pro validacao.js, que mostra o erro ou vai pra home
+    header('Content-Type: application/json');
+    echo json_encode($resposta);
+    exit();
+}
 
-    if ($erro === '') {
-        header("Location: tela-geral-home.php");
-        exit();
-    }
+
+// QUEM JÁ ESTÁ LOGADO VAI DIRETO PARA A HOME
+
+if (isset($_SESSION['id_usuario'])) {
+    header("Location: tela-geral-home.php");
+    exit();
 }
 
 ?>
-
+<!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FerroMonitor | Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-
-
-    <style>
-        :root { --azul: #1b3f53; --azul-escuro: #12303f; --amarelo: #daa301; --branco: #ffffff; }
-        body { font-family: Arial, Tahoma, sans-serif; min-height: 100vh; background: radial-gradient(circle at center, #245166 0%, var(--azul) 55%, var(--azul-escuro) 100%); }
-        body.intro { overflow: hidden; }
-        .trilho { position: fixed; left: 0; right: 0; bottom: 40px; z-index: 0; height: 14px; border-top: 3px solid rgba(218, 163, 1, 0.5); border-bottom: 3px solid rgba(218, 163, 1, 0.5); background: repeating-linear-gradient(90deg, transparent 0 26px, rgba(218, 163, 1, 0.25) 26px 34px); }
-        .card-login { position: relative; z-index: 1; width: 420px; max-width: calc(100vw - 32px); background-color: var(--branco); border: none; border-top: 5px solid var(--amarelo); border-radius: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35); transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease; }
-        .marca { display: flex; flex-direction: column; align-items: center; text-align: center; transform-origin: center center; }
-        .marca-logo { width: 76px; height: 76px; border-radius: 14px; box-shadow: 0 6px 18px rgba(218, 163, 1, 0.45); }
-        .marca-nome { margin: 12px 0 0; font-size: 1.9rem; font-weight: 700; color: var(--azul); transition: color 0.6s ease; }
-        .marca-nome span { color: var(--amarelo); }
-        .marca-sub { margin: 2px 0 0; font-size: 0.72rem; letter-spacing: 3px; color: #6c7a86; transition: color 0.6s ease; }
-        .marca-linha { width: 60px; height: 3px; margin-top: 12px; border-radius: 2px; background-color: var(--amarelo); }
-        .form-area { transition: opacity 0.6s ease, transform 0.6s ease; }
-        .form-label { font-size: 0.8rem; font-weight: 600; color: #5b6770; }
-        .form-control:focus { border-color: var(--amarelo); box-shadow: 0 0 0 0.2rem rgba(218, 163, 1, 0.25); }
-        .btn-entrar { background-color: var(--amarelo); color: var(--azul); font-weight: 700; letter-spacing: 1px; border: none; transition: transform 0.2s ease, filter 0.2s ease; }
-        .btn-entrar:hover { background-color: var(--amarelo); color: var(--azul); filter: brightness(1.08); transform: translateY(-2px); }
-        .voltar-site { position: fixed; top: 16px; left: 20px; z-index: 2; color: var(--branco); text-decoration: none; font-size: 0.9rem; }
-        .voltar-site:hover { color: var(--amarelo); }
-        .aviso-suporte { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid #e3e6e8; text-align: center; font-size: 0.8rem; color: #6c7a86; }
-
-        .intro .card-login { background-color: transparent; border-color: transparent; box-shadow: none; }
-        .intro .form-area { opacity: 0; transform: translateY(20px); pointer-events: none; }
-        .intro .marca-nome { color: var(--branco); }
-        .intro .marca-sub { color: rgba(255, 255, 255, 0.75); }
-        .intro .marca-logo { animation: logo-entra 0.9s cubic-bezier(.2, .9, .3, 1.3) both; }
-        .intro .marca-nome, .intro .marca-sub { animation: texto-sobe 0.6s ease 0.6s both; }
-        .intro .marca-linha { animation: linha-cresce 0.6s ease 1.1s both; }
-
-        @keyframes logo-entra { from { opacity: 0; transform: scale(0.4) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
-        @keyframes texto-sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes linha-cresce { from { width: 0; } to { width: 60px; } }
-        #mensagem .alert { min-width: 260px; margin: 0; padding: 12px 18px; color: #ffe1e1; font-weight: 600; background: rgba(220, 53, 69, 0.22); border: 1px solid rgba(255, 120, 120, 0.4); border-left: 4px solid #ff5c5c; border-radius: 10px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); animation: aviso-entra 0.3s ease both; }
-
-        @keyframes aviso-entra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- todo o visual do login (cores, card e animação) fica no login.css -->
+    <link rel="stylesheet" href="../assets/img/style/login.css">
 </head>
 
 <body class="intro">
 
+    <!-- aviso de erro no canto da tela, o validacao.js escreve aqui -->
     <div id="mensagem" class="position-fixed top-0 end-0 m-3 z-3"></div>
 
+    <!-- volta pra landing page -->
     <a href="../index.html" class="voltar-site">&larr; Conhecer o FerroMonitor</a>
 
     <main class="d-flex justify-content-center align-items-center min-vh-100 py-4">
 
         <div class="card card-login p-4">
 
-            <!-- LOGO + NOME (é esse bloco que faz a animação) -->
+            <!-- logo + nome: é esse bloco que se mexe na animação de entrada -->
             <div class="marca mb-4" id="marca">
                 <img src="../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png" alt="Logo FerroMonitor" class="marca-logo">
                 <h1 class="marca-nome">Ferro<span>Monitor</span></h1>
@@ -125,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="marca-linha"></div>
             </div>
 
-            <!-- FORMULÁRIO -->
+            <!-- formulário, fica escondido até a animação terminar -->
             <div class="form-area">
 
                 <form id="form-login">
@@ -150,57 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <script>
-        // ANIMAÇÃO DE ENTRADA
-        // 1) A logo começa grande, no centro da tela.
-        // 2) Depois de ~2s ela diminui e vai para o topo do card.
-        // 3) O card e o formulário aparecem.
-        (function () {
-            const body = document.body;
-            const marca = document.getElementById('marca');
-
-            const semAnimacao = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-            if (semAnimacao) {
-                body.classList.remove('intro');
-                return;
-            }
-
-            const ESCALA_INICIAL = 1.9;   // tamanho da logo em destaque
-            const TEMPO_DESTAQUE = 2000;  // tempo (ms) que a logo fica no centro
-
-            // Calcula quanto a marca precisa andar para ficar no centro da tela
-            const pos = marca.getBoundingClientRect();
-            const dx = window.innerWidth / 2 - (pos.left + pos.width / 2);
-            const dy = window.innerHeight / 2 - (pos.top + pos.height / 2);
-
-            marca.style.transform = `translate(${dx}px, ${dy}px) scale(${ESCALA_INICIAL})`;
-
-            let terminou = false;
-
-            function mostrarLogin() {
-                if (terminou) return;
-                terminou = true;
-
-                // Leva a marca de volta para o lugar dela, diminuindo
-                marca.style.transition = 'transform 0.9s cubic-bezier(.65, 0, .35, 1)';
-                marca.style.transform = '';
-
-                // Um pouco depois, o card e o formulário aparecem
-                setTimeout(() => {
-                    body.classList.remove('intro');
-                    document.getElementById('nome_usuario').focus();
-                }, 450);
-            }
-
-            setTimeout(mostrarLogin, TEMPO_DESTAQUE);
-
-            // Clicar ou apertar uma tecla pula a animação
-            document.addEventListener('click', mostrarLogin, { once: true });
-            document.addEventListener('keydown', mostrarLogin, { once: true });
-        })();
-    </script>
-
+    <!-- animação da logo e envio do formulário -->
+    <script src="../script/animacao-login.js"></script>
     <script src="../script/validacao.js"></script>
 </body>
 
