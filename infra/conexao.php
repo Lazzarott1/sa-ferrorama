@@ -1,5 +1,5 @@
 <?php
-// desliga as exceções do mysqli, a gente mesmo confere os erros
+// desliga as exceções do mysqli
 mysqli_report(MYSQLI_REPORT_OFF);
 
 // dados do banco no XAMPP (root sem senha é o padrão)
