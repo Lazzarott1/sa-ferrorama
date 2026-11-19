@@ -9,6 +9,8 @@ $erros = [];
 // $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do
 // item editado
 $aberto = -1;
+// o que foi digitado no formulário que deu erro (fica vazio até dar algum erro)
+$digitado = [];
 
 
 // ATIVAR / INATIVAR SENSORES
@@ -38,8 +40,8 @@ if ($admin && isset($_POST['salvar'])) {
         // id 0 faz INSERT, senão faz UPDATE (os ? são preenchidos pelo bind_param, assim ninguém
         // consegue injetar SQL)
         if ($id == 0) {
-            $stmt = mysqli_prepare($conexao, "INSERT INTO sensores (nome_sensor, tipo_sensor,
-                id_trilho, status_sensor)
+            $stmt = mysqli_prepare($conexao, "INSERT INTO sensores
+                (nome_sensor, tipo_sensor, id_trilho, status_sensor)
                 VALUES (?, ?, ?, ?)");
             mysqli_stmt_bind_param($stmt, "ssis", $nome, $tipo, $id_trilho, $status);
         } else {
@@ -104,7 +106,7 @@ $novo = [
 
 
 // desenha o formulário do sensor, usado no cadastro e também na edição dentro da lista
-function formSensor($sensor, $trilhos)
+function formSensor(array $sensor, array $trilhos)
 {
     $id = $sensor['id_sensor'];
     ?>
@@ -126,13 +128,16 @@ function formSensor($sensor, $trilhos)
                 <label for="tipoSensor<?php echo $id; ?>" class="form-label">TIPO</label>
                 <select name="tipo" id="tipoSensor<?php echo $id; ?>" class="form-select" required>
                     <option value="">Selecione o tipo</option>
-                    <option <?php if ($sensor['tipo_sensor'] == 'Velocidade') echo 'selected'; ?>>
+                    <option
+                        <?php if ($sensor['tipo_sensor'] == 'Velocidade') echo 'selected'; ?>>
                         Velocidade
                     </option>
-                    <option <?php if ($sensor['tipo_sensor'] == 'Localização') echo 'selected'; ?>>
+                    <option
+                        <?php if ($sensor['tipo_sensor'] == 'Localização') echo 'selected'; ?>>
                         Localização
                     </option>
-                    <option <?php if ($sensor['tipo_sensor'] == 'Temperatura') echo 'selected'; ?>>
+                    <option
+                        <?php if ($sensor['tipo_sensor'] == 'Temperatura') echo 'selected'; ?>>
                         Temperatura
                     </option>
                 </select>
@@ -151,7 +156,11 @@ function formSensor($sensor, $trilhos)
                             || $trilho['id_trilho'] == $sensor['id_trilho']) { ?>
                             <option
                                 value="<?php echo $trilho['id_trilho']; ?>"
-                                <?php if ($trilho['id_trilho'] == $sensor['id_trilho']) echo 'selected'; ?>>
+                                <?php
+                                if ($trilho['id_trilho'] == $sensor['id_trilho']) {
+                                    echo 'selected';
+                                }
+                                ?>>
                                 <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
                             </option>
                         <?php } ?>
@@ -211,10 +220,10 @@ function formSensor($sensor, $trilhos)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensores</title>
-    <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/img/style/style.css">
 </head>
 
 <body>
@@ -295,8 +304,8 @@ function formSensor($sensor, $trilhos)
                                     ?>
                                 </td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $sensor['status_sensor']; ?>">
+                                    <?php $classe = 'status-' . $sensor['status_sensor']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $sensor['status_sensor']; ?>
                                     </span>
                                 </td>
@@ -314,7 +323,8 @@ function formSensor($sensor, $trilhos)
                                 <!-- linha escondida embaixo de cada item com o formulário de -->
                                 <!-- edição, abre no botão EDITAR -->
                                 <tr
-                                    class="collapse <?php if ($aberto == $sensor['id_sensor']) echo 'show'; ?>"
+                                    class="collapse
+                                        <?php if ($aberto == $sensor['id_sensor']) echo 'show'; ?>"
                                     id="editar<?php echo $sensor['id_sensor']; ?>">
                                     <td colspan="7" class="p-0">
                                         <?php

@@ -9,6 +9,8 @@ $erros = [];
 // $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do
 // item editado
 $aberto = -1;
+// o que foi digitado no formulário que deu erro (fica vazio até dar algum erro)
+$digitado = [];
 
 // pedaços de SQL que contam quantos trens e sensores ativos estão no trilho
 // ficam em variável porque são usados em vários lugares da página
@@ -140,7 +142,7 @@ $novo = [
 
 
 // desenha o formulário do trilho, usado no cadastro e também na edição dentro da lista
-function formTrilho($trilho)
+function formTrilho(array $trilho)
 {
     $id = $trilho['id_trilho'];
     ?>
@@ -235,10 +237,10 @@ function formTrilho($trilho)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trilhos</title>
-    <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/img/style/style.css">
 </head>
 
 <body>
@@ -273,7 +275,8 @@ function formTrilho($trilho)
         <?php if ($admin) { ?>
             <!-- formulário de cadastro, começa fechado (abre sozinho se deu erro no cadastro) -->
             <div
-                class="caixa collapse <?php if ($aberto === 0 || isset($_GET['novo'])) echo 'show'; ?>"
+                class="caixa collapse
+                    <?php if ($aberto === 0 || isset($_GET['novo'])) echo 'show'; ?>"
                 id="editar0">
                 <div class="caixa-topo">CADASTRAR NOVO TRILHO</div>
                 <?php
@@ -343,8 +346,8 @@ function formTrilho($trilho)
                                     <?php echo date('d/m/Y', strtotime($trilho['data_criacao'])); ?>
                                 </td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $trilho['status_trilho']; ?>">
+                                    <?php $classe = 'status-' . $trilho['status_trilho']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $trilho['status_trilho']; ?>
                                     </span>
                                 </td>
@@ -362,7 +365,8 @@ function formTrilho($trilho)
                                 <!-- linha escondida embaixo de cada item com o formulário de -->
                                 <!-- edição, abre no botão EDITAR -->
                                 <tr
-                                    class="collapse <?php if ($aberto == $trilho['id_trilho']) echo 'show'; ?>"
+                                    class="collapse
+                                        <?php if ($aberto == $trilho['id_trilho']) echo 'show'; ?>"
                                     id="editar<?php echo $trilho['id_trilho']; ?>">
                                     <td colspan="9" class="p-0">
                                         <?php

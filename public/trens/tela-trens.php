@@ -9,6 +9,8 @@ $erros = [];
 // $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do
 // item editado
 $aberto = -1;
+// o que foi digitado no formulário que deu erro (fica vazio até dar algum erro)
+$digitado = [];
 
 
 // ATIVAR / INATIVAR TRENS
@@ -148,7 +150,7 @@ $novo = [
 
 
 // desenha o formulário do trem, usado no cadastro e também na edição dentro da lista
-function formTrem($trem, $trilhos, $usuarios)
+function formTrem(array $trem, array $trilhos, array $usuarios)
 {
     $id = $trem['id_trem'];
     ?>
@@ -217,7 +219,11 @@ function formTrem($trem, $trilhos, $usuarios)
                             || $trilho['id_trilho'] == $trem['id_trilho']) { ?>
                             <option
                                 value="<?php echo $trilho['id_trilho']; ?>"
-                                <?php if ($trilho['id_trilho'] == $trem['id_trilho']) echo 'selected'; ?>>
+                                <?php
+                                if ($trilho['id_trilho'] == $trem['id_trilho']) {
+                                    echo 'selected';
+                                }
+                                ?>>
                                 <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
                             </option>
                         <?php } ?>
@@ -243,7 +249,11 @@ function formTrem($trem, $trilhos, $usuarios)
                             || $usuario['id_usuario'] == $trem['id_usuario']) { ?>
                             <option
                                 value="<?php echo $usuario['id_usuario']; ?>"
-                                <?php if ($usuario['id_usuario'] == $trem['id_usuario']) echo 'selected'; ?>>
+                                <?php
+                                if ($usuario['id_usuario'] == $trem['id_usuario']) {
+                                    echo 'selected';
+                                }
+                                ?>>
                                 <?php echo htmlspecialchars($usuario['nome_usuario']); ?>
                             </option>
                         <?php } ?>
@@ -307,10 +317,10 @@ function formTrem($trem, $trilhos, $usuarios)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trens</title>
-    <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/img/style/style.css">
 </head>
 
 <body>
@@ -403,8 +413,8 @@ function formTrem($trem, $trilhos, $usuarios)
                                     ?>
                                 </td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $trem['status_trem']; ?>">
+                                    <?php $classe = 'status-' . $trem['status_trem']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $trem['status_trem']; ?>
                                     </span>
                                 </td>
@@ -422,7 +432,8 @@ function formTrem($trem, $trilhos, $usuarios)
                                 <!-- linha escondida embaixo de cada item com o formulário de -->
                                 <!-- edição, abre no botão EDITAR -->
                                 <tr
-                                    class="collapse <?php if ($aberto == $trem['id_trem']) echo 'show'; ?>"
+                                    class="collapse
+                                        <?php if ($aberto == $trem['id_trem']) echo 'show'; ?>"
                                     id="editar<?php echo $trem['id_trem']; ?>">
                                     <td colspan="9" class="p-0">
                                         <?php

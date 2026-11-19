@@ -9,6 +9,8 @@ $erros = [];
 // $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do
 // item editado
 $aberto = -1;
+// o que foi digitado no formulário que deu erro (fica vazio até dar algum erro)
+$digitado = [];
 
 // SQL que conta de quantos trens ativos o usuário é responsável
 $trens_ativos = "(SELECT COUNT(*)
@@ -206,7 +208,7 @@ $novo = [
 
 
 // desenha o formulário do usuário, usado no cadastro e também na edição dentro da lista
-function formUsuario($usuario, $id_logado)
+function formUsuario(array $usuario, int $id_logado)
 {
     $id = $usuario['id_usuario'];
 
@@ -400,10 +402,10 @@ function formUsuario($usuario, $id_logado)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Usuários</title>
-    <link rel="stylesheet" href="../../assets/img/style/style.css">
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/img/style/style.css">
 </head>
 
 <body>
@@ -488,8 +490,8 @@ function formUsuario($usuario, $id_logado)
                                 <td><?php echo htmlspecialchars($usuario['nome_usuario']); ?></td>
                                 <td><?php echo htmlspecialchars($usuario['email_usuario']); ?></td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $usuario['perfil']; ?>">
+                                    <?php $classe = 'status-' . $usuario['perfil']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $usuario['perfil']; ?>
                                     </span>
                                 </td>
@@ -514,13 +516,15 @@ function formUsuario($usuario, $id_logado)
                                     ?>
                                 </td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $usuario['status_usuario']; ?>">
+                                    <?php $classe = 'status-' . $usuario['status_usuario']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $usuario['status_usuario']; ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <?php echo date('d/m/Y H:i', strtotime($usuario['data_cadastro'])); ?>
+                                    <?php
+                                    echo date('d/m/Y H:i', strtotime($usuario['data_cadastro']));
+                                    ?>
                                 </td>
                                 <td class="text-center text-nowrap">
                                     <?php acoes($id, $usuario['status_usuario']); ?>
