@@ -10,12 +10,12 @@ $banco = 'sa_ferrorama';
 
 $conexao = new mysqli($host, $usuario, $senha, $banco);
 
-// se não conectar para tudo e mostra o erro
+// se não conectar para e mostra o erro
 if ($conexao->connect_error) {
     die('Erro na conexão: ' . $conexao->connect_error);
 }
 
-// pra acentuação não vir quebrada
+// acentuação quebrar
 $conexao->set_charset('utf8mb4');
 
 // algumas telas antigas usam $conn, então deixamos os dois nomes

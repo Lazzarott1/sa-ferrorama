@@ -1,6 +1,6 @@
 <?php
 
-// sair do sistema: apaga a sessão e volta pra landing page
+// sair do sistema apaga a sessão e volta pra landing page
 session_start();
 session_destroy();
 

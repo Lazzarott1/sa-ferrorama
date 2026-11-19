@@ -1,9 +1,7 @@
--- banco do FerroMonitor, é só importar esse arquivo no phpMyAdmin
--- nada é apagado pelo sistema: os registros só mudam de status pra INATIVO
 CREATE DATABASE sa_ferrorama;
 USE sa_ferrorama;
 
--- trilhos (as rotas da ferrovia)
+
 CREATE TABLE trilhos (
     id_trilho INT AUTO_INCREMENT PRIMARY KEY,
     nome_trilho VARCHAR(100) NOT NULL,
@@ -14,8 +12,7 @@ CREATE TABLE trilhos (
     data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- usuários do sistema: perfil ADMINISTRADOR ou OPERADOR
--- a senha fica com hash (password_hash do PHP) e o endereço é opcional (preenchido pelo CEP)
+
 CREATE TABLE usuarios (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
     nome_usuario VARCHAR(200) NOT NULL UNIQUE,
@@ -31,7 +28,7 @@ CREATE TABLE usuarios (
     data_cadastro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- trens: cada um fica num trilho e tem um usuário responsável
+
 CREATE TABLE trens (
     id_trem INT AUTO_INCREMENT PRIMARY KEY,
     nome_trem VARCHAR(100) NOT NULL,
@@ -44,7 +41,6 @@ CREATE TABLE trens (
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
 );
 
--- sensores instalados nos trilhos (velocidade, localização ou temperatura)
 CREATE TABLE sensores (
     id_sensor        INT AUTO_INCREMENT PRIMARY KEY,
     nome_sensor      VARCHAR(100)    NOT NULL,
@@ -54,7 +50,6 @@ CREATE TABLE sensores (
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho) ON DELETE SET NULL
 );
 
--- relatórios gerados: só guarda os filtros, o conteúdo é montado na hora de ver
 CREATE TABLE relatorios (
     id_relatorio     INT AUTO_INCREMENT PRIMARY KEY,
     titulo           VARCHAR(150)    NOT NULL,
@@ -70,7 +65,6 @@ CREATE TABLE relatorios (
     FOREIGN KEY (id_trilho) REFERENCES trilhos(id_trilho)
 );
 
--- cada valor medido por um sensor, com a data e a hora
 CREATE TABLE leituras (
     id_leitura       INT AUTO_INCREMENT PRIMARY KEY,
     id_sensor        INT             NOT NULL,
@@ -81,7 +75,6 @@ CREATE TABLE leituras (
 
 USE sa_ferrorama;
 
--- usuários que já vêm prontos pra conseguir entrar na primeira vez
 INSERT INTO usuarios (nome_usuario, senha, email_usuario, perfil) VALUES
 ('admin',    '$2y$12$rMdLkQLkxCcq6Cbmazqc.O9mvluYpbGTNkiWy.M5fmqVeVA.S1zYi', 'admin@ferromonitor.com',    'ADMINISTRADOR'),
 ('operador', '$2y$12$PfDzvJ35IUzg7JEslLJhB.f4nMQxHhXVLUUpSsuIyMKQgu12tQsQq', 'operador@ferromonitor.com', 'OPERADOR');
