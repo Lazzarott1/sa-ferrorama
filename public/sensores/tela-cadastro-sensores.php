@@ -15,7 +15,9 @@ $id_com_erro = -1;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['ids'])) {
     // o sensor não tem nada ligado nele, então pode inativar sem conferir nada
     if (isset($_POST['ativar'])) {
-        $sql = "UPDATE sensores SET status_sensor = 'ATIVO' WHERE id_sensor = ?";
+        // só volta pra ATIVO o que estava inativo (o que está em manutenção continua)
+        $sql = "UPDATE sensores SET status_sensor = 'ATIVO'
+            WHERE id_sensor = ? AND status_sensor = 'INATIVO'";
     } else {
         $sql = "UPDATE sensores SET status_sensor = 'INATIVO' WHERE id_sensor = ?";
     }

@@ -19,7 +19,9 @@ $id_com_erro = -1;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['ids'])) {
     // trem pode inativar direto, não tem nada que dependa dele
     if (isset($_POST['ativar'])) {
-        $sql = "UPDATE trens SET status_trem = 'ATIVO' WHERE id_trem = ?";
+        // só volta pra ATIVO o que estava inativo (o que está em manutenção continua)
+        $sql = "UPDATE trens SET status_trem = 'ATIVO'
+            WHERE id_trem = ? AND status_trem = 'INATIVO'";
     } else {
         $sql = "UPDATE trens SET status_trem = 'INATIVO' WHERE id_trem = ?";
     }

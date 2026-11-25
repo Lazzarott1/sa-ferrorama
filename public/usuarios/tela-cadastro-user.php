@@ -21,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
         $id_marcado = (int) $id_marcado;
 
         if (isset($_POST['ativar'])) {
-            $sql = "UPDATE usuarios SET status_usuario = 'ATIVO' WHERE id_usuario = ?";
+            // só volta pra ATIVO o que estava inativo (o que está em manutenção continua)
+            $sql = "UPDATE usuarios SET status_usuario = 'ATIVO'
+                WHERE id_usuario = ? AND status_usuario = 'INATIVO'";
             $stmt = mysqli_prepare($conexao, $sql);
             mysqli_stmt_bind_param($stmt, 'i', $id_marcado);
             mysqli_stmt_execute($stmt);
