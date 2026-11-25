@@ -6,7 +6,9 @@ session_start();
 include '../infra/conexao.php';
 
 
-// LOGIN (o script/validacao.js envia o formulário e recebe a resposta em JSON)
+// LOGIN
+// o formulário manda pra esta mesma página; se der erro a mensagem fica em $erro
+$erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario = trim($_POST['nome_usuario']);
@@ -28,25 +30,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         mysqli_stmt_execute($stmt);
     }
 
-    // monta a resposta: senha errada, usuário inativo ou tudo certo (aí guarda os dados na sessão)
+    // senha errada, usuário inativo ou tudo certo (aí guarda os dados na sessão e vai pra home)
     if (!$dados || !password_verify($senha, $dados['senha'])) {
-        $resposta = ['sucesso' => false, 'mensagem' => 'Usuário ou senha incorretos.'];
+        $erro = 'Usuário ou senha incorretos.';
     } elseif ($dados['status_usuario'] != 'ATIVO') {
-        $resposta = [
-            'sucesso' => false,
-            'mensagem' => 'Usuário inativo. Fale com o administrador.'
-        ];
+        $erro = 'Usuário inativo. Fale com o administrador.';
     } else {
         $_SESSION['id_usuario'] = $dados['id_usuario'];
         $_SESSION['usuario'] = $dados['nome_usuario'];
         $_SESSION['perfil'] = $dados['perfil'];
-        $resposta = ['sucesso' => true, 'mensagem' => ''];
+        header("Location: tela-geral-home.php");
+        exit();
     }
-
-    // devolve em JSON pro validacao.js, que mostra o erro ou vai pra home
-    header('Content-Type: application/json');
-    echo json_encode($resposta);
-    exit();
 }
 
 
@@ -72,10 +67,15 @@ if (isset($_SESSION['id_usuario'])) {
     <link rel="stylesheet" href="../assets/img/style/login.css">
 </head>
 
-<body class="intro">
+<!-- a animação de entrada (classe intro) só roda quando abre a tela, não depois de um erro -->
+<body class="<?php if ($erro == '') { echo 'intro'; } ?>">
 
-    <!-- aviso de erro no canto da tela, o validacao.js escreve aqui -->
-    <div id="mensagem" class="position-fixed top-0 end-0 m-3 z-3"></div>
+    <!-- aviso de erro no canto da tela (o validacao.js apaga depois de 5 segundos) -->
+    <div id="mensagem" class="position-fixed top-0 end-0 m-3 z-3">
+        <?php if ($erro != '') { ?>
+            <div class="alert alert-danger shadow mb-0"><?php echo $erro; ?></div>
+        <?php } ?>
+    </div>
 
     <!-- volta pra landing page -->
     <a href="../index.html" class="voltar-site">&larr; Conhecer o FerroMonitor</a>
@@ -98,7 +98,7 @@ if (isset($_SESSION['id_usuario'])) {
             <!-- formulário, fica escondido até a animação terminar -->
             <div class="form-area">
 
-                <form id="form-login">
+                <form id="form-login" method="POST">
 
                     <div class="mb-3 conjunto">
                         <label for="nome_usuario" class="form-label">NOME DE USUÁRIO</label>
@@ -132,8 +132,10 @@ if (isset($_SESSION['id_usuario'])) {
         </div>
     </main>
 
-    <!-- animação da logo e envio do formulário -->
-    <script src="../script/animacao-login.js"></script>
+    <!-- animação da logo (só na primeira vez) e aviso de campos vazios -->
+    <?php if ($erro == '') { ?>
+        <script src="../script/animacao-login.js"></script>
+    <?php } ?>
     <script src="../script/validacao.js"></script>
 </body>
 

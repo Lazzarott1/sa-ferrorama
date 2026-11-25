@@ -64,3 +64,13 @@ function buscarCep(campo, id) {
             );
         });
 }
+
+// quando sai de qualquer campo de CEP da tela, busca o endereço
+// (o data-id do campo diz de qual formulário ele é)
+let camposCep = document.getElementsByClassName('campo-cep');
+
+for (let i = 0; i < camposCep.length; i++) {
+    camposCep[i].addEventListener('blur', function () {
+        buscarCep(this, this.dataset.id);
+    });
+}

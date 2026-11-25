@@ -1,10 +1,5 @@
 // funções das listas de trilhos, trens, sensores e usuários (marcar, ativar e inativar)
 
-// quando troca o filtro Ativos/Inativos/Todos já envia o form
-function enviarFiltro(campo) {
-    campo.form.submit();
-}
-
 // todos os checkboxes da lista
 function pegarCaixas() {
     return document.getElementsByClassName('marcar');
@@ -105,4 +100,57 @@ function inativar(id) {
     document.getElementById('perguntaInativar').textContent = pergunta;
     document.getElementById('textoInativar').textContent = texto;
     document.getElementById('botaoInativar').hidden = !permitido;
+}
+
+
+// LIGANDO OS BOTÕES DA TELA
+// (o operador não tem checkbox nem botões, por isso os if antes de usar)
+
+// trocar o filtro Ativos/Inativos/Todos já envia o form
+let filtro = document.getElementById('filtro');
+
+filtro.addEventListener('change', function () {
+    filtro.form.submit();
+});
+
+// checkbox do cabeçalho
+let caixaTopo = document.getElementById('marcarTodos');
+
+if (caixaTopo) {
+    caixaTopo.addEventListener('change', function () {
+        marcarTodos(caixaTopo);
+    });
+}
+
+// botão INATIVAR SELECIONADOS (id 0)
+let botaoSelecionados = document.getElementById('inativarSelecionados');
+
+if (botaoSelecionados) {
+    botaoSelecionados.addEventListener('click', function () {
+        inativar(0);
+    });
+}
+
+// cada checkbox da lista
+let caixas = pegarCaixas();
+
+for (let i = 0; i < caixas.length; i++) {
+    caixas[i].addEventListener('change', mostrarMassa);
+}
+
+// botões ATIVAR e INATIVAR de cada linha (o data-id diz qual item é)
+let botoesAtivar = document.getElementsByClassName('botao-ativar');
+
+for (let i = 0; i < botoesAtivar.length; i++) {
+    botoesAtivar[i].addEventListener('click', function () {
+        marcarSo(this.dataset.id);
+    });
+}
+
+let botoesInativar = document.getElementsByClassName('botao-inativar');
+
+for (let i = 0; i < botoesInativar.length; i++) {
+    botoesInativar[i].addEventListener('click', function () {
+        inativar(this.dataset.id);
+    });
 }

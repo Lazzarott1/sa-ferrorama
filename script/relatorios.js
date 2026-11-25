@@ -1,7 +1,9 @@
 // quando troca o tipo no filtro já envia o formulário
-function enviarFiltro(campo) {
-    campo.form.submit();
-}
+let filtro = document.getElementById('filtro');
+
+filtro.addEventListener('change', function () {
+    filtro.form.submit();
+});
 
 // se a página veio com um relatório pra mostrar (?ver=), abre o modal sozinho
 let modalRelatorio = document.getElementById('modalRelatorio');

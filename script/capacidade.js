@@ -1,6 +1,6 @@
 // muda o texto da capacidade conforme o modelo do trem: KG pra carga, passageiros pra passageiros
-// o data-id do select diz de qual formulário ele é (0 = cadastro, outro número = edição daquele
-// trem)
+// o data-id do select diz de qual formulário ele é
+// (0 = cadastro, outro número = edição daquele trem)
 function atualizarCapacidade(modelo) {
     let id = modelo.dataset.id;
     let rotulo = document.getElementById('labelCapacidade' + id);
@@ -19,8 +19,13 @@ function atualizarCapacidade(modelo) {
 }
 
 // quando a página abre já acerta o texto de todos os formulários
+// e cada vez que trocar o modelo acerta de novo
 let modelos = document.getElementsByClassName('modelo-trem');
 
 for (let i = 0; i < modelos.length; i++) {
     atualizarCapacidade(modelos[i]);
+
+    modelos[i].addEventListener('change', function () {
+        atualizarCapacidade(this);
+    });
 }

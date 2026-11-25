@@ -1,21 +1,28 @@
 <?php
- 
-// a navbar é incluída em todas as telas, mas algumas ficam em public/ e outras em public/trens/,
-// public/trilhos/...
-// então descobre se precisa colocar ../ nos links
-$pasta_public = realpath(__DIR__);
-$pasta_pagina = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
- 
-$caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
- 
+
+// a navbar é incluída em todas as telas, depois do verifica-login
+// o $caminho vem de lá: fica '' nas telas de public/ e '../' nas que estão em public/trens/,
+// public/trilhos/... (assim os links funcionam de qualquer pasta)
+
+// a etiqueta do operador tem outra cor
+$classe_perfil = '';
+$nome_perfil = 'ADMINISTRADOR';
+if (!$admin) {
+    $classe_perfil = 'tag-operador';
+    $nome_perfil = 'OPERADOR';
+}
+
+// caminho da logo (fica aqui em cima pra linha do img não ficar enorme)
+$logo = $caminho . '../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png';
+
 ?>
- 
+
 <!-- faixa azul de cima com a logo, o menu e o usuário logado -->
 <header class="container-fluid p-2 rounded-0 sticky-top topo-sistema">
     <div id="header" class="hstack gap-3 px-2">
         <div class="d-flex" id="logo">
             <img
-                src="<?php echo $caminho; ?>../assets/img/Gemini_Generated_Image_z2d26bz2d26bz2d2.png"
+                src="<?php echo $logo; ?>"
                 alt="Logo">
             <div class="nome-sistema">
                 <h2 class="mb-0 text-white">FerroMonitor</h2>
@@ -82,13 +89,13 @@ $caminho = ($pasta_pagina === $pasta_public) ? '' : '../';
  
         <div class="d-flex align-items-center gap-3">
             <!-- etiqueta com a inicial e o nome de quem está logado (o operador tem outra cor) -->
-            <div class="tag-perfil <?php echo $admin ? '' : 'tag-operador'; ?>">
+            <div class="tag-perfil <?php echo $classe_perfil; ?>">
                 <span class="tag-avatar">
-                    <?php echo strtoupper(substr($_SESSION['usuario'] ?? '?', 0, 1)); ?>
+                    <?php echo strtoupper(substr($_SESSION['usuario'], 0, 1)); ?>
                 </span>
                 <div class="tag-texto">
-                    <strong><?php echo htmlspecialchars($_SESSION['usuario'] ?? ''); ?></strong>
-                    <small><?php echo $admin ? 'ADMINISTRADOR' : 'OPERADOR'; ?></small>
+                    <strong><?php echo htmlspecialchars($_SESSION['usuario']); ?></strong>
+                    <small><?php echo $nome_perfil; ?></small>
                 </div>
             </div>
             <button class="btn-sair" data-bs-toggle="modal" data-bs-target="#modalSair">

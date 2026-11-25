@@ -26,7 +26,8 @@ O FerroMonitor reúne em um só lugar o cadastro da malha ferroviária (trilhos,
 - **Home**: saudação, data, resumo da operação (trens, trilhos, sensores ativos e sensores em alerta), clima atual em Joinville (API Open-Meteo), atalhos para as telas e o circuito animado da ferrovia.
 - **Dashboard**: última leitura de cada sensor ativo, resumo de leituras e alertas e a tabela das últimas 100 leituras. A tela se atualiza sozinha a cada 3 segundos.
 - **Sensores, Trens, Trilhos e Usuários**: listagem com filtro Ativos / Inativos / Todos, cadastro pelo botão "+ NOVO", edição na própria linha da tabela, ativar/inativar um item ou vários de uma vez (caixas de seleção).
-- **Trilhos** fazem o papel das rotas: nome, descrição, distância em km, status e a localização da estação, com o endereço preenchido pelo CEP (API ViaCEP).
+- **Trilhos** fazem o papel das rotas: nome, descrição, distância em km e status. A lista mostra os trens associados a cada trilho.
+- **Usuários** têm endereço opcional, preenchido pelo CEP (API ViaCEP).
 - **Trens** são de passageiros ou de carga (a capacidade muda para passageiros ou kg), ficam num trilho e têm um usuário responsável.
 - **Relatórios**: geração com título, período, trem, trilho e tipo de dado. O relatório abre numa janela com o resumo, os trens, trilhos e sensores filtrados e as leituras do período.
 
@@ -90,8 +91,8 @@ erDiagram
 
 | Tabela       | O que guarda                                                        | Status                     |
 |--------------|---------------------------------------------------------------------|----------------------------|
-| `usuarios`   | Nome de usuário, e-mail, senha com hash, perfil e data de cadastro  | Ativo, Inativo             |
-| `trilhos`    | Nome, descrição, km, endereço da estação (CEP) e data de criação    | Ativo, Manutenção, Inativo |
+| `usuarios`   | Nome de usuário, e-mail, senha com hash, perfil, endereço (CEP) e data de cadastro | Ativo, Inativo             |
+| `trilhos`    | Nome, descrição, km e data de criação                               | Ativo, Manutenção, Inativo |
 | `trens`      | Nome, modelo, capacidade, trilho e usuário responsável              | Ativo, Manutenção, Inativo |
 | `sensores`   | Nome, tipo (velocidade, localização ou temperatura) e trilho        | Ativo, Alerta, Inativo     |
 | `leituras`   | Sensor, valor medido e data e hora da leitura                       | -                          |
@@ -102,7 +103,7 @@ erDiagram
 | API        | Onde é usada           | Para quê                                        |
 |------------|------------------------|-------------------------------------------------|
 | Open-Meteo | Home (`script/clima.js`) | Clima atual em Joinville, atualizado a cada 10 min |
-| ViaCEP     | Trilhos (`script/cep.js`) | Preencher o endereço da estação pelo CEP       |
+| ViaCEP     | Usuários (`script/cep.js`) | Preencher o endereço do usuário pelo CEP      |
 
 Detalhes em [`doc/apis-externas.md`](doc/apis-externas.md).
 
@@ -114,15 +115,13 @@ database/       script do banco (db_sa.sql)
 doc/            manual, pesquisas da equipe, APIs, uso de IA e validações
 infra/
   conexao.php             conexão com o banco
-  validacoes-crud/        validações de trens, trilhos, sensores e leituras
   validacoes-usuarios/    controle de login, de administrador e logout
 public/         telas do sistema
   tela-login.php          login
   tela-geral-home.php     home
   navbar.php              menu superior e confirmação de saída
-  listagem.php            funções comuns das listas (filtro, ativar/inativar)
   dashboard/  relatorios/  sensores/  trens/  trilhos/  usuarios/
-script/         JavaScript (login, clima, CEP, mapa, dashboard, capacidade)
+script/         JavaScript (login, clima, CEP, mapa, dashboard, capacidade, listas)
 assets/         CSS e imagens
 ```
 

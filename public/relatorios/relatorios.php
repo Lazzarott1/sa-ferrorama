@@ -1,7 +1,7 @@
 <?php
 
 // tela de relatórios, qualquer usuário logado pode gerar e ver
-include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
+include '../../infra/validacoes-usuarios/verifica-login.php';
 
 $erro = '';
 
@@ -124,7 +124,8 @@ if ($relatorio) {
             . " OR sensores.id_trilho = $trilho_do_trem)";
     }
 
-    // Falhas = só o que está em manutenção ou em alerta; outro tipo filtra os sensores daquele tipo
+    // Falhas = só o que está em manutenção ou em alerta;
+    // outro tipo filtra os sensores daquele tipo
     if ($tipo_dado == 'Falhas') {
         $filtro_trens .= " AND trens.status_trem = 'MANUTENCAO'";
         $filtro_trilhos .= " AND trilhos.status_trilho = 'MANUTENCAO'";
@@ -252,7 +253,7 @@ function cartaoTotal($nome, $total, $cor)
 <body>
 
     <!-- menu de cima -->
-    <?php include __DIR__ . '/../navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
 
     <main class="pagina">
 
@@ -364,7 +365,7 @@ function cartaoTotal($nome, $total, $cor)
                     <select
                         name="tipo"
                         class="form-select form-select-sm"
-                        onchange="enviarFiltro(this)">
+                        id="filtro">
                         <option value="Todos">TODOS</option>
                         <!-- uma opção pra cada tipo já gerado; o relatorios.js envia quando -->
                         <!-- troca -->
@@ -405,8 +406,8 @@ function cartaoTotal($nome, $total, $cor)
                                     <?php echo mostrarData($linha['data_fim']); ?>
                                 </td>
                                 <td>
-                                    <span
-                                        class="badge status status-<?php echo $linha['status_relatorio']; ?>">
+                                    <?php $classe = 'status-' . $linha['status_relatorio']; ?>
+                                    <span class="badge status <?php echo $classe; ?>">
                                         <?php echo $linha['status_relatorio']; ?>
                                     </span>
                                 </td>
@@ -457,7 +458,8 @@ function cartaoTotal($nome, $total, $cor)
                             &middot; Trem: <?php echo textoOuTodos($relatorio['nome_trem']); ?>
                             &middot; Trilho: <?php echo textoOuTodos($relatorio['nome_trilho']); ?>
                             &middot; Dados: <?php echo textoOuTodos($relatorio['tipo_dado']); ?>
-                            &middot; Gerado em <?php echo mostrarDataHora($relatorio['gerado_em']); ?>
+                            &middot; Gerado em
+                            <?php echo mostrarDataHora($relatorio['gerado_em']); ?>
                         </p>
 
                         <div class="row g-3 mb-4 text-center">
@@ -495,14 +497,20 @@ function cartaoTotal($nome, $total, $cor)
                                         <?php while ($linha = mysqli_fetch_assoc($trens)) { ?>
                                             <tr>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_trem']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_trem']);
+                                                    ?>
                                                 </td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['modelo_trem']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['modelo_trem']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['capacidade_trem']; ?></td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_trilho']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['status_trem']; ?></td>
                                             </tr>
@@ -530,13 +538,20 @@ function cartaoTotal($nome, $total, $cor)
                                         <?php while ($linha = mysqli_fetch_assoc($trilhos)) { ?>
                                             <tr>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_trilho']);
+                                                    ?>
                                                 </td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['descricao_trilho']); ?>
+                                                    <?php
+                                                    $descricao = $linha['descricao_trilho'];
+                                                    echo htmlspecialchars($descricao);
+                                                    ?>
                                                 </td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['km_trilho']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['km_trilho']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['status_trilho']; ?></td>
                                             </tr>
@@ -564,11 +579,15 @@ function cartaoTotal($nome, $total, $cor)
                                         <?php while ($linha = mysqli_fetch_assoc($sensores)) { ?>
                                             <tr>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_sensor']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_sensor']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['tipo_sensor']; ?></td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_trilho']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['status_sensor']; ?></td>
                                             </tr>
@@ -598,11 +617,15 @@ function cartaoTotal($nome, $total, $cor)
                                             <tr>
                                                 <td><?php echo $linha['data']; ?></td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_sensor']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_sensor']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['tipo_sensor']; ?></td>
                                                 <td>
-                                                    <?php echo htmlspecialchars($linha['nome_trilho']); ?>
+                                                    <?php
+                                                    echo htmlspecialchars($linha['nome_trilho']);
+                                                    ?>
                                                 </td>
                                                 <td><?php echo $linha['valor']; ?></td>
                                             </tr>

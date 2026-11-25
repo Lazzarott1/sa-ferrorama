@@ -67,7 +67,7 @@ Se o código indica chuva, garoa ou tempestade, aparece o aviso "Pista molhada: 
 ## 2. CEP: ViaCEP
 
 - **Documentação oficial:** <https://viacep.com.br/>
-- **Onde aparece:** bloco "Localização da estação" no cadastro e na edição de trilhos (`public/trilhos/campos-cep.php`, código em `script/cep.js`, validação no servidor em `infra/validacoes-crud/valida-trilho.php`).
+- **Onde aparece:** campo CEP no cadastro e na edição de usuários (`public/usuarios/tela-cadastro-user.php`, código em `script/cep.js`).
 
 ### Por que escolhemos
 
@@ -108,4 +108,4 @@ Resposta (exemplo da documentação oficial, com o CEP 01001-000):
 | Sem internet, API fora do ar ou mais de 8 s | mostra "Não foi possível consultar o CEP agora. Tente de novo ou preencha o endereço à mão" |
 | Alguém burla o JavaScript e envia CEP errado | o PHP recusa: "O CEP deve ter 8 números" ou "Informe a cidade e a UF do CEP" |
 
-O endereço é opcional: um trilho sem CEP continua sendo salvo, e a lista mostra "-" na coluna LOCAL.
+O endereço é opcional: um usuário sem CEP continua sendo salvo.

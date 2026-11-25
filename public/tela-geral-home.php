@@ -1,7 +1,7 @@
 <?php
 
 // tela inicial depois do login
-include __DIR__ . '/../infra/validacoes-usuarios/verifica-login.php';
+include '../infra/validacoes-usuarios/verifica-login.php';
 
 // horário de Brasília, senão a data pode sair errada
 date_default_timezone_set('America/Sao_Paulo');
@@ -45,7 +45,7 @@ $resumo = mysqli_fetch_assoc($resultado);
 <body class="bg-light">
 
     <!-- menu de cima -->
-    <?php include __DIR__ . '/navbar.php'; ?>
+    <?php include 'navbar.php'; ?>
 
     <main class="container-fluid px-4 py-4">
 
@@ -59,8 +59,8 @@ $resumo = mysqli_fetch_assoc($resultado);
             </p>
         </div>
 
-        <!-- aparece quando um operador tenta abrir uma tela só de admin (o verifica-admin manda -->
-        <!-- pra cá) -->
+        <!-- aparece quando um operador tenta abrir uma tela só de admin -->
+        <!-- (o verifica-admin manda pra cá) -->
         <?php if (isset($_GET['acesso'])) { ?>
             <div class="alert alert-warning rounded-1 aviso-acesso">
                 Você não tem permissão para acessar essa tela.
@@ -97,7 +97,8 @@ $resumo = mysqli_fetch_assoc($resultado);
                     <div class="col-6 col-md-3">
                         <!-- o de alertas fica vermelho quando tem algum sensor em alerta -->
                         <div
-                            class="cartao-resumo <?php if ($resumo['alertas'] > 0) echo 'alerta'; ?>">
+                            class="cartao-resumo
+                                <?php if ($resumo['alertas'] > 0) echo 'alerta'; ?>">
                             <i class="bi bi-exclamation-triangle"></i>
                             <strong><?php echo $resumo['alertas']; ?></strong>
                             <span>Sensores em alerta</span>
@@ -121,7 +122,10 @@ $resumo = mysqli_fetch_assoc($resultado);
                                 <span id="climaExtra"></span>
                             </small>
                         </div>
-                        <button class="btn btn-sm" onclick="carregarClima()" title="Atualizar">
+                        <button
+                            id="atualizarClima"
+                            class="btn btn-sm"
+                            title="Atualizar">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>
                     </div>
@@ -365,7 +369,10 @@ $resumo = mysqli_fetch_assoc($resultado);
                            L978 609 L992 615 L1007 621 L1022 626 L1037 632 L1052 638 L1067 644
                            L1082 649 L1097 655 L1112 661 L1127 666 L1142 672 L1152 676"/>
                 </g>
-                <path d="M-18 0 H18" class="parachoque" transform="translate(1152 676) rotate(112)"/>
+                <path
+                    d="M-18 0 H18"
+                    class="parachoque"
+                    transform="translate(1152 676) rotate(112)"/>
                 <!-- aqui dentro o mapa.js cria a locomotiva e os vagões -->
                 <g id="trem"></g>
                 <!-- bolinhas com o nome das agulhas e cruzamentos -->

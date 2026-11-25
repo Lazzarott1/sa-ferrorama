@@ -1,8 +1,7 @@
 <?php
 
 // dashboard: qualquer usuário logado pode ver
-include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
-include __DIR__ . '/../../infra/validacoes-crud/valida-leitura.php';
+include '../../infra/validacoes-usuarios/verifica-login.php';
 
 $erros = [];
 
@@ -14,7 +13,22 @@ if ($admin && isset($_POST['registrar'])) {
     $id_sensor = (int) $_POST['sensor'];
     $valor = str_replace(',', '.', trim($_POST['valor']));
 
-    $erros = validarLeitura($conexao, $id_sensor, $valor);
+    // o sensor tem que existir e não pode estar inativo
+    $sql = "SELECT status_sensor FROM sensores WHERE id_sensor = ?";
+    $stmt = mysqli_prepare($conexao, $sql);
+    mysqli_stmt_bind_param($stmt, 'i', $id_sensor);
+    mysqli_stmt_execute($stmt);
+    $sensor = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    if (!$sensor || $sensor['status_sensor'] == 'INATIVO') {
+        $erros[] = "Selecione um sensor ativo.";
+    }
+
+    // o valor tem que ser número e não pode ser gigante (não cabe no banco)
+    if (!is_numeric($valor) || abs($valor) >= 100000000) {
+        $erros[] = "Informe um valor numérico válido.";
+    }
 
     // sem erro: salva e recarrega a página limpa
     if (count($erros) == 0) {
@@ -100,7 +114,7 @@ if (isset($_GET['json'])) {
 <body>
 
     <!-- menu de cima -->
-    <?php include __DIR__ . '/../navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
 
     <main class="pagina">
 

@@ -1,5 +1,5 @@
-// animação de entrada do login: a logo começa grande no meio da tela e depois vai pro lugar dela no
-// card
+// animação de entrada do login: a logo começa grande no meio da tela
+// e depois vai pro lugar dela no card
 let marca = document.getElementById('marca');
 let terminou = false;
 

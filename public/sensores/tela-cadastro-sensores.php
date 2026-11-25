@@ -1,215 +1,172 @@
 <?php
 
 // tela de sensores: todo mundo vê a lista, mas só o admin cadastra, edita e inativa
-include __DIR__ . '/../../infra/validacoes-usuarios/verifica-login.php';
-include __DIR__ . '/../../infra/validacoes-crud/valida-sensores.php';
-include __DIR__ . '/../listagem.php';
+include '../../infra/validacoes-usuarios/verifica-login.php';
 
 $erros = [];
-// $aberto diz qual formulário reabrir quando dá erro: 0 é o de cadastro, outro número é o id do
-// item editado
-$aberto = -1;
-// o que foi digitado no formulário que deu erro (fica vazio até dar algum erro)
-$digitado = [];
+
+// qual formulário deu erro (0 = cadastro, outro número = id do sensor editado, -1 = nenhum)
+$id_com_erro = -1;
 
 
-// ATIVAR / INATIVAR SENSORES
+// ATIVAR / INATIVAR OS SENSORES MARCADOS
+// os checkboxes da lista mandam os ids em $_POST['ids']
 
-if ($admin && (isset($_POST['ativar']) || isset($_POST['inativar']))) {
-    // ativar/inativar os marcados (sensor não tem nada ligado nele, então não tem regra extra)
-    mudarStatus($conexao, 'sensores', 'id_sensor', 'status_sensor');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['ids'])) {
+    // o sensor não tem nada ligado nele, então pode inativar sem conferir nada
+    if (isset($_POST['ativar'])) {
+        $sql = "UPDATE sensores SET status_sensor = 'ATIVO' WHERE id_sensor = ?";
+    } else {
+        $sql = "UPDATE sensores SET status_sensor = 'INATIVO' WHERE id_sensor = ?";
+    }
+
+    // um UPDATE pra cada id marcado
+    foreach ($_POST['ids'] as $id_marcado) {
+        $id_marcado = (int) $id_marcado;
+
+        $stmt = mysqli_prepare($conexao, $sql);
+        mysqli_stmt_bind_param($stmt, 'i', $id_marcado);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
+
+    // volta pra mesma tela (mantendo o filtro)
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit();
 }
 
 
-// CADASTRAR / EDITAR SENSOR
+// CADASTRAR OU EDITAR SENSOR
+// o mesmo formulário serve pros dois: id 0 é cadastro, id maior que 0 é edição
 
-if ($admin && isset($_POST['salvar'])) {
-    // o mesmo formulário serve pra cadastrar e editar: id 0 é cadastro, id maior que 0 é edição
-    // aqui pega tudo que veio do formulário
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['salvar'])) {
     $id = (int) $_POST['id'];
     $nome = trim($_POST['nome']);
     $tipo = $_POST['tipo'];
     $id_trilho = (int) $_POST['trilho'];
     $status = $_POST['status'];
 
-    $erros = validarSensor($conexao, $id, $nome, $tipo, $id_trilho, $status);
+    // nome obrigatório e no banco cabe só 100 caracteres
+    if ($nome == '') {
+        $erros[] = "Informe o nome do sensor.";
+    } elseif (mb_strlen($nome) > 100) {
+        $erros[] = "O nome do sensor pode ter no máximo 100 caracteres.";
+    }
+
+    // só aceita o que existe no select (dá pra mexer no HTML pelo navegador)
+    if ($tipo != 'Velocidade' && $tipo != 'Localização' && $tipo != 'Temperatura') {
+        $erros[] = "Selecione um tipo válido.";
+    }
+
+    if ($status != 'ATIVO' && $status != 'ALERTA' && $status != 'INATIVO') {
+        $erros[] = "Selecione um status válido.";
+    }
+
+    // o trilho precisa existir e estar ativo
+    // (se o sensor já estava num trilho que foi inativado, pode continuar nele)
+    $sql = "SELECT status_trilho FROM trilhos WHERE id_trilho = ?";
+    $stmt = mysqli_prepare($conexao, $sql);
+    mysqli_stmt_bind_param($stmt, 'i', $id_trilho);
+    mysqli_stmt_execute($stmt);
+    $trilho = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    $sql = "SELECT id_trilho FROM sensores WHERE id_sensor = ?";
+    $stmt = mysqli_prepare($conexao, $sql);
+    mysqli_stmt_bind_param($stmt, 'i', $id);
+    mysqli_stmt_execute($stmt);
+    $sensor_antes = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    if (!$trilho) {
+        $erros[] = "Selecione um trilho ativo.";
+    } elseif ($trilho['status_trilho'] == 'INATIVO') {
+        if (!$sensor_antes || $sensor_antes['id_trilho'] != $id_trilho) {
+            $erros[] = "Selecione um trilho ativo.";
+        }
+    }
 
     if (count($erros) == 0) {
-        // id 0 faz INSERT, senão faz UPDATE (os ? são preenchidos pelo bind_param, assim ninguém
-        // consegue injetar SQL)
         if ($id == 0) {
-            $stmt = mysqli_prepare($conexao, "INSERT INTO sensores
-                (nome_sensor, tipo_sensor, id_trilho, status_sensor)
-                VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "ssis", $nome, $tipo, $id_trilho, $status);
+            $sql = "INSERT INTO sensores (nome_sensor, tipo_sensor, id_trilho, status_sensor)
+                VALUES (?, ?, ?, ?)";
+            $stmt = mysqli_prepare($conexao, $sql);
+            mysqli_stmt_bind_param($stmt, 'ssis', $nome, $tipo, $id_trilho, $status);
         } else {
-            $stmt = mysqli_prepare($conexao, "UPDATE sensores
+            $sql = "UPDATE sensores
                 SET nome_sensor = ?, tipo_sensor = ?, id_trilho = ?, status_sensor = ?
-                WHERE id_sensor = ?");
-            mysqli_stmt_bind_param($stmt, "ssisi", $nome, $tipo, $id_trilho, $status, $id);
+                WHERE id_sensor = ?";
+            $stmt = mysqli_prepare($conexao, $sql);
+            mysqli_stmt_bind_param($stmt, 'ssisi', $nome, $tipo, $id_trilho, $status, $id);
         }
 
-        // salvou: recarrega a mesma página (mantendo o filtro) pra limpar o formulário
+        // salvou: recarrega a tela pra limpar o formulário
         if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
             header("Location: " . $_SERVER['REQUEST_URI']);
             exit();
         }
 
-        $erros[] = "Não foi possível salvar o sensor. Tente novamente.";
+        $erros[] = "Não foi possível salvar o sensor: " . mysqli_error($conexao);
+        mysqli_stmt_close($stmt);
     }
 
-    // se chegou aqui deu erro: guarda o que foi digitado pra reabrir o formulário preenchido
-    $aberto = $id;
-    $digitado = [
-        'id_sensor' => $id,
-        'nome_sensor' => $nome,
-        'tipo_sensor' => $tipo,
-        'id_trilho' => $id_trilho,
-        'status_sensor' => $status
-    ];
+    // deu erro: guarda qual formulário reabrir com o que foi digitado
+    $id_com_erro = $id;
 }
 
 
-// BUSCAR SENSORES (com o nome do trilho)
+// LISTA DE SENSORES (com o nome do trilho)
 
-// filtro Ativos / Inativos / Todos (função do listagem.php)
-$where = filtrar('sensores.status_sensor');
+// filtro Ativos / Inativos / Todos que vem na url (?filtro=)
+$filtro = 'ativos';
+if (isset($_GET['filtro'])) {
+    $filtro = $_GET['filtro'];
+}
 
-$sensores = mysqli_query($conexao, "SELECT sensores.*, trilhos.nome_trilho
+$where = "";
+if ($filtro == 'ativos') {
+    $where = "WHERE sensores.status_sensor <> 'INATIVO'";
+} elseif ($filtro == 'inativos') {
+    $where = "WHERE sensores.status_sensor = 'INATIVO'";
+}
+
+$sql = "SELECT sensores.*, trilhos.nome_trilho
     FROM sensores
     LEFT JOIN trilhos ON trilhos.id_trilho = sensores.id_trilho
     $where
-    ORDER BY sensores.id_sensor DESC");
+    ORDER BY sensores.id_sensor DESC";
+$sensores = mysqli_query($conexao, $sql);
+
+if ($sensores === false) {
+    die('Erro ao consultar sensores: ' . mysqli_error($conexao));
+}
 
 
-// LISTA DO CAMPO TRILHO
+// TRILHOS PRO SELECT DO FORMULÁRIO
+// guardados num array porque o select aparece várias vezes (cadastro + edição de cada sensor)
 
-// todos os trilhos, pro select do formulário
 $trilhos = [];
-$resultado = mysqli_query($conexao, "SELECT id_trilho, nome_trilho, status_trilho
-    FROM trilhos
-    ORDER BY nome_trilho");
+$sql = "SELECT id_trilho, nome_trilho, status_trilho FROM trilhos ORDER BY nome_trilho";
+$resultado = mysqli_query($conexao, $sql);
 while ($linha = mysqli_fetch_assoc($resultado)) {
     $trilhos[] = $linha;
 }
 
-// valores em branco pro formulário de cadastro
-$novo = [
-    'id_sensor' => 0,
-    'nome_sensor' => '',
-    'tipo_sensor' => '',
-    'id_trilho' => 0,
-    'status_sensor' => 'ATIVO'
-];
 
+// VALORES DO FORMULÁRIO DE CADASTRO
+// em branco, ou o que foi digitado se o cadastro deu erro
 
-// desenha o formulário do sensor, usado no cadastro e também na edição dentro da lista
-function formSensor(array $sensor, array $trilhos)
-{
-    $id = $sensor['id_sensor'];
-    ?>
-    <form method="POST" class="caixa-corpo">
-        <input type="hidden" name="id" value="<?php echo $id; ?>">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label for="nomeSensor<?php echo $id; ?>" class="form-label">NOME DO SENSOR</label>
-                <input
-                    type="text"
-                    name="nome"
-                    id="nomeSensor<?php echo $id; ?>"
-                    class="form-control"
-                    placeholder="Ex: Sensor 01"
-                    value="<?php echo htmlspecialchars($sensor['nome_sensor']); ?>"
-                    required>
-            </div>
-            <div class="col-md-6">
-                <label for="tipoSensor<?php echo $id; ?>" class="form-label">TIPO</label>
-                <select name="tipo" id="tipoSensor<?php echo $id; ?>" class="form-select" required>
-                    <option value="">Selecione o tipo</option>
-                    <option
-                        <?php if ($sensor['tipo_sensor'] == 'Velocidade') echo 'selected'; ?>>
-                        Velocidade
-                    </option>
-                    <option
-                        <?php if ($sensor['tipo_sensor'] == 'Localização') echo 'selected'; ?>>
-                        Localização
-                    </option>
-                    <option
-                        <?php if ($sensor['tipo_sensor'] == 'Temperatura') echo 'selected'; ?>>
-                        Temperatura
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <label for="trilhoSensor<?php echo $id; ?>" class="form-label">TRILHO</label>
-                <select
-                    name="trilho"
-                    id="trilhoSensor<?php echo $id; ?>"
-                    class="form-select"
-                    required>
-                    <option value="">Selecione um trilho</option>
-                    <!-- só mostra trilho ativo, a não ser que seja o que o sensor já usa -->
-                    <?php foreach ($trilhos as $trilho) { ?>
-                        <?php if ($trilho['status_trilho'] != 'INATIVO'
-                            || $trilho['id_trilho'] == $sensor['id_trilho']) { ?>
-                            <option
-                                value="<?php echo $trilho['id_trilho']; ?>"
-                                <?php
-                                if ($trilho['id_trilho'] == $sensor['id_trilho']) {
-                                    echo 'selected';
-                                }
-                                ?>>
-                                <?php echo htmlspecialchars($trilho['nome_trilho']); ?>
-                            </option>
-                        <?php } ?>
-                    <?php } ?>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <label for="statusSensor<?php echo $id; ?>" class="form-label">STATUS</label>
-                <select
-                    name="status"
-                    id="statusSensor<?php echo $id; ?>"
-                    class="form-select"
-                    required>
-                    <option
-                        value="ATIVO"
-                        <?php if ($sensor['status_sensor'] == 'ATIVO') echo 'selected'; ?>>
-                        Ativo
-                    </option>
-                    <option
-                        value="ALERTA"
-                        <?php if ($sensor['status_sensor'] == 'ALERTA') echo 'selected'; ?>>
-                        Alerta
-                    </option>
-                    <option
-                        value="INATIVO"
-                        <?php if ($sensor['status_sensor'] == 'INATIVO') echo 'selected'; ?>>
-                        Inativo
-                    </option>
-                </select>
-            </div>
-        </div>
-        <div class="mt-4 d-flex gap-2">
-            <?php if ($id == 0) { ?>
-                <button type="submit" name="salvar" class="btn btn-primary">CADASTRAR</button>
-            <?php } else { ?>
-                <button type="submit" name="salvar" class="btn btn-primary">
-                    SALVAR ALTERAÇÕES
-                </button>
-            <?php } ?>
-            <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-toggle="collapse"
-                data-bs-target="#editar<?php echo $id; ?>">
-                CANCELAR
-            </button>
-        </div>
-    </form>
-    <?php
+$novo_nome = '';
+$novo_tipo = '';
+$novo_trilho = 0;
+$novo_status = 'ATIVO';
+
+if ($id_com_erro === 0) {
+    $novo_nome = $nome;
+    $novo_tipo = $tipo;
+    $novo_trilho = $id_trilho;
+    $novo_status = $status;
 }
 
 ?>
@@ -229,7 +186,7 @@ function formSensor(array $sensor, array $trilhos)
 <body>
 
     <!-- menu de cima -->
-    <?php include __DIR__ . '/../navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
 
     <main class="pagina">
 
@@ -257,26 +214,160 @@ function formSensor(array $sensor, array $trilhos)
 
         <?php if ($admin) { ?>
             <!-- formulário de cadastro, começa fechado (abre sozinho se deu erro no cadastro) -->
-            <div class="caixa collapse <?php if ($aberto === 0) echo 'show'; ?>" id="editar0">
+            <div class="caixa collapse <?php if ($id_com_erro === 0) echo 'show'; ?>" id="editar0">
                 <div class="caixa-topo">CADASTRAR NOVO SENSOR</div>
-                <?php
-                if ($aberto === 0) {
-                    formSensor($digitado, $trilhos);
-                } else {
-                    formSensor($novo, $trilhos);
-                }
-                ?>
+                <form method="POST" class="caixa-corpo">
+                    <input type="hidden" name="id" value="0">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nomeSensor0" class="form-label">NOME DO SENSOR</label>
+                            <input
+                                type="text"
+                                name="nome"
+                                id="nomeSensor0"
+                                class="form-control"
+                                placeholder="Ex: Sensor 01"
+                                value="<?php echo htmlspecialchars($novo_nome); ?>"
+                                required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tipoSensor0" class="form-label">TIPO</label>
+                            <select name="tipo" id="tipoSensor0" class="form-select" required>
+                                <option value="">Selecione o tipo</option>
+                                <option
+                                    <?php if ($novo_tipo == 'Velocidade') echo 'selected'; ?>>
+                                    Velocidade
+                                </option>
+                                <option
+                                    <?php if ($novo_tipo == 'Localização') echo 'selected'; ?>>
+                                    Localização
+                                </option>
+                                <option
+                                    <?php if ($novo_tipo == 'Temperatura') echo 'selected'; ?>>
+                                    Temperatura
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="trilhoSensor0" class="form-label">TRILHO</label>
+                            <select name="trilho" id="trilhoSensor0" class="form-select" required>
+                                <option value="">Selecione um trilho</option>
+                                <!-- no cadastro só aparecem os trilhos ativos -->
+                                <?php
+                                foreach ($trilhos as $trilho) {
+                                    if ($trilho['status_trilho'] != 'INATIVO') {
+                                        $selecionado = '';
+                                        if ($trilho['id_trilho'] == $novo_trilho) {
+                                            $selecionado = 'selected';
+                                        }
+                                        echo "<option value='" . $trilho['id_trilho'] . "' "
+                                            . $selecionado . ">"
+                                            . htmlspecialchars($trilho['nome_trilho'])
+                                            . "</option>";
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="statusSensor0" class="form-label">STATUS</label>
+                            <select name="status" id="statusSensor0" class="form-select" required>
+                                <option
+                                    value="ATIVO"
+                                    <?php if ($novo_status == 'ATIVO') echo 'selected'; ?>>
+                                    Ativo
+                                </option>
+                                <option
+                                    value="ALERTA"
+                                    <?php if ($novo_status == 'ALERTA') echo 'selected'; ?>>
+                                    Alerta
+                                </option>
+                                <option
+                                    value="INATIVO"
+                                    <?php if ($novo_status == 'INATIVO') echo 'selected'; ?>>
+                                    Inativo
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" name="salvar" class="btn btn-primary">
+                            CADASTRAR
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#editar0">
+                            CANCELAR
+                        </button>
+                    </div>
+                </form>
             </div>
         <?php } ?>
 
         <div class="caixa">
-            <!-- faixa azul com o título, os botões de ação em massa e o filtro (listagem.php) -->
-            <?php topo('SENSORES CADASTRADOS', $admin); ?>
+            <!-- faixa azul com o título, os botões de ação em massa e o filtro -->
+            <div class="caixa-topo">
+                SENSORES CADASTRADOS
+                <div class="d-flex flex-wrap gap-2">
+                    <?php if ($admin) { ?>
+                        <!-- só aparecem quando marca 2 itens ou mais (listagem.js) -->
+                        <div id="emMassa" class="d-flex gap-2 d-none">
+                            <button
+                                type="submit"
+                                form="formStatus"
+                                name="ativar"
+                                class="btn btn-sm btn-light">
+                                ATIVAR SELECIONADOS
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-light"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalInativar"
+                                id="inativarSelecionados">
+                                INATIVAR SELECIONADOS
+                            </button>
+                        </div>
+                    <?php } ?>
+                    <!-- trocar o filtro já recarrega a tela com ?filtro= -->
+                    <form method="GET">
+                        <select
+                            name="filtro"
+                            class="form-select form-select-sm"
+                            id="filtro">
+                            <option
+                                value="ativos"
+                                <?php if ($filtro == 'ativos') echo 'selected'; ?>>
+                                ATIVOS
+                            </option>
+                            <option
+                                value="inativos"
+                                <?php if ($filtro == 'inativos') echo 'selected'; ?>>
+                                INATIVOS
+                            </option>
+                            <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>
+                                TODOS
+                            </option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 tabela">
                     <thead>
                         <tr>
-                            <?php if ($admin) marcarTodos(); ?>
+                            <?php if ($admin) { ?>
+                                <!-- marca ou desmarca todos -->
+                                <th>
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        id="marcarTodos">
+                                </th>
+                            <?php } ?>
                             <th>ID</th>
                             <th>NOME</th>
                             <th>TIPO</th>
@@ -288,52 +379,233 @@ function formSensor(array $sensor, array $trilhos)
                     <tbody>
                         <!-- uma linha pra cada sensor -->
                         <?php while ($sensor = mysqli_fetch_assoc($sensores)) { ?>
+                            <?php
+                            $id_sensor = $sensor['id_sensor'];
+
+                            // valores do formulário de edição: os do banco, ou o que foi
+                            // digitado se a edição desse sensor deu erro
+                            $form_nome = $sensor['nome_sensor'];
+                            $form_tipo = $sensor['tipo_sensor'];
+                            $form_trilho = $sensor['id_trilho'];
+                            $form_status = $sensor['status_sensor'];
+
+                            if ($id_com_erro == $id_sensor) {
+                                $form_nome = $nome;
+                                $form_tipo = $tipo;
+                                $form_trilho = $id_trilho;
+                                $form_status = $status;
+                            }
+
+                            $nome_trilho = '-';
+                            if ($sensor['nome_trilho'] != null) {
+                                $nome_trilho = htmlspecialchars($sensor['nome_trilho']);
+                            }
+                            ?>
                             <tr>
-                                <?php if ($admin) marcar($sensor['id_sensor'], 'o sensor '
-                                    . $sensor['nome_sensor'], ''); ?>
-                                <td><?php echo $sensor['id_sensor']; ?></td>
+                                <?php if ($admin) { ?>
+                                    <!-- checkbox da linha (o pop-up usa o data-nome) -->
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input marcar"
+                                            form="formStatus"
+                                            name="ids[]"
+                                            value="<?php echo $id_sensor; ?>"
+                                            data-nome="o sensor <?php
+                                            echo htmlspecialchars($sensor['nome_sensor']); ?>"
+                                            data-bloqueio="">
+                                    </td>
+                                <?php } ?>
+                                <td><?php echo $id_sensor; ?></td>
                                 <td><?php echo htmlspecialchars($sensor['nome_sensor']); ?></td>
                                 <td><?php echo $sensor['tipo_sensor']; ?></td>
+                                <td><?php echo $nome_trilho; ?></td>
                                 <td>
-                                    <?php
-                                    if ($sensor['nome_trilho'] == null) {
-                                        echo '-';
-                                    } else {
-                                        echo htmlspecialchars($sensor['nome_trilho']);
-                                    }
-                                    ?>
-                                </td>
-                                <td>
-                                    <?php $classe = 'status-' . $sensor['status_sensor']; ?>
-                                    <span class="badge status <?php echo $classe; ?>">
+                                    <span class="badge status status-<?php
+                                    echo $sensor['status_sensor']; ?>">
                                         <?php echo $sensor['status_sensor']; ?>
                                     </span>
                                 </td>
                                 <td class="text-center text-nowrap">
-                                    <?php
-                                    if ($admin) {
-                                        acoes($sensor['id_sensor'], $sensor['status_sensor']);
-                                    } else {
-                                        echo '-';
-                                    }
-                                    ?>
+                                    <?php if ($admin) { ?>
+                                        <!-- EDITAR abre o formulário embaixo da linha -->
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#editar<?php echo $id_sensor; ?>">
+                                            EDITAR
+                                        </button>
+                                        <?php if ($sensor['status_sensor'] == 'INATIVO') { ?>
+                                            <button
+                                                type="submit"
+                                                form="formStatus"
+                                                name="ativar"
+                                                class="btn btn-sm btn-primary botao-ativar"
+                                                data-id="<?php echo $id_sensor; ?>">
+                                                ATIVAR
+                                            </button>
+                                        <?php } else { ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger botao-inativar"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalInativar"
+                                                data-id="<?php echo $id_sensor; ?>">
+                                                INATIVAR
+                                            </button>
+                                        <?php } ?>
+                                    <?php } else { ?>
+                                        -
+                                    <?php } ?>
                                 </td>
                             </tr>
                             <?php if ($admin) { ?>
-                                <!-- linha escondida embaixo de cada item com o formulário de -->
-                                <!-- edição, abre no botão EDITAR -->
+                                <!-- linha escondida com o formulário de edição -->
                                 <tr
                                     class="collapse
-                                        <?php if ($aberto == $sensor['id_sensor']) echo 'show'; ?>"
-                                    id="editar<?php echo $sensor['id_sensor']; ?>">
+                                        <?php if ($id_com_erro == $id_sensor) echo 'show'; ?>"
+                                    id="editar<?php echo $id_sensor; ?>">
                                     <td colspan="7" class="p-0">
-                                        <?php
-                                        if ($aberto == $sensor['id_sensor']) {
-                                            formSensor($digitado, $trilhos);
-                                        } else {
-                                            formSensor($sensor, $trilhos);
-                                        }
-                                        ?>
+                                        <form method="POST" class="caixa-corpo">
+                                            <input
+                                                type="hidden"
+                                                name="id"
+                                                value="<?php echo $id_sensor; ?>">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label
+                                                        for="nomeSensor<?php echo $id_sensor; ?>"
+                                                        class="form-label">
+                                                        NOME DO SENSOR
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        name="nome"
+                                                        id="nomeSensor<?php echo $id_sensor; ?>"
+                                                        class="form-control"
+                                                        placeholder="Ex: Sensor 01"
+                                                        value="<?php
+                                                        echo htmlspecialchars($form_nome);
+                                                        ?>"
+                                                        required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label
+                                                        for="tipoSensor<?php echo $id_sensor; ?>"
+                                                        class="form-label">
+                                                        TIPO
+                                                    </label>
+                                                    <select
+                                                        name="tipo"
+                                                        id="tipoSensor<?php echo $id_sensor; ?>"
+                                                        class="form-select"
+                                                        required>
+                                                        <option value="">Selecione o tipo</option>
+                                                        <?php
+                                                        $tipos = [
+                                                            'Velocidade',
+                                                            'Localização',
+                                                            'Temperatura'
+                                                        ];
+                                                        foreach ($tipos as $um_tipo) {
+                                                            $selecionado = '';
+                                                            if ($form_tipo == $um_tipo) {
+                                                                $selecionado = 'selected';
+                                                            }
+                                                            echo "<option " . $selecionado . ">"
+                                                                . $um_tipo . "</option>";
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label
+                                                        for="trilhoSensor<?php echo $id_sensor; ?>"
+                                                        class="form-label">
+                                                        TRILHO
+                                                    </label>
+                                                    <select
+                                                        name="trilho"
+                                                        id="trilhoSensor<?php echo $id_sensor; ?>"
+                                                        class="form-select"
+                                                        required>
+                                                        <option value="">
+                                                            Selecione um trilho
+                                                        </option>
+                                                        <!-- trilhos ativos + o atual -->
+                                                        <?php
+                                                        foreach ($trilhos as $trilho) {
+                                                            $e_dele = $trilho['id_trilho']
+                                                                == $form_trilho;
+
+                                                            $pode = $trilho['status_trilho']
+
+                                                                != 'INATIVO';
+                                                            if ($pode || $e_dele) {
+                                                                $selecionado = '';
+                                                                if ($e_dele) {
+                                                                    $selecionado = 'selected';
+                                                                }
+                                                                echo "<option value='"
+                                                                    . $trilho['id_trilho'] . "' "
+                                                                    . $selecionado . ">"
+                                                                    . htmlspecialchars(
+                                                                        $trilho['nome_trilho']
+                                                                    )
+                                                                    . "</option>";
+                                                            }
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label
+                                                        for="statusSensor<?php echo $id_sensor; ?>"
+                                                        class="form-label">
+                                                        STATUS
+                                                    </label>
+                                                    <select
+                                                        name="status"
+                                                        id="statusSensor<?php echo $id_sensor; ?>"
+                                                        class="form-select"
+                                                        required>
+                                                        <?php
+                                                        $opcoes = [
+                                                            'ATIVO' => 'Ativo',
+                                                            'ALERTA' => 'Alerta',
+                                                            'INATIVO' => 'Inativo'
+                                                        ];
+                                                        foreach ($opcoes as $valor => $texto) {
+                                                            $selecionado = '';
+                                                            if ($form_status == $valor) {
+                                                                $selecionado = 'selected';
+                                                            }
+                                                            echo "<option value='" . $valor . "' "
+                                                                . $selecionado . ">"
+                                                                . $texto . "</option>";
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="mt-4 d-flex gap-2">
+                                                <button
+                                                    type="submit"
+                                                    name="salvar"
+                                                    class="btn btn-primary">
+                                                    SALVAR ALTERAÇÕES
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-secondary"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#editar<?php
+                                                    echo $id_sensor; ?>">
+                                                    CANCELAR
+                                                </button>
+                                            </div>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php } ?>
@@ -353,10 +625,43 @@ function formSensor(array $sensor, array $trilhos)
 
     </main>
 
-    <!-- modal de confirmar inativação (listagem.php) -->
-    <?php modalStatus(); ?>
+    <!-- form vazio que envia os checkboxes marcados -->
+    <!-- (cada checkbox aponta pra ele com form="formStatus") -->
+    <form id="formStatus" method="POST"></form>
 
-    <!-- marcar itens, ações em massa e o modal de inativar -->
+    <!-- pop-up que pergunta se quer mesmo inativar (o texto é montado no listagem.js) -->
+    <div class="modal fade" id="modalInativar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header modal-topo py-2">
+                    <h6 class="modal-title fw-bold" id="tituloInativar"></h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-0">
+                        <strong id="perguntaInativar"></strong>
+                        <div id="textoInativar"></div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                        CANCELAR
+                    </button>
+                    <button
+                        type="submit"
+                        form="formStatus"
+                        name="inativar"
+                        id="botaoInativar"
+                        class="btn btn-sm btn-danger">
+                        INATIVAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- marcar itens, ações em massa e o texto do pop-up -->
     <script src="../../script/listagem.js"></script>
 
 </body>

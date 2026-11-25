@@ -104,4 +104,8 @@ function carregarClima() {
 
 // carrega quando abre a página e depois a cada 10 minutos
 carregarClima();
+
+// botão de atualizar do lado do clima
+document.getElementById('atualizarClima').addEventListener('click', carregarClima);
+
 setInterval(carregarClima, 10 * 60 * 1000);
