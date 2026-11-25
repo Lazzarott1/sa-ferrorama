@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['salvar'])) 
 
 // LISTA DE TRENS (com o nome do trilho e do responsável)
 
-// filtro Ativos / Inativos / Todos que vem na url (?filtro=)
+// filtro Ativos / Inativos / Em manutenção / Todos que vem na url (?filtro=)
 $filtro = 'ativos';
 if (isset($_GET['filtro'])) {
     $filtro = $_GET['filtro'];
@@ -179,6 +179,8 @@ if ($filtro == 'ativos') {
     $where = "WHERE trens.status_trem <> 'INATIVO'";
 } elseif ($filtro == 'inativos') {
     $where = "WHERE trens.status_trem = 'INATIVO'";
+} elseif ($filtro == 'manutencao') {
+    $where = "WHERE trens.status_trem = 'MANUTENCAO'";
 }
 
 $sql = "SELECT trens.*, trilhos.nome_trilho, usuarios.nome_usuario
@@ -461,6 +463,11 @@ if ($id_com_erro === 0) {
                                 value="inativos"
                                 <?php if ($filtro == 'inativos') echo 'selected'; ?>>
                                 INATIVOS
+                            </option>
+                            <option
+                                value="manutencao"
+                                <?php if ($filtro == 'manutencao') echo 'selected'; ?>>
+                                EM MANUTENÇÃO
                             </option>
                             <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>
                                 TODOS

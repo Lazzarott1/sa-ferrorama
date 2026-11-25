@@ -145,6 +145,8 @@ if ($filtro == 'ativos') {
     $where = "WHERE status_trilho <> 'INATIVO'";
 } elseif ($filtro == 'inativos') {
     $where = "WHERE status_trilho = 'INATIVO'";
+} elseif ($filtro == 'manutencao') {
+    $where = "WHERE status_trilho = 'MANUTENCAO'";
 }
 
 // o GROUP_CONCAT junta o nome dos trens do trilho (coluna TRENS ASSOCIADOS)
@@ -290,6 +292,11 @@ if ($id_com_erro === 0 || isset($_GET['novo'])) {
                             <option value="inativos"
                                 <?php if ($filtro == 'inativos') echo 'selected'; ?>>
                                 INATIVOS
+                            </option>
+                            <option
+                                value="manutencao"
+                                <?php if ($filtro == 'manutencao') echo 'selected'; ?>>
+                                EM MANUTENÇÃO
                             </option>
                             <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>
                                 TODOS

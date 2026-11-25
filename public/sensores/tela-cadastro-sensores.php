@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['salvar'])) 
 
 // LISTA DE SENSORES (com o nome do trilho)
 
-// filtro Ativos / Inativos / Todos que vem na url (?filtro=)
+// filtro Ativos / Inativos / Em alerta / Todos que vem na url (?filtro=)
 $filtro = 'ativos';
 if (isset($_GET['filtro'])) {
     $filtro = $_GET['filtro'];
@@ -131,6 +131,8 @@ if ($filtro == 'ativos') {
     $where = "WHERE sensores.status_sensor <> 'INATIVO'";
 } elseif ($filtro == 'inativos') {
     $where = "WHERE sensores.status_sensor = 'INATIVO'";
+} elseif ($filtro == 'alerta') {
+    $where = "WHERE sensores.status_sensor = 'ALERTA'";
 }
 
 $sql = "SELECT sensores.*, trilhos.nome_trilho
@@ -348,6 +350,11 @@ if ($id_com_erro === 0) {
                                 value="inativos"
                                 <?php if ($filtro == 'inativos') echo 'selected'; ?>>
                                 INATIVOS
+                            </option>
+                            <option
+                                value="alerta"
+                                <?php if ($filtro == 'alerta') echo 'selected'; ?>>
+                                EM ALERTA
                             </option>
                             <option value="todos" <?php if ($filtro == 'todos') echo 'selected'; ?>>
                                 TODOS
