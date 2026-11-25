@@ -71,6 +71,12 @@ if (isset($_POST['gerar_relatorio'])) {
 // VER RELATÓRIO (monta as tabelas com os filtros que foram gravados)
 
 $relatorio = null;
+// começam vazias; só ganham valor quando abre um relatório
+$trens = null;
+$trilhos = null;
+$sensores = null;
+$leituras = null;
+$alertas = null;
 
 if (isset($_GET['ver'])) {
     $id = (int) $_GET['ver'];
