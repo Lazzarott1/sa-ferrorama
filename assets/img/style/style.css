@@ -1,12 +1,9 @@
-/* estilo geral do sistema, usado em todas as telas (o login e a home têm arquivo próprio também)
-   obs: esse arquivo é carregado ANTES do bootstrap, não inverter senão a navbar quebra */
+/* estilo geral do sistema, usado em todas as telas
+   (o login e a home têm arquivo próprio também) */
 
 /* ===== NAVBAR ===== */
-.navbar {
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
+/* obs: a navbar não pode ter position: fixed aqui. Nas telas que carregam
+   este arquivo depois do bootstrap ela cobria a logo e o usuário */
 
 .navbar-nav .nav-link {
     color: white;
