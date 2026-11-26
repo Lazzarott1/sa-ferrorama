@@ -23,6 +23,7 @@ $resultado = mysqli_query($conexao, "SELECT
     (SELECT COUNT(*) FROM sensores WHERE status_sensor <> 'INATIVO') AS sensores,
     (SELECT COUNT(*) FROM sensores WHERE status_sensor = 'ALERTA') AS alertas");
 $resumo = mysqli_fetch_assoc($resultado);
+// lê uma linha do resultado de uma consulta ao banco e devolve como um array em que cada chave é o nome da coluna.
 
 ?>
 <!DOCTYPE html>
