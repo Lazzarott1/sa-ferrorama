@@ -10,14 +10,15 @@ if (session_status() == PHP_SESSION_NONE) {
 // não deixa o navegador guardar a página, assim o voltar não mostra a tela depois de sair
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 
-// As telas ficam em public/ ou em uma pasta dentro de public/
+// As telas ficam em public/ ou em uma pasta dentro de public/ - precisamos saber o caminho relativo para redirecionar pro login - 
+// esse bloco descobre se estamos em public/ ou em uma subpasta e define a variável $caminho com o caminho relativo correto
 if (basename(dirname($_SERVER['SCRIPT_FILENAME'])) == 'public') {
     $caminho = '';
 } else {
     $caminho = '../';
 }
 
-// não está logado: vai pro login
+// se não está logado: vai de volta pro login
 if (!isset($_SESSION['id_usuario'])) {
     header("Location: " . $caminho . "tela-login.php");
     exit();
