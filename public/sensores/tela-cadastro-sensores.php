@@ -32,9 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $admin && isset($_POST['ids'])) {
         mysqli_stmt_close($stmt);
     }
 
-    // volta pra mesma tela (mantendo o filtro)
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit();
+// recarrega esta mesma página (com o filtro que estava escolhido),
+// assim a lista aparece atualizada e o F5 não envia o formulário de novo
+header("Location: " . $_SERVER['REQUEST_URI']);
+// para o PHP aqui
+exit();
 }
 
 
